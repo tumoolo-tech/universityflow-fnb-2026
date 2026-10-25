@@ -1,0 +1,20 @@
+# Local development database only. Production runs on AWS RDS in af-south-1 (planning.md §16.1).
+# The credentials below are for a throwaway local container and match .env.example.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: universityflow
+      POSTGRES_PASSWORD: universityflow
+      POSTGRES_DB: universityflow
+    ports:
+      - '5432:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U universityflow']
+      interval: 5s
+      retries: 10
+
+volumes:
+  db-data:

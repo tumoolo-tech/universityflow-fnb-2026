@@ -1,0 +1,5 @@
+node_modules/
+package-lock.json
+raw/
+.mypy_cache/
+__pycache__/

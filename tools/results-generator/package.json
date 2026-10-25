@@ -1,0 +1,31 @@
+{
+  "name": "@universityflow/results-generator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Synthetic learners' Grade 10-12 results, as JSON for the fake ResultsSource and as one-page SAMPLE statements (PDF). A tool: no app or package depends on it.",
+  "scripts": {
+    "generate": "jiti src/cli.ts",
+    "demo-statements": "jiti src/demo-statements-cli.ts",
+    "demo-outlines": "jiti src/demo-outlines-cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rimraf .turbo coverage out"
+  },
+  "dependencies": {
+    "@universityflow/admissions": "workspace:*",
+    "@universityflow/catalogue": "workspace:*",
+    "@universityflow/documents": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@universityflow/config": "workspace:*",
+    "@vitest/coverage-v8": "^4.1.12",
+    "jiti": "2.7.0",
+    "rimraf": "^6.1.3",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}

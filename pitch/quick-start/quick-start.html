@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UniversityFlow: a quick start for judges</title>
+<style>
+  @font-face { font-family: Outfit; font-weight: 400; src: url('../fonts/Outfit-Regular.ttf'); }
+  @font-face { font-family: Outfit; font-weight: 700; src: url('../fonts/Outfit-Bold.ttf'); }
+  :root { --ink: #1A1219; --body: #3A2B35; --muted: #6B5F68; --brand: #8E5A7C; --soft: #F6EEF3; --line: #E6D8E1; --ok: #1F7A45; }
+  @page { size: A4; margin: 14mm 15mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Outfit, "Segoe UI", Arial, sans-serif; color: var(--body); font-size: 10.6pt; line-height: 1.38; }
+  h1 { font-size: 22pt; color: var(--ink); margin: 0; line-height: 1.1; }
+  h1 span { color: var(--brand); }
+  .tag { font-size: 11.5pt; color: var(--muted); margin: 3px 0 12px; }
+  h2 { font-size: 12.5pt; color: var(--ink); margin: 13px 0 5px; }
+  .kicker { font-size: 8pt; font-weight: 700; letter-spacing: .14em; color: var(--brand); text-transform: uppercase; }
+  .link { background: var(--soft); border: 1.5px solid var(--brand); border-radius: 10px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .link b { font-size: 15pt; color: var(--ink); }
+  .link .np { font-weight: 700; color: var(--ok); font-size: 9pt; letter-spacing: .1em; }
+  .ways { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .way { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+  .way h3 { margin: 2px 0 4px; font-size: 11pt; color: var(--ink); }
+  ol, ul { margin: 4px 0 0; padding-left: 18px; }
+  li { margin: 2px 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { width: 23%; font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .small { font-size: 9pt; color: var(--muted); }
+  .foot { margin-top: 12px; padding-top: 7px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; font-size: 9pt; color: var(--muted); }
+</style>
+</head>
+<body>
+  <div class="kicker">FNB Hackathon 2026 · Access to higher education</div>
+  <h1>University<span>Flow</span>: a quick start for judges</h1>
+  <p class="tag">An AI companion for South African learners, from Grade 10 to graduation. Try it in three minutes.</p>
+
+  <div class="link">
+    <div><div class="kicker">The live app</div><b>universityflow.tumoolo.tech/demo</b></div>
+    <div class="np">NO PASSWORD NEEDED</div>
+  </div>
+
+  <div class="ways">
+    <div class="way">
+      <div class="kicker">Way 1 · fastest</div>
+      <h3>Try a made-up learner</h3>
+      Press <b>Try as Naledi</b> (or any of the six). You get your own private copy, deleted after 24 hours. Press <b>Switch learner</b> to try another.
+    </div>
+    <div class="way">
+      <div class="kicker">Way 2 · the real sign-up</div>
+      <h3>Sign up as a new learner</h3>
+      Press <b>Sign up as a new learner (made-up details)</b> and use any 080 number. No SMS is sent: the PIN, and a guardian's link for an under-18, show on screen.
+    </div>
+  </div>
+
+  <h2>Three minutes, six things to try</h2>
+  <table>
+    <tr><td>Naledi, Grade 11</td><td>Open <b>My results</b>: the courses she is on track for and the close ones. On Home, press <b>See what I need</b>: the mark to aim for in each subject.</td></tr>
+    <tr><td>Thabo, Grade 10</td><td>Open <b>My subjects</b> and try another subject: see which courses it opens or closes.</td></tr>
+    <tr><td>Amahle, Grade 12</td><td>Open <b>Applications</b> and tick off UJ's checklist, then <b>Funding</b> for NSFAS.</td></tr>
+    <tr><td>Lerato, first year</td><td>Open <b>First week</b> and tick a step, then <b>My campus</b> for the campus tour.</td></tr>
+    <tr><td>Sipho, second year</td><td>Open <b>My modules</b>, then his first module: how it is marked, his DP, and the exam mark he still needs.</td></tr>
+    <tr><td>Anyone</td><td>Ask the chat, e.g. <i>"Am I on track for BSc Computer Science at Wits?"</i> or tell it you're stressed about exams.</td></tr>
+  </table>
+
+  <div class="cols">
+    <div>
+      <h2>What is real, what is made up</h2>
+      <ul>
+        <li>Every learner, mark and report is made up. Uploads take only our SAMPLE reports.</li>
+        <li>University facts come from each university's published pages. Many await a person's check and say <b>"Not yet verified"</b>.</li>
+        <li>The chat is the real AI, with every safety check on.</li>
+        <li>Nothing is sent to a phone in the demo: no SMS, WhatsApp or notifications.</li>
+        <li>The study coach and portfolio show as <b>"Coming next"</b>.</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Also in our submission</h2>
+      <ul>
+        <li><b>The deck</b> (PDF): the problem with sources, a learner's story, the architecture, costs and who pays.</li>
+        <li><b>The code</b>: {{REPO}}</li>
+        <li><b>Built with</b>: Next.js 16, Expo (Android and iOS), TypeScript, Postgres, AWS Cape Town, Claude and Gemini behind one interface.</li>
+        <li><b>A three-minute guide</b> on the site itself: the link under the learners on the demo page.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>Team TumoOlo Tech · Tumo Mogame, Tumoolo</span>
+    <span>The web app works on any phone or laptop browser.</span>
+  </div>
+</body>
+</html>

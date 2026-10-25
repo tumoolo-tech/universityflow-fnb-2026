@@ -1,0 +1,19 @@
+{
+  "name": "@universityflow/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared TypeScript and test configuration. No runtime code.",
+  "files": [
+    "tsconfig",
+    "vitest"
+  ],
+  "exports": {
+    "./tsconfig/*": "./tsconfig/*",
+    "./vitest/base": "./vitest/base.ts"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}

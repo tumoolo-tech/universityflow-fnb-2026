@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "uf-cv-profile/2.0",
+  "basics": {
+    "name": "Thabo K."
+  },
+  "education": [
+    {
+      "institution": "Example High School",
+      "studyType": "National Senior Certificate",
+      "endDate": "2026-12",
+      "xSource": "confirmed-report"
+    }
+  ]
+}

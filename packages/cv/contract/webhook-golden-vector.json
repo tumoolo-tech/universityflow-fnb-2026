@@ -1,0 +1,10 @@
+{
+  "description": "Golden vector for Mmereko's outbound partner webhooks (docs/integrations/universityflow-partner-api.md section 12 item 6). Header x-mmereko-signature: t=<unix seconds>,v1=<lowercase hex HMAC-SHA256(secret, \"<t>.mmereko.<body>\")>. The body is the exact bytes sent (UTF-8, compact JSON, keys sorted). UniversityFlow's verifyWebhook(secret, 'mmereko', header, body, now) must accept it when now is within 5 minutes of timestamp. Synthetic values only.",
+  "secret": "mmereko-golden-vector-secret-0123456789abcdef",
+  "channel": "mmereko",
+  "timestamp": 1792742400,
+  "body": "{\"createdAt\":\"2026-10-23T08:00:00Z\",\"data\":{\"jobId\":\"6a1d9c0e-3b4f-4a5e-8c7d-9e0f1a2b3c4d\",\"kind\":\"cv-draft\",\"learnerRef\":\"3f0c2a9e-6b7d-4e21-9a0f-1c2d3e4f5a6b\",\"status\":\"succeeded\"},\"id\":\"0b9f3c1e-5d2a-4c7b-9e8f-1a2b3c4d5e6f\",\"type\":\"cv.ready\"}",
+  "signedPayload": "1792742400.mmereko.{\"createdAt\":\"2026-10-23T08:00:00Z\",\"data\":{\"jobId\":\"6a1d9c0e-3b4f-4a5e-8c7d-9e0f1a2b3c4d\",\"kind\":\"cv-draft\",\"learnerRef\":\"3f0c2a9e-6b7d-4e21-9a0f-1c2d3e4f5a6b\",\"status\":\"succeeded\"},\"id\":\"0b9f3c1e-5d2a-4c7b-9e8f-1a2b3c4d5e6f\",\"type\":\"cv.ready\"}",
+  "signature": "2aa4d020cecb291bed34baf2578313e19130679b58804a63cbdadbd211adca96",
+  "header": "t=1792742400,v1=2aa4d020cecb291bed34baf2578313e19130679b58804a63cbdadbd211adca96"
+}

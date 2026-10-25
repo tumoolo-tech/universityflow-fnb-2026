@@ -1,0 +1,11 @@
+{
+  "extends": "@universityflow/config/tsconfig/native.json",
+  "compilerOptions": {
+    "types": ["jest", "react"],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["expo-env.d.ts", "**/*.ts", "**/*.tsx", ".expo/types/**/*.ts"],
+  "exclude": ["node_modules", ".expo", "dist", "coverage"]
+}

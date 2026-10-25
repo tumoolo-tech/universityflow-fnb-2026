@@ -1,0 +1,34 @@
+{
+  "name": "@universityflow/messaging",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Channels (SMS, WhatsApp, push) behind one interface, cadence and quiet hours (pure), STOP, signed webhooks and the reminder pipeline. Server-only.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contract": "./src/channel.contract.ts",
+    "./inbound-contract": "./src/inbound.contract.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rimraf .turbo coverage"
+  },
+  "dependencies": {
+    "@universityflow/content": "workspace:*",
+    "@universityflow/jobs": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@universityflow/catalogue": "workspace:*",
+    "@universityflow/config": "workspace:*",
+    "@vitest/coverage-v8": "^4.1.12",
+    "rimraf": "^6.1.3",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}

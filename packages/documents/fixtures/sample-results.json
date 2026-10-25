@@ -1,0 +1,4403 @@
+{
+  "format": "universityflow-sample-results",
+  "version": 1,
+  "sample": true,
+  "notice": "SAMPLE: not an official document",
+  "seed": "universityflow-sample-v1",
+  "learners": [
+    {
+      "examNumber": "SAMPLE-XLVLUH",
+      "displayName": "Lerato Testcase",
+      "school": "Sample Secondary School 9",
+      "reports": [
+        {
+          "period": "grade-10-june",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 65,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "business-studies",
+              "nameAsPrinted": "Business Studies",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 94,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 82,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-10-september",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 68,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 73,
+              "level": 6
+            },
+            {
+              "subject": "business-studies",
+              "nameAsPrinted": "Business Studies",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 87,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-10-final",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 66,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "business-studies",
+              "nameAsPrinted": "Business Studies",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 87,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-june",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 66,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "business-studies",
+              "nameAsPrinted": "Business Studies",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 85,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-september",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 67,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "business-studies",
+              "nameAsPrinted": "Business Studies",
+              "percent": 90,
+              "level": 7
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 87,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 85,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-final",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 64,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "business-studies",
+              "nameAsPrinted": "Business Studies",
+              "percent": 90,
+              "level": 7
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 80,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-june",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 65,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "business-studies",
+              "nameAsPrinted": "Business Studies",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 86,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-september",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 69,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "business-studies",
+              "nameAsPrinted": "Business Studies",
+              "percent": 90,
+              "level": 7
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 90,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 94,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 83,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-final",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 66,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 74,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "business-studies",
+              "nameAsPrinted": "Business Studies",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 91,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 93,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 85,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        }
+      ]
+    },
+    {
+      "examNumber": "SAMPLE-LZ4UX7",
+      "displayName": "Nomsa Placeholder",
+      "school": "Sample Secondary School 6",
+      "reports": [
+        {
+          "period": "grade-10-june",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 72,
+              "level": 6
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 79,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-10-september",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 75,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-10-final",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 70,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 63,
+              "level": 5
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 79,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-june",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 67,
+              "level": 5
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 81,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-september",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 69,
+              "level": 5
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 82,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 81,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-final",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 72,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 66,
+              "level": 5
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 84,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-june",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 74,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 65,
+              "level": 5
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 83,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-september",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 66,
+              "level": 5
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 83,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-final",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 72,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 74,
+              "level": 6
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 62,
+              "level": 5
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 93,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 87,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        }
+      ]
+    },
+    {
+      "examNumber": "SAMPLE-FGBFYY",
+      "displayName": "Thabo Testcase",
+      "school": "Sample Secondary School 4",
+      "reports": [
+        {
+          "period": "grade-10-june",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 73,
+              "level": 6
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 93,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 98,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-10-september",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 96,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 74,
+              "level": 6
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 93,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 96,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-10-final",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 98,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 70,
+              "level": 6
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 90,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 90,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 82,
+              "level": 7
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 97,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-june",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 98,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 87,
+              "level": 7
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 97,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 91,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 87,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 95,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-september",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 98,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 72,
+              "level": 6
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 91,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 95,
+              "level": 7
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 87,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 82,
+              "level": 7
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 98,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-final",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 98,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 74,
+              "level": 6
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 82,
+              "level": 7
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 98,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 94,
+              "level": 7
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 91,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 98,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-june",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 98,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 69,
+              "level": 5
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 98,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 93,
+              "level": 7
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 90,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 91,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 98,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-september",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 98,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 68,
+              "level": 5
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 94,
+              "level": 7
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 97,
+              "level": 7
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 97,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 98,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-final",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 98,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 74,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 70,
+              "level": 6
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 94,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 94,
+              "level": 7
+            },
+            {
+              "subject": "accounting",
+              "nameAsPrinted": "Accounting",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 82,
+              "level": 7
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 97,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 98,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        }
+      ]
+    },
+    {
+      "examNumber": "SAMPLE-BX9FEC",
+      "displayName": "Kyle Placeholder",
+      "school": "Sample Secondary School 7",
+      "reports": [
+        {
+          "period": "grade-10-june",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "setswana-hl",
+              "nameAsPrinted": "Setswana Home Language",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 82,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 82,
+              "level": 7
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 91,
+              "level": 7
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 92,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-10-september",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "setswana-hl",
+              "nameAsPrinted": "Setswana Home Language",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 94,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-10-final",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "setswana-hl",
+              "nameAsPrinted": "Setswana Home Language",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 87,
+              "level": 7
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 89,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-june",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "setswana-hl",
+              "nameAsPrinted": "Setswana Home Language",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 87,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 95,
+              "level": 7
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 87,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 87,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-september",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "setswana-hl",
+              "nameAsPrinted": "Setswana Home Language",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 88,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 90,
+              "level": 7
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 90,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-final",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "setswana-hl",
+              "nameAsPrinted": "Setswana Home Language",
+              "percent": 91,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 95,
+              "level": 7
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 88,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-june",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "setswana-hl",
+              "nameAsPrinted": "Setswana Home Language",
+              "percent": 90,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 96,
+              "level": 7
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 94,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 93,
+              "level": 7
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 91,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 84,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-september",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "setswana-hl",
+              "nameAsPrinted": "Setswana Home Language",
+              "percent": 89,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 90,
+              "level": 7
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 96,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 93,
+              "level": 7
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 92,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 87,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-final",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "setswana-hl",
+              "nameAsPrinted": "Setswana Home Language",
+              "percent": 95,
+              "level": 7
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 94,
+              "level": 7
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 94,
+              "level": 7
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 98,
+              "level": 7
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 93,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 82,
+              "level": 7
+            }
+          ],
+          "pass": "bachelor"
+        }
+      ]
+    },
+    {
+      "examNumber": "SAMPLE-FXL7JB",
+      "displayName": "Ayanda Placeholder",
+      "school": "Sample Secondary School 5",
+      "reports": [
+        {
+          "period": "grade-10-june",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "isixhosa-hl",
+              "nameAsPrinted": "isiXhosa Home Language",
+              "percent": 70,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 55,
+              "level": 4
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 69,
+              "level": 5
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 68,
+              "level": 5
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 64,
+              "level": 5
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 71,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-10-september",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "isixhosa-hl",
+              "nameAsPrinted": "isiXhosa Home Language",
+              "percent": 69,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 57,
+              "level": 4
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 66,
+              "level": 5
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 74,
+              "level": 6
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 73,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 61,
+              "level": 5
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 72,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-10-final",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "isixhosa-hl",
+              "nameAsPrinted": "isiXhosa Home Language",
+              "percent": 64,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 53,
+              "level": 4
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 72,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 67,
+              "level": 5
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 71,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-june",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "isixhosa-hl",
+              "nameAsPrinted": "isiXhosa Home Language",
+              "percent": 67,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 56,
+              "level": 4
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 81,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 73,
+              "level": 6
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 70,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 77,
+              "level": 6
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 64,
+              "level": 5
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 82,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 75,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-september",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "isixhosa-hl",
+              "nameAsPrinted": "isiXhosa Home Language",
+              "percent": 70,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 60,
+              "level": 5
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 70,
+              "level": 6
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 70,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 63,
+              "level": 5
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 82,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 76,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-final",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "isixhosa-hl",
+              "nameAsPrinted": "isiXhosa Home Language",
+              "percent": 69,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 61,
+              "level": 5
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 76,
+              "level": 6
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 59,
+              "level": 4
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 75,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-june",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "isixhosa-hl",
+              "nameAsPrinted": "isiXhosa Home Language",
+              "percent": 66,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 56,
+              "level": 4
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 71,
+              "level": 6
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 67,
+              "level": 5
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 80,
+              "level": 7
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 58,
+              "level": 4
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 84,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 77,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-september",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "isixhosa-hl",
+              "nameAsPrinted": "isiXhosa Home Language",
+              "percent": 64,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 59,
+              "level": 4
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 83,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 73,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 62,
+              "level": 5
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 86,
+              "level": 7
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 78,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-final",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "isixhosa-hl",
+              "nameAsPrinted": "isiXhosa Home Language",
+              "percent": 64,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 55,
+              "level": 4
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 85,
+              "level": 7
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 73,
+              "level": 6
+            },
+            {
+              "subject": "economics",
+              "nameAsPrinted": "Economics",
+              "percent": 73,
+              "level": 6
+            },
+            {
+              "subject": "religion-studies",
+              "nameAsPrinted": "Religion Studies",
+              "percent": 74,
+              "level": 6
+            },
+            {
+              "subject": "consumer-studies",
+              "nameAsPrinted": "Consumer Studies",
+              "percent": 78,
+              "level": 6
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 64,
+              "level": 5
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 79,
+              "level": 6
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 72,
+              "level": 6
+            }
+          ],
+          "pass": "bachelor"
+        }
+      ]
+    },
+    {
+      "examNumber": "SAMPLE-GBNALN",
+      "displayName": "Priya Sample",
+      "school": "Sample Secondary School 2",
+      "reports": [
+        {
+          "period": "grade-10-june",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 50,
+              "level": 4
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 39,
+              "level": 2
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 40,
+              "level": 3
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 33,
+              "level": 2
+            },
+            {
+              "subject": "history",
+              "nameAsPrinted": "History",
+              "percent": 60,
+              "level": 5
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 34,
+              "level": 2
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 52,
+              "level": 4
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 49,
+              "level": 3
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 55,
+              "level": 4
+            }
+          ],
+          "pass": "diploma"
+        },
+        {
+          "period": "grade-10-september",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 49,
+              "level": 3
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 40,
+              "level": 3
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 32,
+              "level": 2
+            },
+            {
+              "subject": "history",
+              "nameAsPrinted": "History",
+              "percent": 55,
+              "level": 4
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 34,
+              "level": 2
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 53,
+              "level": 4
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 49,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 50,
+              "level": 4
+            }
+          ],
+          "pass": "diploma"
+        },
+        {
+          "period": "grade-10-final",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 50,
+              "level": 4
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 47,
+              "level": 3
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 39,
+              "level": 2
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 36,
+              "level": 2
+            },
+            {
+              "subject": "history",
+              "nameAsPrinted": "History",
+              "percent": 57,
+              "level": 4
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 38,
+              "level": 2
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 48,
+              "level": 3
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 53,
+              "level": 4
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 52,
+              "level": 4
+            }
+          ],
+          "pass": "diploma"
+        },
+        {
+          "period": "grade-11-june",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 49,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 39,
+              "level": 2
+            },
+            {
+              "subject": "history",
+              "nameAsPrinted": "History",
+              "percent": 63,
+              "level": 5
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 32,
+              "level": 2
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 55,
+              "level": 4
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 51,
+              "level": 4
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 51,
+              "level": 4
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 53,
+              "level": 4
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-september",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 53,
+              "level": 4
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 51,
+              "level": 4
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 40,
+              "level": 3
+            },
+            {
+              "subject": "history",
+              "nameAsPrinted": "History",
+              "percent": 59,
+              "level": 4
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 32,
+              "level": 2
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 52,
+              "level": 4
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 53,
+              "level": 4
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 52,
+              "level": 4
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 53,
+              "level": 4
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-11-final",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 51,
+              "level": 4
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 37,
+              "level": 2
+            },
+            {
+              "subject": "history",
+              "nameAsPrinted": "History",
+              "percent": 58,
+              "level": 4
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 35,
+              "level": 2
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 53,
+              "level": 4
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 51,
+              "level": 4
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 48,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 47,
+              "level": 3
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-june",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 54,
+              "level": 4
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 48,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 50,
+              "level": 4
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 38,
+              "level": 2
+            },
+            {
+              "subject": "history",
+              "nameAsPrinted": "History",
+              "percent": 59,
+              "level": 4
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 34,
+              "level": 2
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 50,
+              "level": 4
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 49,
+              "level": 3
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 52,
+              "level": 4
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 51,
+              "level": 4
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-september",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 55,
+              "level": 4
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 49,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 54,
+              "level": 4
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 40,
+              "level": 3
+            },
+            {
+              "subject": "history",
+              "nameAsPrinted": "History",
+              "percent": 60,
+              "level": 5
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 32,
+              "level": 2
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 50,
+              "level": 4
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 53,
+              "level": 4
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 54,
+              "level": 4
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 50,
+              "level": 4
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-final",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "afrikaans-hl",
+              "nameAsPrinted": "Afrikaans Home Language",
+              "percent": 50,
+              "level": 4
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 50,
+              "level": 4
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 51,
+              "level": 4
+            },
+            {
+              "subject": "life-sciences",
+              "nameAsPrinted": "Life Sciences",
+              "percent": 51,
+              "level": 4
+            },
+            {
+              "subject": "music",
+              "nameAsPrinted": "Music",
+              "percent": 34,
+              "level": 2
+            },
+            {
+              "subject": "history",
+              "nameAsPrinted": "History",
+              "percent": 59,
+              "level": 4
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 34,
+              "level": 2
+            },
+            {
+              "subject": "visual-arts",
+              "nameAsPrinted": "Visual Arts",
+              "percent": 53,
+              "level": 4
+            },
+            {
+              "subject": "agricultural-sciences",
+              "nameAsPrinted": "Agricultural Sciences",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "engineering-graphics-and-design",
+              "nameAsPrinted": "Engineering Graphics and Design",
+              "percent": 57,
+              "level": 4
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 43,
+              "level": 3
+            }
+          ],
+          "pass": "bachelor"
+        }
+      ]
+    },
+    {
+      "examNumber": "SAMPLE-72E6T7",
+      "displayName": "Naledi Sample",
+      "school": "Sample Secondary School 3",
+      "reports": [
+        {
+          "period": "grade-10-june",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "isizulu-hl",
+              "nameAsPrinted": "isiZulu Home Language",
+              "percent": 39,
+              "level": 2
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 49,
+              "level": 3
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "information-technology",
+              "nameAsPrinted": "Information Technology",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 61,
+              "level": 5
+            }
+          ],
+          "pass": "none"
+        },
+        {
+          "period": "grade-10-september",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "isizulu-hl",
+              "nameAsPrinted": "isiZulu Home Language",
+              "percent": 36,
+              "level": 2
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 47,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 37,
+              "level": 2
+            },
+            {
+              "subject": "information-technology",
+              "nameAsPrinted": "Information Technology",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 66,
+              "level": 5
+            }
+          ],
+          "pass": "none"
+        },
+        {
+          "period": "grade-10-final",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "isizulu-hl",
+              "nameAsPrinted": "isiZulu Home Language",
+              "percent": 37,
+              "level": 2
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "information-technology",
+              "nameAsPrinted": "Information Technology",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 61,
+              "level": 5
+            }
+          ],
+          "pass": "none"
+        },
+        {
+          "period": "grade-11-june",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "isizulu-hl",
+              "nameAsPrinted": "isiZulu Home Language",
+              "percent": 35,
+              "level": 2
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 39,
+              "level": 2
+            },
+            {
+              "subject": "information-technology",
+              "nameAsPrinted": "Information Technology",
+              "percent": 47,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 68,
+              "level": 5
+            }
+          ],
+          "pass": "none"
+        },
+        {
+          "period": "grade-11-september",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "isizulu-hl",
+              "nameAsPrinted": "isiZulu Home Language",
+              "percent": 36,
+              "level": 2
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 41,
+              "level": 3
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 41,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "information-technology",
+              "nameAsPrinted": "Information Technology",
+              "percent": 48,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 61,
+              "level": 5
+            }
+          ],
+          "pass": "none"
+        },
+        {
+          "period": "grade-11-final",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "isizulu-hl",
+              "nameAsPrinted": "isiZulu Home Language",
+              "percent": 31,
+              "level": 2
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 47,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 39,
+              "level": 2
+            },
+            {
+              "subject": "information-technology",
+              "nameAsPrinted": "Information Technology",
+              "percent": 50,
+              "level": 4
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 62,
+              "level": 5
+            }
+          ],
+          "pass": "none"
+        },
+        {
+          "period": "grade-12-june",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "isizulu-hl",
+              "nameAsPrinted": "isiZulu Home Language",
+              "percent": 31,
+              "level": 2
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 47,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 40,
+              "level": 3
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "information-technology",
+              "nameAsPrinted": "Information Technology",
+              "percent": 54,
+              "level": 4
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 67,
+              "level": 5
+            }
+          ],
+          "pass": "none"
+        },
+        {
+          "period": "grade-12-september",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "isizulu-hl",
+              "nameAsPrinted": "isiZulu Home Language",
+              "percent": 35,
+              "level": 2
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 41,
+              "level": 3
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 37,
+              "level": 2
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 38,
+              "level": 2
+            },
+            {
+              "subject": "information-technology",
+              "nameAsPrinted": "Information Technology",
+              "percent": 56,
+              "level": 4
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 64,
+              "level": 5
+            }
+          ],
+          "pass": "none"
+        },
+        {
+          "period": "grade-12-final",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "isizulu-hl",
+              "nameAsPrinted": "isiZulu Home Language",
+              "percent": 33,
+              "level": 2
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "computer-applications-technology",
+              "nameAsPrinted": "Computer Applications Technology",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "information-technology",
+              "nameAsPrinted": "Information Technology",
+              "percent": 53,
+              "level": 4
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 65,
+              "level": 5
+            }
+          ],
+          "pass": "none"
+        }
+      ]
+    },
+    {
+      "examNumber": "SAMPLE-EQK2NG",
+      "displayName": "Naledi Placeholder",
+      "school": "Sample Secondary School 6",
+      "reports": [
+        {
+          "period": "grade-10-june",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 63,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 54,
+              "level": 4
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 40,
+              "level": 3
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "geography",
+              "nameAsPrinted": "Geography",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 52,
+              "level": 4
+            }
+          ],
+          "pass": "diploma"
+        },
+        {
+          "period": "grade-10-september",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 61,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 41,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 57,
+              "level": 4
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 41,
+              "level": 3
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 51,
+              "level": 4
+            },
+            {
+              "subject": "geography",
+              "nameAsPrinted": "Geography",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 49,
+              "level": 3
+            }
+          ],
+          "pass": "diploma"
+        },
+        {
+          "period": "grade-10-final",
+          "academicYear": 2024,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 67,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 53,
+              "level": 4
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 44,
+              "level": 3
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 49,
+              "level": 3
+            },
+            {
+              "subject": "geography",
+              "nameAsPrinted": "Geography",
+              "percent": 48,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 52,
+              "level": 4
+            }
+          ],
+          "pass": "diploma"
+        },
+        {
+          "period": "grade-11-june",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 68,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 48,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 55,
+              "level": 4
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 39,
+              "level": 2
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 48,
+              "level": 3
+            },
+            {
+              "subject": "geography",
+              "nameAsPrinted": "Geography",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 48,
+              "level": 3
+            }
+          ],
+          "pass": "diploma"
+        },
+        {
+          "period": "grade-11-september",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 66,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 56,
+              "level": 4
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 37,
+              "level": 2
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 49,
+              "level": 3
+            },
+            {
+              "subject": "geography",
+              "nameAsPrinted": "Geography",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 55,
+              "level": 4
+            }
+          ],
+          "pass": "diploma"
+        },
+        {
+          "period": "grade-11-final",
+          "academicYear": 2025,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 66,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 42,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 57,
+              "level": 4
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 39,
+              "level": 2
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 55,
+              "level": 4
+            },
+            {
+              "subject": "geography",
+              "nameAsPrinted": "Geography",
+              "percent": 45,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 58,
+              "level": 4
+            }
+          ],
+          "pass": "diploma"
+        },
+        {
+          "period": "grade-12-june",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 69,
+              "level": 5
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 46,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 56,
+              "level": 4
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 38,
+              "level": 2
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 55,
+              "level": 4
+            },
+            {
+              "subject": "geography",
+              "nameAsPrinted": "Geography",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 56,
+              "level": 4
+            }
+          ],
+          "pass": "diploma"
+        },
+        {
+          "period": "grade-12-september",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 73,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 40,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 52,
+              "level": 4
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 40,
+              "level": 3
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 50,
+              "level": 4
+            },
+            {
+              "subject": "geography",
+              "nameAsPrinted": "Geography",
+              "percent": 50,
+              "level": 4
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 54,
+              "level": 4
+            }
+          ],
+          "pass": "bachelor"
+        },
+        {
+          "period": "grade-12-final",
+          "academicYear": 2026,
+          "subjects": [
+            {
+              "subject": "sesotho-hl",
+              "nameAsPrinted": "Sesotho Home Language",
+              "percent": 75,
+              "level": 6
+            },
+            {
+              "subject": "english-fal",
+              "nameAsPrinted": "English First Additional Language",
+              "percent": 43,
+              "level": 3
+            },
+            {
+              "subject": "mathematics",
+              "nameAsPrinted": "Mathematics",
+              "percent": 60,
+              "level": 5
+            },
+            {
+              "subject": "dramatic-arts",
+              "nameAsPrinted": "Dramatic Arts",
+              "percent": 33,
+              "level": 2
+            },
+            {
+              "subject": "tourism",
+              "nameAsPrinted": "Tourism",
+              "percent": 58,
+              "level": 4
+            },
+            {
+              "subject": "geography",
+              "nameAsPrinted": "Geography",
+              "percent": 48,
+              "level": 3
+            },
+            {
+              "subject": "life-orientation",
+              "nameAsPrinted": "Life Orientation",
+              "percent": 54,
+              "level": 4
+            }
+          ],
+          "pass": "diploma"
+        }
+      ]
+    }
+  ]
+}

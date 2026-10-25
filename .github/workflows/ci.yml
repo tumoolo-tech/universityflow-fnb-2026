@@ -1,0 +1,209 @@
+name: CI
+
+# This repo's own checks. Nothing here needs a secret or another repo, so every job is a real
+# gate: green means it passed, never that it was skipped. The shared audit suite, the
+# model-graded reviews and anything that costs money live in audits.yml.
+#
+#   Static · Unit · Build        the gate (required on main). Lint, guards, typecheck, every
+#                                unit and integration test, coverage floors, both app builds,
+#                                and the database suite on real Postgres
+#   End to end · Accessibility   Playwright + axe against a production build
+#   Crisis red-team              hard rule 7, on its own line so it can be required and is
+#                                never hidden inside a long log
+#   Secret scan                  gitleaks over the whole history. The repo is private without
+#                                GitHub Advanced Security, so GitHub's own scanning is off;
+#                                coding agents paste keys as readily as people do
+#                                .gitleaksignore lists findings a person checked and found not to be
+#                                secrets (2026-10-24, the owner's call): two SHA-256 checksums and a
+#                                synthetic test value in packages/cv/contract, setting names in
+#                                config.ts, plan-map slot keys. Exact commit, file and line only:
+#                                anything new still fails
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: every job reads the code and nothing else, unless it says otherwise.
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  verify:
+    # This name is the required status check on `main`. Renaming it breaks branch protection.
+    name: Static · Unit · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    # Real Postgres for the database tests that must also pass on the production driver.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: uf
+          POSTGRES_PASSWORD: uf-ci
+          POSTGRES_DB: uf
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U uf" --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgres://uf:uf-ci@localhost:5432/uf
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (Biome)
+        run: pnpm lint
+
+      - name: Project guards
+        run: pnpm check
+
+      - name: Guards fail on broken examples
+        run: pnpm check:test
+
+      - name: Typecheck
+        run: pnpm turbo run typecheck
+
+      # Includes the crisis red-team suite (packages/evals), which must pass 100% (hard rule 7).
+      - name: Unit tests
+        # Two packages at a time: the runner has 2 cores, and at Turbo's default (10 at once)
+        # suites starved each other past their timeouts (native's campus test, 2026-10-24;
+        # gotcha 39). The same tests and the same timeouts, run less at once.
+        run: pnpm turbo run test --concurrency=2
+
+      # The logic that must never be wrong is held to 90% coverage on every PR, not nightly.
+      - name: Coverage (admissions · catalogue · messaging)
+        run: pnpm turbo run test:coverage --filter @universityflow/admissions --filter @universityflow/catalogue --filter @universityflow/messaging
+
+      - name: Build
+        run: pnpm turbo run build
+
+      # What every page loads first, on a budget phone over prepaid data (audit A4-01).
+      - name: Root chunk budget
+        run: node scripts/ci/root-chunk-budget.mjs apps/web/.next
+
+      # No client chunk carries the catalogue's data or a second zod (audit A4-02).
+      - name: Client chunks
+        run: node scripts/ci/client-chunks.mjs apps/web/.next
+
+      # Each phone bundle within 5% of apps/native/bundle-baseline.json, with no catalogue data
+      # or zod locales (audit A4-13). The sizes print here, release over release.
+      - name: Native bundle budget
+        run: node scripts/ci/native-bundle-budget.mjs apps/native/dist
+
+  e2e:
+    name: End to end · Accessibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm --filter @universityflow/web exec playwright install --with-deps chromium
+
+      # E2E runs against a production build, never `next dev` (tumo-olo lesson).
+      - name: Build
+        run: pnpm turbo run build --filter @universityflow/web
+
+      - name: Playwright with axe (WCAG 2.2 AA)
+        run: pnpm --filter @universityflow/web test:e2e
+
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-traces
+          path: apps/web/test-results
+          retention-days: 7
+
+  redteam:
+    # Hard rule 7: any change to packages/agent or packages/content merges only at 100%. It
+    # also runs inside "Static · Unit · Build"; here it is a check of its own, so it shows by
+    # name on every PR and can be made required without requiring the whole build twice.
+    name: Crisis red-team
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The crisis protocol is deterministic: it answers before any model is reached, so this
+      # needs no key and gives the same answer on every run.
+      - name: Red-team suite and the agent's crisis tests
+        run: pnpm turbo run test --filter @universityflow/evals --filter @universityflow/agent
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The whole history: a key committed and then deleted is still leaked.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The binary from the release, checked against the release's own checksum, rather than
+      # gitleaks-action (which needs a paid licence on organisation repos). Bump both together.
+      - name: Install gitleaks 8.30.1
+        env:
+          VERSION: 8.30.1
+          SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          set -euo pipefail
+          curl -sSfL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz"
+          echo "${SHA256}  gitleaks.tar.gz" | sha256sum --check --strict
+          tar -xzf gitleaks.tar.gz gitleaks
+          rm gitleaks.tar.gz
+
+      # --redact: a finding is reported by file and line, never by printing the secret into a log.
+      - name: Scan every commit
+        run: ./gitleaks git --no-banner --redact --verbose --log-opts="--all" .

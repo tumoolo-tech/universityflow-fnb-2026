@@ -1,0 +1,35 @@
+# Pre-commit runs only on staged files, so it stays fast enough not to be bypassed.
+# The full gate is `pnpm verify`, run before a phase closes.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: '*.{js,mjs,ts,tsx,json,jsonc,css}'
+      run: pnpm biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+
+    - name: guards
+      run: pnpm check
+
+# Every package's tests, in two runs (gotcha 39). The two embedded-Postgres suites (db, web)
+# starve and time out when they run beside each other and everything else, while each passes
+# alone, so they run one at a time after the rest. Together the two runs cover every package:
+# a new package lands in the first run, a new database-heavy one belongs in the second.
+# The database suites also run two test files at a time (gotcha 45): on a machine near its
+# memory limit, a worker per core died ("out of memory: Zone") or never started, and first
+# writes timed out. Every test still runs; CI is unchanged.
+pre-push:
+  jobs:
+    - name: typecheck
+      run: pnpm turbo run typecheck
+
+    - name: test (all but the database suites)
+      run: pnpm turbo run test --filter=!@universityflow/db --filter=!@universityflow/web
+
+    - name: test (database suites, one at a time)
+      run: pnpm turbo run test --filter=@universityflow/db --filter=@universityflow/web --concurrency=1 -- --maxWorkers=2
+
+commit-msg:
+  jobs:
+    - name: conventional-commits
+      run: node scripts/hooks/commit-msg.mjs {1}

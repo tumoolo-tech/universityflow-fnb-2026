@@ -1,0 +1,42 @@
+{
+  "name": "@universityflow/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Database schema, migrations and data access.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rimraf .turbo coverage",
+    "review:seed": "jiti scripts/review-seed.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.23.1",
+    "@universityflow/config": "workspace:*",
+    "@vitest/coverage-v8": "^4.1.12",
+    "jiti": "2.7.0",
+    "rimraf": "^6.1.3",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.9",
+    "@universityflow/catalogue": "workspace:*",
+    "@universityflow/content": "workspace:*",
+    "@universityflow/cv": "workspace:*",
+    "@universityflow/documents": "workspace:*",
+    "@universityflow/jobs": "workspace:*",
+    "@universityflow/messaging": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  }
+}

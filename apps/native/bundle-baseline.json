@@ -1,0 +1,11 @@
+{
+  "$comment": "Hermes bundle bytes per platform (A4-13). Re-record only on purpose: see scripts/ci/native-bundle-budget.mjs",
+  "platforms": {
+    "android": {
+      "bytes": 3560111
+    },
+    "ios": {
+      "bytes": 3320502
+    }
+  }
+}

@@ -1,0 +1,70 @@
+# Version updates, weekly. Free on private repos (security updates need GitHub Advanced
+# Security, which this repo doesn't have; the weekly A8 scan in audits.yml covers advisories).
+#
+# The pins in CLAUDE.md are ignored here on purpose: each one breaks the mobile app when it
+# moves on its own. They move together, with an Expo SDK upgrade, by a person.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:00'
+      timezone: Africa/Johannesburg
+    open-pull-requests-limit: 5
+    # The house rule: adopt a version only once it is at least two weeks old, so a bad or
+    # compromised release has time to be caught and pulled before it reaches us.
+    cooldown:
+      default-days: 14
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      # One PR a week for routine bumps, instead of one per package.
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Bundled by Expo SDK 57: exact pins (CLAUDE.md, version pins).
+      - dependency-name: react
+      - dependency-name: react-dom
+      - dependency-name: react-native
+      - dependency-name: jest-expo
+      # jest-expo 57 depends on Jest 29 internals.
+      - dependency-name: jest
+        update-types: [version-update:semver-major]
+      - dependency-name: '@types/jest'
+        update-types: [version-update:semver-major]
+      # The SDK itself and its modules move together, in a planned upgrade.
+      - dependency-name: expo
+        update-types: [version-update:semver-major]
+      - dependency-name: 'expo-*'
+        update-types: [version-update:semver-major]
+      # Native modules the SDK bundles at fixed versions (expo's bundledNativeModules.json):
+      # only `expo install --fix` moves them, never a version Expo hasn't tested.
+      - dependency-name: 'react-native-*'
+      - dependency-name: '@react-native/*'
+      # Types follow the Node we run (.nvmrc, 24), not the newest Node.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+      # Vitest 5 is a planned migration across every package, not a weekly bump.
+      - dependency-name: vitest
+        update-types: [version-update:semver-major]
+      - dependency-name: '@vitest/*'
+        update-types: [version-update:semver-major]
+
+  # Every action, GitHub-owned ones included, is pinned by full commit SHA with a `# vX.Y.Z`
+  # comment (A8-03); Dependabot bumps the SHA and keeps the comment. The audit suite checkout
+  # (audits.yml, `ref:`) is not an action: bump that SHA by hand, deliberately.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:00'
+      timezone: Africa/Johannesburg
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 14
+    commit-message:
+      prefix: ci(deps)

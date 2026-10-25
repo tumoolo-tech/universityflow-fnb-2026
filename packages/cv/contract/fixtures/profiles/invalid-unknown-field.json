@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "uf-cv-profile/1.0",
+  "basics": {
+    "name": "Thabo K.",
+    "dateOfBirth": "2009-04-01"
+  },
+  "education": [
+    {
+      "institution": "Example High School",
+      "studyType": "National Senior Certificate",
+      "endDate": "2026-12",
+      "xSource": "confirmed-report"
+    }
+  ]
+}

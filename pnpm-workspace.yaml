@@ -1,0 +1,14 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  # Private workspace tools (planning.md §18.8): never a dependency of an app or a package
+  # (guard tools-stay-private).
+  - 'tools/*'
+
+# pnpm 10 blocks lifecycle scripts by default. Every package allowed to run one is
+# listed here explicitly. This list is reviewed by audit A8 (supply chain).
+# Only packages in the tree that really have a preinstall, install or postinstall script (or a
+# binding.gyp) belong here (A8-04): sharp and @biomejs/biome ship prebuilt binaries as optional
+# packages and run nothing at install. Add an entry back only when a package needs it.
+onlyBuiltDependencies:
+  - lefthook

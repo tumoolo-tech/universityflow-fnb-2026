@@ -1,0 +1,5 @@
+{
+  "extends": "@universityflow/config/tsconfig/library.json",
+  "include": ["src/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "coverage"]
+}

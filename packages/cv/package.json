@@ -1,0 +1,34 @@
+{
+  "name": "@universityflow/cv",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The CV engine behind an interface (docs/design/mmereko-api-proposal.md): the uf-cv-profile/1 schema, the profile built from a learner's confirmed rows, the in-memory fake and the contract every engine meets. Server-only: the mobile app never imports it.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contract": "./src/cv-engine.contract.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "schema": "jiti scripts/write-schema.ts",
+    "clean": "rimraf .turbo coverage"
+  },
+  "dependencies": {
+    "@universityflow/messaging": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@universityflow/config": "workspace:*",
+    "@vitest/coverage-v8": "^4.1.12",
+    "jiti": "2.7.0",
+    "rimraf": "^6.1.3",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}

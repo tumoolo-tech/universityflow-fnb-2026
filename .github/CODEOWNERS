@@ -1,0 +1,27 @@
+# Every PR gets the owner's review.
+* @TUMO-MOGAME
+
+# The paths below are named even though `*` already covers them, so the list says, in one
+# place, which parts must never be changed on an agent's say-so alone. If a team grows, these
+# keep the owner (or a named second reviewer) on them while the rest is shared.
+
+# Safety: the crisis protocol, the charter and the red-team (hard rule 7)
+/packages/agent/             @TUMO-MOGAME
+/packages/evals/             @TUMO-MOGAME
+
+# Admission facts: only these decide them (hard rules 2 and 3)
+/packages/catalogue/         @TUMO-MOGAME
+/packages/admissions/        @TUMO-MOGAME
+/docs/data-verification.md   @TUMO-MOGAME
+
+# Minors, consent and personal data (hard rules 4 and 5)
+/packages/db/                @TUMO-MOGAME
+/apps/web/app/api/consent/   @TUMO-MOGAME
+/apps/web/app/api/me/        @TUMO-MOGAME
+
+# The pipeline and its guards: a weaker check is a silent regression
+/.github/                    @TUMO-MOGAME
+/scripts/                    @TUMO-MOGAME
+/lefthook.yml                @TUMO-MOGAME
+/audits.config.json          @TUMO-MOGAME
+/CLAUDE.md                   @TUMO-MOGAME

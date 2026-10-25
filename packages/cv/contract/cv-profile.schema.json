@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mmereko:schema:uf-cv-profile:1",
+  "title": "uf-cv-profile/1",
+  "description": "A learner's CV profile sent by a partner (UniversityFlow). JSON Resume-compatible where it fits; fields JSON Resume lacks start with x. Plain text only: Mmereko escapes every string before rendering. Served at /partner/v1/schema/cv-profile.json. Design: docs/integrations/universityflow-partner-api.md section 3. Beyond this schema Mmereko also refuses ID-number and student-number shapes and URLs whose host is an IP address or localhost.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "basics"],
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^uf-cv-profile/1\\.[0-9]+$" },
+    "basics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "$ref": "#/$defs/name" },
+        "label": { "$ref": "#/$defs/label" },
+        "email": {
+          "type": ["string", "null"],
+          "maxLength": 120,
+          "pattern": "^[^\\s@<>]+@[^\\s@<>]+\\.[^\\s@<>]+$"
+        },
+        "phone": { "type": ["string", "null"], "pattern": "^\\+?[0-9 ()-]{7,20}$" },
+        "summary": { "type": ["string", "null"], "maxLength": 600 },
+        "location": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "city": { "$ref": "#/$defs/short" },
+            "region": { "$ref": "#/$defs/short" },
+            "countryCode": { "type": "string", "pattern": "^[A-Z]{2}$" }
+          }
+        },
+        "profiles": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url"],
+            "properties": {
+              "network": { "$ref": "#/$defs/short" },
+              "username": { "$ref": "#/$defs/short" },
+              "url": { "$ref": "#/$defs/url" }
+            }
+          }
+        }
+      }
+    },
+    "education": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["institution"],
+        "properties": {
+          "institution": { "$ref": "#/$defs/title" },
+          "area": { "$ref": "#/$defs/title" },
+          "studyType": { "$ref": "#/$defs/title" },
+          "startDate": { "$ref": "#/$defs/date" },
+          "endDate": { "$ref": "#/$defs/date" },
+          "score": { "$ref": "#/$defs/short" },
+          "courses": { "type": "array", "maxItems": 40, "items": { "$ref": "#/$defs/title" } },
+          "xModules": {
+            "type": "array",
+            "maxItems": 40,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name"],
+              "properties": {
+                "code": { "type": "string", "maxLength": 20 },
+                "name": { "$ref": "#/$defs/title" },
+                "year": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+                "term": { "type": ["string", "null"], "maxLength": 20 },
+                "credits": { "type": ["number", "null"], "minimum": 0, "maximum": 1000 },
+                "result": { "type": ["string", "null"], "maxLength": 20 }
+              }
+            }
+          },
+          "xSubjects": {
+            "type": "array",
+            "maxItems": 40,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name"],
+              "properties": {
+                "name": { "$ref": "#/$defs/title" },
+                "result": { "type": ["string", "null"], "maxLength": 20 }
+              }
+            }
+          },
+          "xSource": { "type": "string", "maxLength": 40 }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "$ref": "#/$defs/title" },
+          "description": { "$ref": "#/$defs/description" },
+          "highlights": { "$ref": "#/$defs/highlights" },
+          "keywords": { "$ref": "#/$defs/keywords" },
+          "startDate": { "$ref": "#/$defs/date" },
+          "endDate": { "$ref": "#/$defs/date" },
+          "url": { "$ref": "#/$defs/url" },
+          "roles": { "type": "array", "maxItems": 5, "items": { "$ref": "#/$defs/title" } },
+          "xEvidence": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["url"],
+              "properties": {
+                "kind": { "type": "string", "maxLength": 40 },
+                "url": { "$ref": "#/$defs/url" },
+                "label": { "$ref": "#/$defs/short" }
+              }
+            }
+          },
+          "xLinkedModules": { "type": "array", "maxItems": 40, "items": { "type": "string", "maxLength": 20 } }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "$ref": "#/$defs/title" },
+          "level": { "$ref": "#/$defs/short" },
+          "keywords": { "$ref": "#/$defs/keywords" }
+        }
+      }
+    },
+    "work": { "$ref": "#/$defs/roleSection" },
+    "volunteer": { "$ref": "#/$defs/roleSection" },
+    "awards": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title"],
+        "properties": {
+          "title": { "$ref": "#/$defs/title" },
+          "date": { "$ref": "#/$defs/date" },
+          "awarder": { "$ref": "#/$defs/title" },
+          "summary": { "$ref": "#/$defs/description" }
+        }
+      }
+    },
+    "certificates": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "$ref": "#/$defs/title" },
+          "date": { "$ref": "#/$defs/date" },
+          "issuer": { "$ref": "#/$defs/title" },
+          "url": { "$ref": "#/$defs/url" }
+        }
+      }
+    },
+    "languages": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["language"],
+        "properties": {
+          "language": { "$ref": "#/$defs/short" },
+          "fluency": { "$ref": "#/$defs/short" }
+        }
+      }
+    },
+    "interests": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "$ref": "#/$defs/title" },
+          "keywords": { "$ref": "#/$defs/keywords" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "label": { "type": ["string", "null"], "maxLength": 120 },
+    "title": { "type": "string", "maxLength": 120 },
+    "short": { "type": ["string", "null"], "maxLength": 80 },
+    "description": { "type": ["string", "null"], "maxLength": 600 },
+    "highlights": { "type": "array", "maxItems": 5, "items": { "type": "string", "maxLength": 200 } },
+    "keywords": { "type": "array", "maxItems": 15, "items": { "type": "string", "maxLength": 40 } },
+    "date": { "type": ["string", "null"], "pattern": "^[0-9]{4}(-(0[1-9]|1[0-2]))?$" },
+    "url": {
+      "type": "string",
+      "maxLength": 500,
+      "pattern": "^https://[^\\s@/?#\\\\]+([/?#][^\\s]*)?$"
+    },
+    "roleSection": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "$ref": "#/$defs/title" },
+          "organization": { "$ref": "#/$defs/title" },
+          "position": { "$ref": "#/$defs/title" },
+          "url": { "$ref": "#/$defs/url" },
+          "startDate": { "$ref": "#/$defs/date" },
+          "endDate": { "$ref": "#/$defs/date" },
+          "summary": { "$ref": "#/$defs/description" },
+          "highlights": { "$ref": "#/$defs/highlights" }
+        }
+      }
+    }
+  }
+}

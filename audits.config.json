@@ -1,0 +1,50 @@
+{
+  "$schema": "../tumoOLO_Audits/templates/audits.config.schema.json",
+  "$comment": "Tells the shared tumoOLO_Audits suite what this project actually is. Anything left empty is reported as 'Not measured' rather than quietly passing. Project audits the suite doesn't have (A10 AI safety, A11 privacy, A12 messaging, A13 data accuracy) are in docs/audits/.",
+  "suite": {
+    "repo": "https://github.com/tumoolo-tech/tumoOLO_Audits",
+    "ref": "main",
+    "path": "tumoOLO_Audits"
+  },
+  "project": {
+    "name": "UniversityFlow",
+    "kind": "web+native",
+    "launchPhase": "Phase 3",
+    "locale": "en-ZA",
+    "market": "South Africa",
+    "siteUrl": ""
+  },
+  "designSpec": "packages/tokens/src/index.ts",
+  "designReference": "",
+  "placeholders": {
+    "$comment": "These fill the {{TOKENS}} in the shared audit files.",
+    "DISPLAY_FONT": "System UI stack (no web font: nothing to download on a data bundle)",
+    "BODY_FONT": "System UI stack, 17px base",
+    "FONT_STACK": "system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif",
+    "PRIMARY_CTA": "Upload my report / See what I qualify for",
+    "PRIMARY_ENDPOINT": "apps/web/app/api/chat (the agent: streaming, tools, crisis protocol before any model call) and apps/web/app/api/documents (report upload)",
+    "DESIGN_SPEC": "packages/tokens/src/index.ts (the visual identity, Q16); generated to packages/tokens/tokens.css",
+    "DESIGN_REFERENCE": "None: the identity is defined in code (warm paper canvas, near-black ink, deep green actions, marigold accent). See status.md decisions, 2026-10-13"
+  },
+  "resultsDir": "docs/audits/results",
+  "overlayDir": "docs/audits",
+  "audits": {
+    "$comment": "Per-audit overrides. Disable one only with a reason: the reason is what the next person reads.",
+    "A2": {
+      "enabled": true,
+      "reason": "No external design file: A2 grades the build against the tokens and the identity decisions. designReference stays empty so the suite reports it as Not measured, not passed."
+    },
+    "A6": {
+      "enabled": true,
+      "reason": "Most pages are signed-in and not indexed. A6 covers the public pages (home, sign-in, the guardian consent page) and the copy rules in packages/content."
+    },
+    "A7": {
+      "enabled": true,
+      "reason": "apps/native (Expo SDK 57) exists; its first store release is Phase 4 (D6)."
+    },
+    "S1": {
+      "enabled": false,
+      "reason": "No deployment yet (D8). Enable with project.siteUrl once Vercel cpt1 is connected."
+    }
+  }
+}

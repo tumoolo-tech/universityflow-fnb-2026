@@ -1,0 +1,72 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+build/
+.next/
+out/
+next-env.d.ts
+.turbo/
+*.tsbuildinfo
+
+# expo
+.expo/
+.expo-shared/
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+/playwright/.cache/
+
+# env: never commit. .env.example documents every variable.
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+
+# os
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# audit scratch (results themselves are committed)
+docs/audits/results/*.tmp.md
+# the shared audit suite, checked out by CI
+.audit-suite/
+
+# coding agents: parallel worktrees and per-machine settings
+.claude/worktrees/
+.claude/settings.local.json
+
+# Student documents must never enter the repo, even by accident. Real reports, letters and
+# scripts used in spikes live outside the working tree (hard rule 4).
+**/real-samples/
+
+# The owner's original photos (Unsplash downloads and design references), from which the
+# committed pictures are made: large, and kept out of git. See photos/ in the main checkout.
+/photos/
+
+# local databases and uploaded files (development and E2E)
+.data/

@@ -1,0 +1,55 @@
+{
+  "name": "universityflow",
+  "version": "0.0.0",
+  "private": true,
+  "description": "UniversityFlow: an AI companion from Grade 11 results to graduation.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "check": "node scripts/checks/index.mjs",
+    "check:test": "node --test \"scripts/checks/*.test.mjs\" \"scripts/ci/*.test.mjs\" \"scripts/verification/*.test.mjs\" \"scripts/deploy/*.test.mjs\"",
+    "obligations": "node scripts/ci/obligations.mjs",
+    "deploy:check": "node scripts/deploy/deploy-check.mjs",
+    "verification:checklists": "node scripts/verification/generate-checklists.mjs",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
+    "test:coverage": "turbo run test:coverage",
+    "verify": "pnpm lint && pnpm check && pnpm check:test && turbo run typecheck test && turbo run build",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "demo:setup": "node scripts/deploy/demo-setup.mjs",
+    "demo:smoke": "node scripts/deploy/demo-smoke.mjs",
+    "clean": "turbo run clean && rimraf node_modules",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.10",
+    "lefthook": "^2.1.10",
+    "rimraf": "^6.1.3",
+    "turbo": "^2.10.11",
+    "typescript": "^7.0.2"
+  },
+  "pnpm": {
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-86w9-cpqp-85rv",
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    "overrides": {
+      "@expo/cli>zod": "^4.6.7",
+      "@firebase/firestore>@grpc/grpc-js": "^1.13.6",
+      "shell-quote": "^1.11.0",
+      "source-map-js": "^1.2.2"
+    }
+  }
+}

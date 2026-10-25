@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "uf-cv-profile/1.0",
+  "basics": {
+    "name": "Naledi M.",
+    "label": "First-year BSc Computer Science student",
+    "email": null,
+    "phone": null,
+    "summary": "Curious first-year student who builds small tools for campus life.",
+    "location": {
+      "city": "Johannesburg",
+      "region": "Gauteng",
+      "countryCode": "ZA"
+    },
+    "profiles": [
+      {
+        "network": "GitHub",
+        "url": "https://github.com/example-learner"
+      }
+    ]
+  },
+  "education": [
+    {
+      "institution": "University of Johannesburg",
+      "area": "Computer Science",
+      "studyType": "BSc",
+      "startDate": "2027-02",
+      "endDate": null,
+      "courses": [
+        "CSC1A10 Introduction to Programming"
+      ],
+      "xModules": [
+        {
+          "code": "CSC1A10",
+          "name": "Introduction to Programming",
+          "year": 2027,
+          "term": "S1",
+          "credits": 15,
+          "result": null
+        }
+      ],
+      "xSource": "confirmed-registration"
+    },
+    {
+      "institution": "Example High School",
+      "studyType": "National Senior Certificate",
+      "endDate": "2026-12",
+      "xSubjects": [
+        {
+          "name": "Mathematics",
+          "result": "78%"
+        }
+      ],
+      "xSource": "confirmed-report"
+    }
+  ],
+  "projects": [
+    {
+      "name": "Campus bus tracker",
+      "description": "A web app that shows where the campus buses are.",
+      "highlights": [
+        "Used by 120 students in its first month"
+      ],
+      "keywords": [
+        "Python",
+        "Flask"
+      ],
+      "startDate": "2027-03",
+      "endDate": "2027-05",
+      "url": "https://github.com/example-learner/bus-tracker",
+      "roles": [
+        "Solo developer"
+      ],
+      "xEvidence": [
+        {
+          "kind": "repository",
+          "url": "https://github.com/example-learner/bus-tracker",
+          "label": "Source code"
+        },
+        {
+          "kind": "demo",
+          "url": "https://localhost/demo",
+          "label": "Live demo"
+        }
+      ],
+      "xLinkedModules": [
+        "CSC1A10"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "name": "Programming",
+      "keywords": [
+        "Python",
+        "Java"
+      ]
+    }
+  ],
+  "work": [
+    {
+      "name": "Corner Shop",
+      "position": "Weekend shop assistant",
+      "startDate": "2026-06",
+      "endDate": "2026-12",
+      "highlights": [
+        "Served about 200 customers each weekend"
+      ]
+    }
+  ],
+  "volunteer": [
+    {
+      "organization": "Reading Club",
+      "position": "Volunteer tutor",
+      "startDate": "2026-01",
+      "endDate": null,
+      "highlights": [
+        "Tutored Grade 8 learners in reading"
+      ]
+    }
+  ],
+  "awards": [
+    {
+      "title": "Top coder, school hackathon",
+      "date": "2026-11",
+      "awarder": "Example High School"
+    }
+  ],
+  "certificates": [
+    {
+      "name": "Intro to Python",
+      "date": "2026-08",
+      "issuer": "Example Academy"
+    }
+  ],
+  "languages": [
+    {
+      "language": "isiZulu",
+      "fluency": "Native"
+    },
+    {
+      "language": "English",
+      "fluency": "Fluent"
+    }
+  ],
+  "interests": [
+    {
+      "name": "Chess",
+      "keywords": []
+    }
+  ]
+}

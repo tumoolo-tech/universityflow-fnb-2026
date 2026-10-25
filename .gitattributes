@@ -1,0 +1,18 @@
+# Biome formats to LF and .editorconfig declares LF. Without this, Windows checkouts
+# rewrite every file to CRLF and `pnpm lint` fails on a clean clone.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+
+pnpm-lock.yaml -diff linguist-generated

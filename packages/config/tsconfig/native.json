@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "UniversityFlow Expo app",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "moduleSuffixes": [".ios", ".android", ".native", ""]
+  }
+}

@@ -1,0 +1,2942 @@
+@import "tailwindcss";
+@import "@universityflow/tokens/tokens.css";
+
+/* Every colour, size and duration comes from packages/tokens (hard rule 8). */
+@theme inline {
+  /*
+   * Tailwind's own type sizes, line heights and widths start from nothing (A2-24): a class the
+   * tokens don't define (`text-4xl`, `leading-relaxed`, `max-w-3xl`) draws no value at all,
+   * rather than one from Tailwind's theme. The tokens' values are mapped below.
+   */
+  --text-*: initial;
+  --leading-*: initial;
+  --container-*: initial;
+  /* Tailwind's `lg` is the tokens' laptop width (`breakpoint.laptop`; a media query can't read a variable). */
+  --breakpoint-lg: 64rem;
+  --color-canvas: var(--uf-color-canvas);
+  --color-surface: var(--uf-color-surface);
+  --color-sunk: var(--uf-color-surface-sunk);
+  --color-ink: var(--uf-color-ink);
+  --color-muted: var(--uf-color-ink-muted);
+  --color-line: var(--uf-color-line);
+  --color-line-strong: var(--uf-color-line-strong);
+  --color-brand: var(--uf-color-brand);
+  --color-brand-hover: var(--uf-color-brand-hover);
+  --color-on-brand: var(--uf-color-on-brand);
+  --color-accent: var(--uf-color-accent);
+  --color-on-accent: var(--uf-color-on-accent);
+  --color-focus: var(--uf-color-focus);
+  --color-success: var(--uf-color-success);
+  --color-success-soft: var(--uf-color-success-soft);
+  --color-warning: var(--uf-color-warning);
+  --color-warning-soft: var(--uf-color-warning-soft);
+  --color-danger: var(--uf-color-danger);
+  --color-danger-soft: var(--uf-color-danger-soft);
+  --color-info: var(--uf-color-info);
+  --color-info-soft: var(--uf-color-info-soft);
+  --color-on-glass: var(--uf-color-on-glass);
+  --color-on-glass-muted: var(--uf-color-on-glass-muted);
+  --color-stage-top: var(--uf-color-stage-top);
+  --color-stage-bottom: var(--uf-color-stage-bottom);
+  /* Outfit (next/font/local, app/layout.tsx), then the system stack while it loads. */
+  --font-sans: var(--font-outfit), var(--uf-font);
+  /* Body sizes read at the normal line height, display sizes at the tight one. */
+  --text-sm: var(--uf-text-sm);
+  --text-sm--line-height: var(--uf-leading-normal);
+  --text-base: var(--uf-text-base);
+  --text-base--line-height: var(--uf-leading-normal);
+  --text-lg: var(--uf-text-lg);
+  --text-lg--line-height: var(--uf-leading-normal);
+  --text-xl: var(--uf-text-xl);
+  --text-xl--line-height: var(--uf-leading-tight);
+  --text-2xl: var(--uf-text-2xl);
+  --text-2xl--line-height: var(--uf-leading-tight);
+  --text-3xl: var(--uf-text-3xl);
+  --text-3xl--line-height: var(--uf-leading-tight);
+  --leading-display: var(--uf-leading-display);
+  --leading-tight: var(--uf-leading-tight);
+  --leading-normal: var(--uf-leading-normal);
+  --radius-sm: var(--uf-radius-sm);
+  --radius-md: var(--uf-radius-md);
+  --radius-lg: var(--uf-radius-lg);
+  /* `border-thin`, `border-thick`, `border-l-rule` (A2-05). */
+  --border-width-thin: var(--uf-border-thin);
+  --border-width-thick: var(--uf-border-thick);
+  --border-width-rule: var(--uf-border-rule);
+  --container-prose: var(--uf-width-prose);
+  --container-page: var(--uf-width-page);
+  --container-chat: var(--uf-width-chat);
+  --container-form: var(--uf-width-form);
+  --container-wide: var(--uf-width-wide);
+  --container-sidebar: var(--uf-width-sidebar);
+  /* `transition-colors`, `transition-transform`: the tokens' duration and curve (0ms reduced). */
+  --default-transition-duration: var(--uf-duration-normal);
+  --default-transition-timing-function: var(--uf-easing-in-out);
+}
+
+/*
+ * Base element styles live in the base layer. In Tailwind v4, unlayered rules beat utility
+ * classes whatever their specificity, so an unlayered `button { color: inherit }` silently
+ * overrode `text-on-brand` and put dark text on dark green (caught by axe in E2E).
+ */
+@layer base {
+  html {
+    /* One dark theme: native controls and scrollbars follow it. */
+    color-scheme: dark;
+    background: var(--uf-color-canvas);
+    color: var(--uf-color-ink);
+    font-family: var(--font-outfit), var(--uf-font);
+    font-size: 100%;
+    line-height: var(--uf-leading-normal);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-size: var(--uf-text-base);
+    background: var(--uf-color-canvas);
+  }
+
+  /*
+   * The dashboard's soft mauve haze over the near-black canvas (GLASS_PAIRS: haze), on its own
+   * fixed layer: a fixed-attachment body background made desktop Chromium repaint the whole
+   * screen on every scroll frame (A4-14; test/css-rules.test.ts).
+   */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(var(--uf-shape-haze-page), var(--uf-glass-haze), transparent 70%);
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: var(--uf-leading-tight);
+    font-weight: var(--uf-weight-bold);
+  }
+
+  a {
+    color: var(--uf-color-brand);
+    /* Links in text are underlined, not told apart by colour alone (WCAG 1.4.1). */
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  /* A focus ring everyone can see (WCAG 2.2 2.4.11 and 2.4.13). */
+  :focus-visible {
+    outline: 3px solid var(--uf-color-focus);
+    outline-offset: 2px;
+    border-radius: var(--uf-radius-sm);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+/*
+ * Motion respects the learner's setting (hard rule 9): durations drop to 0ms in tokens.css.
+ * One transition everywhere (polish-shell, 2026-10-24): every hover, focus and state change
+ * eases the same way, by the tokens' duration and curve, and only the properties a state
+ * changes (colours, edges, opacity, a lift), never layout. It was an unlayered `*` rule with the
+ * browser's `ease` on `all` properties, which also beat every component's own duration (the
+ * subjects chevron's `fast` never applied). In the base layer now, so a component or a utility
+ * that names its own transition wins; Tailwind's `transition-*` utilities take the same
+ * tokens through `--default-transition-*` (@theme above).
+ */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    transition-property:
+      color, background-color, border-color, outline-color, text-decoration-color, fill, stroke,
+      opacity, box-shadow, transform;
+    transition-duration: var(--uf-duration-normal);
+    transition-timing-function: var(--uf-easing-in-out);
+  }
+}
+
+/* biome-ignore-start lint/complexity/noImportantStyles: reduced motion must win over every component style */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* biome-ignore-end lint/complexity/noImportantStyles: reduced motion must win over every component style */
+
+.skip-link {
+  position: absolute;
+  left: var(--uf-space-4);
+  top: -10rem;
+  z-index: 50;
+  background: var(--uf-color-brand);
+  color: var(--uf-color-on-brand);
+  padding: var(--uf-space-2) var(--uf-space-4);
+  border-radius: var(--uf-radius-md);
+}
+
+.skip-link:focus {
+  top: var(--uf-space-2);
+}
+
+/* Tailwind provides .sr-only as a utility; this is the same rule for plain CSS users. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * The split stage: the front door and sign-in (components/split-stage.tsx, docs/design/README.md).
+ * The poster's charcoal: a sharp half, and a frosted half of glass (`--uf-glass-tint`) blurred
+ * over decorative shapes in token colours. The huge wordmark crosses the split as two clipped
+ * copies, the light ink on the charcoal and the pink accent on the glass. From a laptop's width
+ * the stage is at least one screen tall (100dvh): its display sizes follow the viewport's height
+ * as well, and it grows rather than cut anything off (A3-23).
+ * In the components layer: above the base styles (the focus ring on glass), below utilities.
+ */
+@layer components {
+  .uf-stage {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    min-height: 100dvh;
+    /* Sideways only: the shapes reach past the edges; content that needs more height gets it. */
+    overflow-x: clip;
+    background: linear-gradient(to bottom, var(--uf-color-stage-top), var(--uf-color-stage-bottom));
+    color: var(--uf-color-ink);
+  }
+
+  .uf-stage-sharp {
+    grid-row: 1;
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-4);
+    padding: var(--uf-space-5) var(--uf-space-5) var(--uf-space-6);
+  }
+
+  /* The frosted ground: under the right content, the wordmark and the bar. */
+  .uf-stage-ground {
+    grid-row: 2 / 5;
+    grid-column: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .uf-stage-shape {
+    position: absolute;
+    border-radius: var(--uf-radius-full);
+  }
+
+  /* The poster's blurred figure: a tall light-grey shape. */
+  .uf-stage-shape-figure {
+    width: 55%;
+    height: 80%;
+    left: 5%;
+    top: 20%;
+    background: var(--uf-color-haze);
+  }
+
+  /* The accent, as a soft mauve glow. */
+  .uf-stage-shape-glow {
+    width: 45%;
+    aspect-ratio: 1;
+    right: -10%;
+    top: -5%;
+    background: var(--uf-color-brand);
+  }
+
+  .uf-stage-shape-shade {
+    width: 60%;
+    aspect-ratio: 1;
+    right: -15%;
+    bottom: -20%;
+    background: var(--uf-color-stage-top);
+  }
+
+  .uf-glass {
+    position: absolute;
+    inset: 0;
+    background: var(--uf-glass-tint);
+    -webkit-backdrop-filter: blur(var(--uf-glass-blur));
+    backdrop-filter: blur(var(--uf-glass-blur));
+  }
+
+  .uf-stage-frost {
+    grid-row: 2;
+    grid-column: 1;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-5);
+    padding: var(--uf-space-5);
+    color: var(--uf-color-on-glass);
+  }
+
+  /* On the glass, the focus ring is the light ink. */
+  .uf-on-glass :focus-visible {
+    outline-color: var(--uf-color-on-glass);
+  }
+
+  /* A dark glass card with a hairline edge: the sign-in form, the bottom bar. */
+  .uf-glass-card {
+    background: var(--uf-glass-card);
+    color: var(--uf-color-ink);
+    border: var(--uf-border-thin) solid var(--uf-color-line);
+    -webkit-backdrop-filter: blur(var(--uf-glass-blur));
+    backdrop-filter: blur(var(--uf-glass-blur));
+    border-radius: var(--uf-radius-lg);
+  }
+
+  .uf-glass-card :focus-visible {
+    outline-color: var(--uf-color-focus);
+  }
+
+  .uf-headline {
+    font-size: var(--uf-display-headline);
+    line-height: var(--uf-leading-display);
+    letter-spacing: var(--uf-tracking-tight);
+    font-weight: var(--uf-weight-bold);
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .uf-rule {
+    width: var(--uf-space-7);
+    height: var(--uf-border-thick);
+    background: var(--uf-color-ink);
+    border: 0;
+    margin: 0;
+  }
+
+  .uf-number {
+    font-size: var(--uf-display-number);
+    line-height: var(--uf-leading-display);
+    font-weight: var(--uf-weight-medium);
+    letter-spacing: var(--uf-tracking-tight);
+  }
+
+  .uf-caps {
+    text-transform: uppercase;
+    letter-spacing: var(--uf-tracking-wide);
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-bold);
+  }
+
+  .uf-wordmark {
+    grid-row: 3;
+    grid-column: 1;
+    position: relative;
+    z-index: 1;
+    display: grid;
+    padding: 0 var(--uf-space-4) var(--uf-space-5);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .uf-wordmark-copy {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .uf-wordmark-word {
+    font-size: var(--uf-display-wordmark);
+    line-height: var(--uf-leading-display);
+    letter-spacing: var(--uf-tracking-tight);
+    font-weight: var(--uf-weight-bold);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .uf-wordmark-strap {
+    font-size: var(--uf-text-lg);
+    letter-spacing: var(--uf-tracking-widest);
+    text-transform: uppercase;
+    font-weight: var(--uf-weight-bold);
+    white-space: nowrap;
+  }
+
+  /* On a phone the wordmark sits on the glass alone: only the light copy shows. */
+  /* Both copies readable (decoration, held to 3:1: TEXT_PAIRS ink on stageBottom, GLASS_PAIRS accent on tint). */
+  .uf-wordmark-sharp {
+    display: none;
+    color: var(--uf-color-ink);
+  }
+
+  .uf-wordmark-frost {
+    color: var(--uf-color-accent);
+  }
+
+  .uf-stage-bar {
+    grid-row: 4;
+    grid-column: 1;
+    position: relative;
+    z-index: 1;
+    margin: 0 var(--uf-space-4) var(--uf-space-5);
+  }
+
+  /* The entrance: CSS only, once, on load. The headline only rises (it is the largest paint). */
+  .uf-rise {
+    animation: uf-rise var(--uf-duration-enter) var(--uf-easing-enter) both;
+  }
+
+  .uf-fade-rise {
+    animation: uf-fade-rise var(--uf-duration-enter) var(--uf-easing-enter) both;
+  }
+
+  .uf-delay-1 {
+    animation-delay: calc(var(--uf-duration-enter) / 4);
+  }
+
+  .uf-delay-2 {
+    animation-delay: calc(var(--uf-duration-enter) / 2);
+  }
+
+  @media (min-width: 64rem) {
+    /*
+     * One screen: the content row takes what the wordmark and the bar leave. At least one screen,
+     * never exactly one: with wider text spacing or a short window the stage grows and the page
+     * scrolls, rather than cutting off the heading or the sign-in button (A3-23).
+     */
+    .uf-stage {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: 1fr auto auto;
+      min-height: max(100dvh, var(--uf-shape-stage-min));
+    }
+
+    .uf-stage-sharp {
+      grid-row: 1;
+      grid-column: 1;
+      /* Centred while it fits; when it doesn't, it overflows downwards, never off the top. */
+      justify-content: safe center;
+      padding: clamp(var(--uf-space-5), 5dvh, var(--uf-space-7)) var(--uf-space-7) 0;
+    }
+
+    .uf-stage-ground {
+      grid-row: 1 / 4;
+      grid-column: 2;
+    }
+
+    .uf-stage-frost {
+      grid-row: 1;
+      grid-column: 2;
+      padding: clamp(var(--uf-space-5), 5dvh, var(--uf-space-7)) var(--uf-space-7) 0;
+    }
+
+    .uf-wordmark {
+      grid-row: 2;
+      grid-column: 1 / 3;
+      padding: 0 0 clamp(var(--uf-space-3), 2dvh, var(--uf-space-5));
+    }
+
+    /* The copies cross the split at its exact middle: light on the charcoal, pink on the glass. */
+    .uf-wordmark-sharp {
+      display: flex;
+      clip-path: inset(0 50% 0 0);
+    }
+
+    .uf-wordmark-frost {
+      clip-path: inset(0 0 0 50%);
+    }
+
+    .uf-stage-bar {
+      grid-row: 3;
+      grid-column: 1 / 3;
+      margin: 0 var(--uf-space-7) clamp(var(--uf-space-4), 3dvh, var(--uf-space-6));
+    }
+  }
+
+  /* No backdrop-filter: solid colours that pass on their own (the tokens' glass fallback). */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .uf-glass {
+      background: var(--uf-color-surface-sunk);
+    }
+
+    .uf-glass-card {
+      background: var(--uf-color-surface);
+    }
+  }
+
+  /* High contrast: no decoration, and the glass panels keep a visible edge. */
+  @media (forced-colors: active) {
+    .uf-stage-shape {
+      display: none;
+    }
+
+    .uf-glass-card,
+    .uf-stage-frost {
+      border: var(--uf-border-thin) solid CanvasText;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .uf-rise,
+    .uf-fade-rise {
+      animation: none;
+    }
+  }
+
+  /* The home's headline card: a dark card with a soft mauve glow (GLASS_PAIRS: haze over surface). */
+  .uf-glow-card {
+    background:
+      radial-gradient(var(--uf-shape-haze-card), var(--uf-glass-haze), transparent 70%),
+      var(--uf-color-surface);
+    border: var(--uf-border-thin) solid var(--uf-color-line);
+  }
+
+  /* The current nav pill: mauve fading to nothing (GLASS_PAIRS: pill). */
+  .uf-pill-current {
+    background: linear-gradient(to right, var(--uf-glass-pill), transparent);
+    color: var(--uf-color-ink);
+  }
+
+  /*
+   * The profile card (docs/design/profile-look-proposal.md): the theme is two custom properties,
+   * --look-accent and --look-soft (components/avatar.tsx `lookStyle`), every pair tested in
+   * PROFILE_THEME_PAIRS. A theme change cross-fades; the entrance, the line and the chips play
+   * once on load; the sticker wiggles once on Save. All off for reduced motion, below.
+   */
+  /*
+   * The poster (the owner's reference picture): near-black with one accent, a soft spotlight of
+   * the theme behind a black-and-white figure, "Hello" arched over it, one thin line round it to
+   * "I'm", the words floating left and right, and the name huge at the bottom left. On a phone
+   * the words wrap under the figure and the line is left out: nothing scrolls sideways.
+   */
+  .uf-look {
+    background: radial-gradient(60% 45% at 50% 38%, var(--look-soft), var(--uf-color-canvas));
+    color: var(--uf-color-ink);
+    transition-property: background-color, color, border-color;
+    overflow: hidden;
+  }
+
+  .uf-look *,
+  .uf-look-option {
+    transition-property: background-color, color, border-color, outline-color, stroke, fill;
+  }
+
+  /* The avatar wherever it shows (the card, the picker's tiles, the home): on the theme's accent. */
+  .uf-avatar {
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
+    border-radius: var(--uf-radius-full);
+    background: var(--look-accent);
+    color: var(--uf-color-on-accent);
+    font-weight: var(--uf-weight-bold);
+    overflow: hidden;
+  }
+
+  .uf-look-poster {
+    position: relative;
+    display: grid;
+    grid-template-areas: "hello" "figure" "chips" "intro" "tagline";
+    justify-items: center;
+    row-gap: var(--uf-space-4);
+    max-width: 40rem;
+    margin-inline: auto;
+    padding: var(--uf-space-6) var(--uf-space-5) var(--uf-space-5);
+  }
+
+  .uf-look-hello {
+    grid-area: hello;
+    width: min(100%, 20rem);
+    fill: var(--uf-color-ink);
+    font-weight: var(--uf-weight-bold);
+    font-size: var(--uf-text-3xl);
+    letter-spacing: var(--uf-tracking-wide);
+  }
+
+  .uf-look-figure {
+    grid-area: figure;
+    position: relative;
+    z-index: 1;
+  }
+
+  .uf-look-figure .uf-avatar {
+    width: calc(var(--uf-space-8) * 2.25);
+    height: calc(var(--uf-space-8) * 2.25);
+    font-size: var(--uf-display-poster);
+    outline: var(--uf-border-thin) solid var(--look-accent);
+    outline-offset: var(--uf-space-2);
+  }
+
+  /* Black and white, like the picture's portrait; a pattern keeps its two theme colours. */
+  .uf-look-figure .uf-avatar:not([class*="uf-pattern-"]) {
+    background: radial-gradient(
+      circle at 35% 30%,
+      var(--uf-color-surface-sunk),
+      var(--uf-color-canvas)
+    );
+    color: var(--uf-color-ink);
+  }
+
+  .uf-look-intro {
+    grid-area: intro;
+    justify-self: start;
+    position: relative;
+    z-index: 2;
+    margin: 0;
+    font-size: var(--uf-display-poster);
+    font-weight: var(--uf-weight-bold);
+    line-height: var(--uf-leading-display);
+    letter-spacing: var(--uf-tracking-tight);
+    overflow-wrap: anywhere;
+  }
+
+  .uf-look-im {
+    display: block;
+    color: var(--uf-color-ink);
+  }
+
+  .uf-look-tagline {
+    grid-area: tagline;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: var(--uf-space-2);
+    max-width: 14rem;
+    margin: 0;
+    color: var(--uf-color-ink);
+  }
+
+  .uf-look-tagline-arrow {
+    width: var(--uf-space-5);
+    height: var(--uf-space-5);
+    flex-shrink: 0;
+    color: var(--look-accent);
+  }
+
+  .uf-look-chips {
+    grid-area: chips;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--uf-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 40rem) {
+    .uf-look-poster {
+      grid-template-columns: 1fr auto;
+      grid-template-areas: "hello hello" "figure figure" "intro tagline";
+      row-gap: 0;
+      padding: var(--uf-space-6);
+    }
+
+    .uf-look-figure .uf-avatar {
+      width: calc(var(--uf-space-8) * 4);
+      height: calc(var(--uf-space-8) * 4);
+    }
+
+    /* The name rises over the bottom of the figure, as in the picture. */
+    .uf-look-figure {
+      margin-bottom: calc(var(--uf-space-8) * -1);
+    }
+
+    .uf-look-intro,
+    .uf-look-tagline {
+      align-self: end;
+    }
+
+    /* The words float round the figure: right, left, right, at three heights. */
+    /* Over the whole poster (every row and column), not a grid track of its own. */
+    .uf-look-chips {
+      position: absolute;
+      grid-row: 1 / -1;
+      grid-column: 1 / -1;
+      inset: 0;
+      display: block;
+      z-index: 2;
+      pointer-events: none;
+      /* One word's height on one line: the chip's padding, its line and its edge. */
+      --look-chip-height: calc(
+        var(--uf-space-2) *
+        2 +
+        var(--uf-text-base) *
+        var(--uf-leading-normal) +
+        var(--uf-border-thin) *
+        2
+      );
+    }
+
+    /*
+     * More specific than the chip's base rule (`position: relative`, later in the file), which
+     * used to win: each word then sat below the words above it and its `top` was added to their
+     * height (A2-39). The second and third words keep the place the owner approved by adding
+     * that height, one and two words' worth, to their `top`.
+     */
+    .uf-look-chips > .uf-look-chip {
+      position: absolute;
+      width: max-content;
+      pointer-events: auto;
+    }
+
+    .uf-look-chip:nth-child(1) {
+      top: 22%;
+      left: 66%;
+    }
+
+    .uf-look-chip:nth-child(2) {
+      top: calc(40% + var(--look-chip-height));
+      left: 4%;
+    }
+
+    .uf-look-chip:nth-child(3) {
+      top: calc(56% + var(--look-chip-height) * 2);
+      left: 68%;
+    }
+  }
+
+  /* The line, from the end of "Hello" round the figure to "I'm": wide screens only. */
+  .uf-look-curve {
+    display: none;
+    position: absolute;
+    grid-row: 1 / -1;
+    grid-column: 1 / -1;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    stroke: var(--uf-color-ink);
+    stroke-width: var(--uf-border-thick);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .uf-look-curve path {
+    vector-effect: non-scaling-stroke;
+  }
+
+  @media (min-width: 40rem) {
+    .uf-look-curve {
+      display: block;
+    }
+  }
+
+  /*
+   * Drawn by growing a dash from nothing to the whole path; the dash exists only while it draws
+   * (`backwards`), so at rest it is a plain solid stroke, never a dash a rounding short.
+   */
+  .uf-look-line {
+    stroke-dasharray: none;
+    animation: uf-draw var(--uf-duration-draw) var(--uf-easing-enter)
+      calc(var(--uf-duration-enter) / 2) backwards;
+  }
+
+  /*
+   * The round sticker (the magazine cover's badge): the grade. A circle at the usual spacing that
+   * grows with its text, so larger text spacing never spills "Grade 10" out of it (A2-38).
+   */
+  .uf-look-sticker {
+    position: absolute;
+    top: 0;
+    left: calc(var(--uf-space-6) * -1);
+    display: grid;
+    place-items: center;
+    min-width: calc(var(--uf-space-8) * 1.25);
+    min-height: calc(var(--uf-space-8) * 1.25);
+    padding: var(--uf-space-1);
+    margin: 0;
+    border-radius: var(--uf-radius-full);
+    background: var(--look-accent);
+    color: var(--uf-color-on-accent);
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-bold);
+    line-height: var(--uf-leading-tight);
+    text-align: center;
+    transform: rotate(-12deg);
+  }
+
+  .uf-look-saved {
+    animation: uf-wiggle calc(var(--uf-duration-normal) * 2) var(--uf-easing-in-out);
+  }
+
+  .uf-look-rise {
+    animation: uf-rise var(--uf-duration-enter) var(--uf-easing-enter) both;
+  }
+
+  .uf-look-name {
+    color: var(--look-accent);
+  }
+
+  /* A dark tag with a thin accent edge and a small accent flick in its corner, as in the picture. */
+  .uf-look-chip {
+    position: relative;
+    background: var(--uf-color-canvas);
+    border: var(--uf-border-thin) solid var(--look-accent);
+    border-radius: var(--uf-radius-md);
+    padding: var(--uf-space-2) var(--uf-space-4);
+    white-space: nowrap;
+    animation: uf-fade-rise var(--uf-duration-enter) var(--uf-easing-enter) both;
+    animation-delay: calc(var(--uf-duration-enter) / 2 + var(--uf-duration-fast) / 2 * var(--i, 0));
+  }
+
+  .uf-look-chip::after {
+    content: "";
+    position: absolute;
+    left: calc(var(--uf-border-thin) * -1);
+    bottom: calc(var(--uf-border-thin) * -1);
+    width: var(--uf-space-3);
+    height: var(--uf-space-3);
+    background: var(--look-accent);
+    border-bottom-left-radius: var(--uf-radius-md);
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+  }
+
+  /* The picker: a swatch or a tile per choice, each a 44px target; selected = an ink ring and a tick. */
+  .uf-look-option {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--uf-space-1);
+    min-width: var(--uf-target);
+    min-height: var(--uf-target);
+    cursor: pointer;
+    border-radius: var(--uf-radius-md);
+  }
+
+  .uf-look-option:has(input:focus-visible) {
+    outline: var(--uf-border-thick) solid var(--uf-color-focus);
+    outline-offset: var(--uf-border-thick);
+  }
+
+  .uf-look-swatch {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: var(--uf-target);
+    height: var(--uf-target);
+    border-radius: var(--uf-radius-full);
+    background: var(--look-accent);
+    outline: var(--uf-border-thin) solid var(--uf-color-line-strong);
+    outline-offset: var(--uf-border-thick);
+  }
+
+  .uf-look-option:has(input:checked) .uf-look-swatch,
+  .uf-look-tile:has(input:checked) .uf-avatar {
+    outline: var(--uf-border-thick) solid var(--uf-color-ink);
+    outline-offset: var(--uf-border-thick);
+  }
+
+  /* The tick: drawn with two borders, in the dark ink that sits on every accent. */
+  .uf-look-option:has(input:checked) .uf-look-swatch::after {
+    content: "";
+    width: var(--uf-space-2);
+    height: var(--uf-space-4);
+    margin-top: calc(var(--uf-space-1) * -1);
+    border: solid var(--uf-color-on-accent);
+    border-width: 0 var(--uf-border-thick) var(--uf-border-thick) 0;
+    transform: rotate(45deg);
+  }
+
+  .uf-look-option:has(input:checked) {
+    animation: uf-pop var(--uf-duration-fast) var(--uf-easing-enter);
+  }
+
+  .uf-look-word {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--uf-space-2);
+    min-height: var(--uf-target);
+    padding: 0 var(--uf-space-3);
+    border: var(--uf-border-thin) solid var(--uf-color-line-strong);
+    border-radius: var(--uf-radius-full);
+  }
+
+  .uf-look-word:has(input:checked) {
+    border-color: var(--look-accent);
+  }
+
+  .uf-look-word:has(input[aria-disabled="true"]) {
+    opacity: 0.6;
+  }
+
+  /* Two theme colours each (the tokens), drawn with gradients: no images. */
+  .uf-pattern-dots {
+    background:
+      radial-gradient(var(--look-accent) 22%, transparent 24%) 0 0 / 25% 25%,
+      var(--look-soft);
+  }
+
+  .uf-pattern-stripes {
+    background: repeating-linear-gradient(
+      45deg,
+      var(--look-accent) 0 12%,
+      var(--look-soft) 12% 24%
+    );
+  }
+
+  .uf-pattern-waves {
+    background:
+      radial-gradient(circle at 50% 0, transparent 30%, var(--look-accent) 31% 42%, transparent 43%)
+      0 0 / 50% 34%,
+      var(--look-soft);
+  }
+
+  .uf-pattern-grid {
+    background:
+      linear-gradient(var(--look-accent) 0 10%, transparent 10%) 0 0 / 25% 25%,
+      linear-gradient(90deg, var(--look-accent) 0 10%, transparent 10%) 0 0 / 25% 25%,
+      var(--look-soft);
+  }
+
+  .uf-pattern-rays {
+    background: repeating-conic-gradient(var(--look-accent) 0 15deg, var(--look-soft) 15deg 30deg);
+  }
+
+  .uf-pattern-rings {
+    background: repeating-radial-gradient(circle, var(--look-accent) 0 8%, var(--look-soft) 8% 16%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .uf-look-line,
+    .uf-look-chip,
+    .uf-look-rise,
+    .uf-look-saved,
+    .uf-look-option:has(input:checked) {
+      animation: none;
+    }
+    .uf-look-line {
+      stroke-dasharray: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .uf-look-option:has(input:checked) .uf-look-swatch {
+      outline-color: Highlight;
+    }
+  }
+}
+
+@keyframes uf-draw {
+  from {
+    stroke-dasharray: 0 1;
+  }
+  to {
+    stroke-dasharray: 1 0;
+  }
+}
+
+@keyframes uf-wiggle {
+  30% {
+    transform: rotate(-14deg);
+  }
+  60% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes uf-pop {
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes uf-rise {
+  from {
+    transform: translateY(var(--uf-motion-rise));
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes uf-fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--uf-motion-rise));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * The signed-in sidebar (app/(app)/nav.tsx, layout.tsx). A group's name is a label, a link is a
+ * link: small uppercase letter-spaced muted text against body-size ink with an icon. From a
+ * laptop's width the sidebar fits the screen without scrolling: 32px rows for a mouse, 28px on a
+ * screen under 800px tall (both above WCAG 2.5.8's 24px); a phone keeps 44px. Only below about
+ * 600px tall may it scroll, with a thin scrollbar. Sizes live here, not in utility classes, so the
+ * short-screen rule can change them.
+ */
+@layer components {
+  .uf-sidebar {
+    scrollbar-width: thin;
+  }
+
+  .uf-sidebar-brand {
+    font-size: var(--uf-text-xl);
+    font-weight: var(--uf-weight-bold);
+    color: var(--uf-color-ink);
+    text-decoration: none;
+  }
+
+  .uf-nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--uf-space-3);
+    min-height: var(--uf-target);
+    padding: 0 var(--uf-space-4);
+    border-radius: var(--uf-radius-full);
+    font-size: var(--uf-text-base);
+    line-height: var(--uf-leading-tight);
+  }
+
+  .uf-nav-icon {
+    width: var(--uf-text-lg);
+    height: var(--uf-text-lg);
+    flex-shrink: 0;
+    color: var(--uf-color-ink-muted);
+  }
+
+  .uf-pill-current .uf-nav-icon {
+    color: var(--uf-color-accent);
+  }
+
+  .uf-nav-group {
+    padding: var(--uf-space-5) var(--uf-space-4) var(--uf-space-1);
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-medium);
+    letter-spacing: var(--uf-tracking-wide);
+    text-transform: uppercase;
+    color: var(--uf-color-ink-muted);
+  }
+
+  @media (min-width: 64rem) {
+    .uf-sidebar-head {
+      padding: var(--uf-space-5) var(--uf-space-6) var(--uf-space-2);
+      /* The name starts where the links' icons and the group names do: the nav's inset plus a link's. */
+      padding-inline: calc(var(--uf-space-3) + var(--uf-space-4));
+    }
+
+    .uf-nav {
+      padding-bottom: var(--uf-space-4);
+    }
+
+    .uf-nav-link {
+      min-height: var(--uf-target-pointer);
+    }
+  }
+
+  @media (min-width: 64rem) and (max-height: 50rem) {
+    .uf-sidebar-head {
+      padding-top: var(--uf-space-4);
+      padding-bottom: var(--uf-space-1);
+    }
+
+    .uf-sidebar-brand {
+      font-size: var(--uf-text-lg);
+    }
+
+    .uf-nav {
+      padding-bottom: var(--uf-space-2);
+    }
+
+    .uf-nav-link {
+      min-height: var(--uf-target-dense);
+      font-size: var(--uf-text-sm);
+    }
+
+    .uf-nav-group {
+      padding-top: var(--uf-space-3);
+    }
+  }
+}
+
+/*
+ * The chat (app/(app)/chat/chat.tsx): a full-height column. On the chat page the signed-in
+ * layout is exactly one screen tall, so only the conversation scrolls and the composer stays
+ * docked under it (never over it: WCAG 2.4.11).
+ */
+@layer components {
+  /*
+   * Pinned to the screen only when the screen has room for it: at 400% zoom (320x256 CSS px) the
+   * pinned layout left the conversation a 29px slot (A3-24), so a short screen scrolls the page
+   * as any other, the composer still in flow under the list.
+   */
+  @media (min-height: 30rem) {
+    .uf-app:has(.uf-chat) {
+      height: 100dvh;
+    }
+
+    .uf-app:has(.uf-chat) .uf-app-column {
+      min-height: 0;
+    }
+
+    .uf-app:has(.uf-chat) .uf-app-main {
+      min-height: 0;
+    }
+
+    .uf-chat {
+      min-height: 0;
+    }
+  }
+
+  /* The preview notice gives way to the chat; the composer says "no AI connected" itself. */
+  .uf-app:has(.uf-chat) .uf-preview {
+    display: none;
+  }
+
+  .uf-app:has(.uf-chat) .uf-app-main {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: var(--uf-space-3);
+  }
+
+  .uf-chat-scroll {
+    min-height: 0;
+    scrollbar-width: thin;
+  }
+
+  /* The learner's message: a mauve-tinted bubble (GLASS_PAIRS: ink on pill). */
+  .uf-bubble {
+    background: var(--uf-glass-pill);
+    color: var(--uf-color-ink);
+  }
+
+  /* One line of placeholder: the empty field stays one row tall on a phone. */
+  .uf-composer-field::placeholder {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .uf-starter {
+    transition-property: transform, border-color;
+  }
+
+  .uf-starter:hover:not(:disabled) {
+    transform: translateY(calc(var(--uf-motion-lift) * -1));
+  }
+
+  /* Three dots while the companion is thinking. */
+  .uf-typing {
+    display: inline-flex;
+    gap: var(--uf-space-1);
+  }
+
+  .uf-typing span {
+    width: var(--uf-space-2);
+    height: var(--uf-space-2);
+    border-radius: var(--uf-radius-full);
+    background: var(--uf-color-ink-muted);
+    animation: uf-typing calc(var(--uf-duration-enter) * 2) var(--uf-easing-in-out) infinite;
+  }
+
+  .uf-typing span:nth-child(2) {
+    animation-delay: calc(var(--uf-duration-enter) / 3);
+  }
+
+  .uf-typing span:nth-child(3) {
+    animation-delay: calc(var(--uf-duration-enter) * 2 / 3);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .uf-typing span {
+      animation: none;
+    }
+
+    .uf-starter:hover:not(:disabled) {
+      transform: none;
+    }
+  }
+}
+
+@keyframes uf-typing {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/*
+ * My subjects (G10-4, round 2: the owner's approved proposal, decision 9: CSS only, no library).
+ * The verdict's meter fills once on load; a disclosure's chevron turns when it opens, and its
+ * panel grows where the browser can animate to `auto` (else it opens at once). Every time is a
+ * `--uf-duration-*` token, 0ms under reduced motion (tokens.css), and the global reduced-motion
+ * rule above stops animations too. Held by test/subjects-motion.test.ts. Kept in one block.
+ */
+@layer components {
+  /* ---- My subjects (app/(app)/subjects/subjects-view.tsx) ---- */
+
+  /* Decoration only (aria-hidden): the numbers are in the text beside it. */
+  .uf-meter {
+    height: var(--uf-space-3);
+    overflow: hidden;
+    border-radius: var(--uf-radius-full);
+    background: var(--uf-color-surface-sunk);
+    border: var(--uf-border-thin) solid var(--uf-color-line-strong);
+  }
+
+  .uf-meter-fill {
+    height: 100%;
+    background: var(--uf-color-brand);
+    transform-origin: left center;
+    transform: scaleX(var(--uf-meter-open));
+    animation: uf-meter-fill var(--uf-duration-enter) var(--uf-easing-enter) both;
+  }
+
+  /* A disclosure: the chevron turns down when open (decorative, aria-hidden). */
+  .uf-door-chevron {
+    transition-property: transform;
+    transition-duration: var(--uf-duration-fast);
+    transition-timing-function: var(--uf-easing-enter);
+  }
+
+  .uf-door[open] > summary .uf-door-chevron {
+    transform: rotate(90deg);
+  }
+
+  /* The panel's height, where the browser can animate to `auto`; elsewhere it opens at once. */
+  @supports (interpolate-size: allow-keywords) {
+    .uf-door {
+      interpolate-size: allow-keywords;
+    }
+
+    .uf-door::details-content {
+      block-size: 0;
+      overflow: clip;
+      transition:
+        block-size var(--uf-duration-normal) var(--uf-easing-enter),
+        content-visibility var(--uf-duration-normal) allow-discrete;
+    }
+
+    .uf-door[open]::details-content {
+      block-size: auto;
+    }
+  }
+
+  /* A university's row: a hover fill only. */
+  .uf-row {
+    transition-property: background-color;
+    transition-duration: var(--uf-duration-fast);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .uf-meter-fill {
+      animation: none;
+    }
+  }
+
+  /* ---- end My subjects ---- */
+
+  /* privacy-page: the privacy policy (/privacy) and the ECTA s43 footer on the public pages. */
+
+  /* Long emails and web addresses wrap at 360px instead of scrolling the page sideways. */
+  .uf-privacy,
+  .uf-site-footer {
+    overflow-wrap: anywhere;
+  }
+
+  /* The template notice: an info panel with a strong edge, read first. */
+  .uf-privacy-template {
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-2);
+    padding: var(--uf-space-4);
+    border-radius: var(--uf-radius-md);
+    border: var(--uf-border-thick) solid var(--uf-color-warning);
+    background: var(--uf-color-surface);
+  }
+
+  /* A value the owner hasn't given yet: a dashed underline, so it shows at a glance. */
+  .uf-fill {
+    text-decoration: underline dashed var(--uf-color-warning);
+    text-underline-offset: 0.25em;
+  }
+
+  /* Label and value pairs: stacked on a phone, side by side from 30rem. */
+  .uf-privacy-details,
+  .uf-site-footer-details {
+    display: grid;
+    gap: var(--uf-space-3);
+    margin: 0;
+  }
+
+  .uf-privacy-details dd,
+  .uf-site-footer-details dd {
+    margin: 0;
+  }
+
+  @media (min-width: 30rem) {
+    .uf-privacy-details > div {
+      display: grid;
+      grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
+      gap: var(--uf-space-3);
+    }
+
+    .uf-site-footer-details {
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    }
+  }
+
+  .uf-privacy-operator {
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-2);
+    padding: var(--uf-space-4);
+    border-radius: var(--uf-radius-md);
+    border: var(--uf-border-thin) solid var(--uf-color-line);
+    background: var(--uf-color-surface);
+  }
+
+  /*
+   * The gutter is the inner box's (SiteFooter: px-4 sm:px-6 inside the page's width, as in
+   * PublicPage), so the footer's edge is the page's edge at every width.
+   */
+  .uf-site-footer {
+    padding-block: var(--uf-space-6);
+    border-top: var(--uf-border-thin) solid var(--uf-color-line);
+    background: var(--uf-color-canvas);
+    font-size: var(--uf-text-sm);
+  }
+
+  /* end privacy-page */
+  /* agent-2: the profile photo (app/(app)/me/profile-photo.tsx, profile-look-proposal §5.3). */
+
+  /*
+   * On the card: the avatar's place and ring, black and white (the stored photo already is; the
+   * filter holds it if one ever isn't), in a soft spotlight of the theme. It only rises on entrance
+   * (`uf-look-rise`, none under reduced motion).
+   */
+  .uf-look-figure .uf-look-photo {
+    display: block;
+    width: calc(var(--uf-space-8) * 2.25);
+    height: calc(var(--uf-space-8) * 2.25);
+    max-width: none;
+    border-radius: var(--uf-radius-full);
+    object-fit: cover;
+    filter: grayscale(1);
+    outline: var(--uf-border-thin) solid var(--look-accent);
+    outline-offset: var(--uf-space-2);
+    box-shadow: 0 0 calc(var(--uf-space-8) * 1.5) var(--uf-space-6) var(--look-soft);
+  }
+
+  @media (min-width: 40rem) {
+    .uf-look-figure .uf-look-photo {
+      width: calc(var(--uf-space-8) * 4);
+      height: calc(var(--uf-space-8) * 4);
+    }
+  }
+
+  /* The crop: a square window on the photo; a ring shows the round part the card keeps. */
+  .uf-photo-crop {
+    position: relative;
+    width: min(100%, 18rem);
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: var(--uf-radius-md);
+    background: var(--uf-color-surface-sunk);
+    cursor: grab;
+    /*
+     * A thumb on the photo scrolls the page up and down; a sideways drag moves the photo (A2-41).
+     * One fixed value: a browser settles a touch's action when the finger lands, before any
+     * handler could change it. The buttons and the slider do every move without dragging (2.5.7).
+     */
+    touch-action: pan-y;
+  }
+
+  .uf-photo-crop:focus-visible {
+    outline: var(--uf-border-thick) solid var(--uf-color-focus);
+    outline-offset: var(--uf-border-thick);
+  }
+
+  .uf-photo-crop img {
+    position: absolute;
+    max-width: none;
+    filter: grayscale(1);
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .uf-photo-crop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--uf-radius-full);
+    border: var(--uf-border-thin) dashed var(--uf-color-ink);
+    pointer-events: none;
+  }
+
+  .uf-photo-zoom {
+    width: min(100%, 18rem);
+    min-height: var(--uf-target);
+    accent-color: var(--look-accent);
+  }
+
+  /* end agent-2 */
+
+  /* university-mark: our neutral letters beside a university's name (option A, 2026-10-23). */
+
+  /* Inline, so a link's underline still runs under the name beside the mark. */
+  .uf-university {
+    display: inline;
+  }
+
+  /*
+   * A small grey tile sized by the text around it. The letters are drawn from data-monogram, so
+   * they never enter the page's text. Colours: UNIVERSITY_MARK_COLORS (ink on surfaceSunk, a
+   * TEXT_PAIRS pair; the lineStrong edge, a NON_TEXT_PAIRS pair), never a university's.
+   */
+  .uf-university-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    min-width: 2.25em;
+    height: 1.5em;
+    padding-inline: 0.3em;
+    margin-inline-end: 0.4em;
+    border: var(--uf-border-thin) solid var(--uf-color-line-strong);
+    border-radius: var(--uf-radius-sm);
+    background: var(--uf-color-surface-sunk);
+    color: var(--uf-color-ink);
+    font-size: 0.75em;
+    font-weight: var(--uf-weight-bold);
+    letter-spacing: var(--uf-tracking-wide);
+    line-height: 1;
+    text-transform: none;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .uf-university-mark::before {
+    content: attr(data-monogram);
+  }
+
+  /* A permitted logo (none today) takes the tile's height. */
+  .uf-university-logo {
+    display: inline-block;
+    vertical-align: middle;
+    height: 1.25em;
+    width: auto;
+    margin-inline-end: 0.4em;
+  }
+
+  /* Windows high contrast: the tile keeps an edge in the system's colours. */
+  @media (forced-colors: active) {
+    .uf-university-mark {
+      border-color: CanvasText;
+    }
+  }
+
+  /* end university-mark */
+
+  /*
+   * demo-logos: the judge demo's real logos (NEXT_PUBLIC_UF_DEMO_LOGOS, the hackathon only;
+   * lib/demo-logos.ts). Each sits on a chip so dark artwork shows on the dark theme (light chip)
+   * and white artwork stays visible (dark chip). Remove with lib/demo-logos.ts after the hackathon.
+   */
+  .uf-demo-logo {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    height: 1.75em;
+    padding: 0.2em 0.45em;
+    margin-inline-end: 0.4em;
+    border: var(--uf-border-thin) solid var(--uf-color-line-strong);
+    border-radius: var(--uf-radius-sm);
+  }
+
+  .uf-demo-logo[data-backing="light"] {
+    background: var(--uf-color-ink);
+  }
+
+  .uf-demo-logo[data-backing="dark"] {
+    background: var(--uf-color-canvas);
+  }
+
+  .uf-demo-logo img {
+    height: 100%;
+    width: auto;
+    max-width: 9em;
+  }
+
+  /* end demo-logos */
+
+  /* profile-step-8: the About me card's A2 audit (docs/audits/results/S1-A2-profile.md). */
+
+  /*
+   * From 40rem the words float right and left of the figure ("The words float round the figure",
+   * above). A long word wraps rather than running past the poster's edge, where the card's
+   * `overflow: hidden` would cut it off (A2-32): at 40 to 48rem, and at 200% zoom on a laptop.
+   * More specific than the chip's base rule, which keeps a word on one line on a phone. Every word
+   * starts at most 68% across, so 30% keeps it inside.
+   */
+  @media (min-width: 40rem) {
+    .uf-look-chips > .uf-look-chip {
+      max-width: 30%;
+      white-space: normal;
+    }
+  }
+
+  /* end profile-step-8 */
+}
+
+@keyframes uf-meter-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/*
+ * My plan maps (docs/design/plan-maps-proposal.md §7–§9, approved 2026-10-23). One DOM, two
+ * layouts: the map is always one nested list; while the learner shows the Picture, this lays the
+ * same list out as a ring (Six stops), a cloud (Thinking cloud), a staircase, branches (Life map,
+ * from 64rem: seven need the width) or a road, by the width of its canvas card's map (2026-10-24,
+ * the `maps` block below), so a phone has the picture too, panned and zoomed in its card. The
+ * List, and the app, are the outline. CSS only (§9): every time is a
+ * `--uf-duration-*` token, 0ms under reduced motion (tokens.css), and the block's own
+ * reduced-motion rule turns each animation off. Nothing loops; the crisis card never animates.
+ * Held by test/plan-map-view.test.tsx. Kept in one block.
+ */
+@layer components {
+  /* plan-maps: My plan maps (app/(app)/goals/maps/[id]/plan-map-view.tsx) */
+
+  .uf-map {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-4);
+  }
+
+  /* M1: the centre settles in once. */
+  .uf-map-centre {
+    position: relative;
+    z-index: 1;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-2);
+    padding: var(--uf-space-4);
+    border-radius: var(--uf-radius-lg);
+    border: var(--uf-border-thick) solid var(--uf-color-line-strong);
+    background: var(--uf-color-surface);
+    animation: uf-map-settle var(--uf-duration-enter) var(--uf-easing-enter) both;
+  }
+
+  .uf-map-branches,
+  .uf-map-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-3);
+  }
+
+  .uf-map-steps {
+    margin-top: var(--uf-space-2);
+    padding-inline-start: var(--uf-space-4);
+    border-inline-start: var(--uf-border-thin) solid var(--uf-color-line);
+  }
+
+  /* M1: each stop fades and rises a little, in reading order. */
+  .uf-map-branch {
+    position: relative;
+    z-index: 1;
+    animation: uf-map-rise var(--uf-duration-enter) var(--uf-easing-enter) both;
+    animation-delay: calc(var(--i, 0) * var(--uf-duration-fast) / 2);
+  }
+
+  .uf-map-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-2);
+    padding: var(--uf-space-3);
+    border-radius: var(--uf-radius-md);
+    border: var(--uf-border-thin) solid var(--uf-color-line);
+    background: var(--uf-color-surface);
+  }
+
+  /* The one map cue in the outline: the stop's tone as a side rule (§8.2). */
+  .uf-map-branch > .uf-map-card {
+    border-inline-start: var(--uf-border-rule) solid var(--uf-map-tone, var(--uf-color-line-strong));
+  }
+
+  .uf-map-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--uf-space-2);
+    font-size: var(--uf-text-lg);
+    font-weight: var(--uf-weight-bold);
+  }
+
+  .uf-map-number {
+    color: var(--uf-map-tone, var(--uf-color-ink));
+  }
+
+  .uf-map-subtitle,
+  .uf-map-hint {
+    font-weight: var(--uf-weight-normal);
+    color: var(--uf-color-ink-muted);
+  }
+
+  .uf-map-status {
+    display: flex;
+    align-items: center;
+    gap: var(--uf-space-2);
+    font-weight: var(--uf-weight-medium);
+  }
+
+  /* Status is a word and an icon, never colour alone (§7); Not achieved is neutral (D7). */
+  .uf-map-icon {
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .uf-map-icon--planned {
+    color: var(--uf-color-line-strong);
+  }
+
+  .uf-map-icon--achieved {
+    color: var(--uf-color-success);
+  }
+
+  .uf-map-icon--not-achieved {
+    color: var(--uf-color-ink-muted);
+  }
+
+  .uf-map-tick {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+
+  /* M3: marked Achieved, the tick draws itself and the card pulses once. */
+  [data-just="achieved"] > .uf-map-card .uf-map-tick {
+    animation: uf-map-draw var(--uf-duration-fast) var(--uf-easing-enter) both;
+  }
+
+  [data-just="achieved"] > .uf-map-card {
+    animation: uf-map-pulse var(--uf-duration-normal) var(--uf-easing-enter);
+  }
+
+  /* M4: the two reflections open under the choice. */
+  .uf-map-reflect {
+    animation: uf-map-rise var(--uf-duration-normal) var(--uf-easing-enter) both;
+  }
+
+  /* M6: the chosen status and the chosen template show it with a ring. */
+  .uf-map-radio:has(input:checked),
+  .uf-plan-choice:has(input:checked) {
+    outline: var(--uf-border-thick) solid var(--uf-color-brand);
+    outline-offset: var(--uf-border-thin);
+    transition-property: outline-color;
+    transition-duration: var(--uf-duration-fast);
+  }
+
+  /* The template picker's thumbnails: decoration (aria-hidden), the shape of each template. */
+  .uf-plan-thumb {
+    flex-shrink: 0;
+    width: var(--uf-space-7);
+    height: var(--uf-space-7);
+    border: var(--uf-border-thick) solid var(--uf-color-line-strong);
+    border-radius: var(--uf-radius-sm);
+  }
+
+  .uf-plan-thumb--six-stops {
+    border-radius: var(--uf-radius-full);
+    border-style: dashed;
+  }
+
+  .uf-plan-thumb--thinking-cloud {
+    border-radius: 50% 45% 55% 40% / 45% 50% 40% 55%;
+  }
+
+  .uf-plan-thumb--staircase {
+    border-width: 0 0 var(--uf-border-rule) var(--uf-border-rule);
+  }
+
+  .uf-plan-thumb--life-map {
+    border-radius: var(--uf-radius-full);
+    border-width: var(--uf-border-rule);
+  }
+
+  .uf-plan-thumb--the-road {
+    border-width: 0 var(--uf-border-rule) 0 0;
+    border-style: dashed;
+    border-radius: 0;
+  }
+
+  .uf-map-care {
+    padding-top: var(--uf-space-2);
+  }
+
+  .uf-map-lines {
+    display: none;
+  }
+
+  /* Picture or List, at every width: the picture sits on its canvas card from a 360px phone up. */
+  .uf-map-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--uf-space-2);
+  }
+
+  .uf-map-line {
+    fill: none;
+    stroke: var(--uf-color-line-strong);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    /* M2: each connector draws itself from the centre outward, once a visit. */
+    animation: uf-map-draw var(--uf-duration-draw) var(--uf-easing-enter) both;
+    animation-delay: calc(var(--i, 0) * var(--uf-duration-fast) / 2);
+  }
+
+  /* The picture is laid out by the map's own width (its canvas, plan-map-canvas.tsx, which gives
+   * each picture a set width from tokens.canvas), not the page's: so a phone shows the same
+   * picture, moved and zoomed in its card. Outside a canvas (the List) it is the outline. */
+  @container uf-map-world (min-width: 48rem) {
+    /* A stop's soft fill, in the picture only. */
+    .uf-map[data-view="picture"] .uf-map-branch > .uf-map-card {
+      background: var(--uf-map-soft, var(--uf-color-surface));
+    }
+
+    /* The ring (Six stops) and the cloud: the centre in the middle cell of a 3 by 3 grid, each
+     * stop in its cell clockwise from the top (placed by the page, `grid-area`), so sighted and
+     * keyboard order agree (WCAG 2.4.3). */
+    .uf-map--ring[data-view="picture"],
+    .uf-map--cloud[data-view="picture"] {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(9rem, auto));
+      gap: var(--uf-space-5);
+    }
+
+    .uf-map--ring[data-view="picture"] > .uf-map-centre,
+    .uf-map--cloud[data-view="picture"] > .uf-map-centre {
+      grid-area: 2 / 2;
+      align-self: center;
+    }
+
+    .uf-map--ring[data-view="picture"] > .uf-map-branches,
+    .uf-map--cloud[data-view="picture"] > .uf-map-branches {
+      grid-area: 1 / 1 / 4 / 4;
+      display: grid;
+      grid-template-columns: subgrid;
+      grid-template-rows: subgrid;
+    }
+
+    .uf-map--ring[data-view="picture"] > .uf-map-lines,
+    .uf-map--cloud[data-view="picture"] > .uf-map-lines,
+    .uf-map--branches[data-view="picture"] > .uf-map-lines {
+      display: block;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Six stops: a starburst behind the centre (decoration), cards with a sticker shadow. */
+    .uf-map--ring[data-view="picture"] > .uf-map-centre::before {
+      content: "";
+      position: absolute;
+      inset: calc(var(--uf-space-3) * -1);
+      z-index: -1;
+      background: var(--uf-color-map-tone1-soft);
+      clip-path: polygon(
+        50% 0%,
+        61% 15%,
+        79% 8%,
+        78% 26%,
+        96% 32%,
+        84% 47%,
+        96% 63%,
+        78% 70%,
+        79% 89%,
+        61% 83%,
+        50% 100%,
+        39% 83%,
+        21% 89%,
+        22% 70%,
+        4% 63%,
+        16% 47%,
+        4% 32%,
+        22% 26%,
+        21% 8%,
+        39% 15%
+      );
+    }
+
+    .uf-map--ring[data-view="picture"] .uf-map-branch > .uf-map-card {
+      border: var(--uf-border-thick) solid var(--uf-map-tone, var(--uf-color-line-strong));
+      box-shadow: var(--uf-space-1) var(--uf-space-1) 0 var(--uf-color-line-strong);
+    }
+
+    /* The cloud: a cloud in the middle; notes, ovals and label strips in turn. */
+    .uf-map--cloud[data-view="picture"] > .uf-map-centre {
+      border-radius: 50% 45% 55% 40% / 45% 50% 40% 55%;
+      padding: var(--uf-space-6);
+    }
+
+    .uf-map--cloud[data-view="picture"] .uf-map-branch:where(:nth-child(3n + 2)) > .uf-map-card {
+      border-radius: var(--uf-space-7);
+    }
+
+    .uf-map--cloud[data-view="picture"] .uf-map-branch:where(:nth-child(3n)) > .uf-map-card {
+      border-radius: 0;
+    }
+
+    .uf-map--cloud[data-view="picture"] .uf-map-branch:nth-child(3n) .uf-map-heading {
+      text-transform: uppercase;
+      letter-spacing: var(--uf-tracking-wide);
+    }
+
+    /* The staircase: rows of four steps rising left to right; a step's bar shows how it went. */
+    .uf-map--stairs[data-view="picture"] > .uf-map-branches {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      align-items: end;
+      gap: var(--uf-space-3);
+    }
+
+    .uf-map--stairs[data-view="picture"] .uf-map-branch:nth-child(4n + 1) {
+      margin-top: calc(var(--uf-space-6) * 3);
+    }
+
+    .uf-map--stairs[data-view="picture"] .uf-map-branch:nth-child(4n + 2) {
+      margin-top: calc(var(--uf-space-6) * 2);
+    }
+
+    .uf-map--stairs[data-view="picture"] .uf-map-branch:nth-child(4n + 3) {
+      margin-top: var(--uf-space-6);
+    }
+
+    .uf-map--stairs[data-view="picture"] .uf-map-branch > .uf-map-card {
+      border-bottom: var(--uf-border-rule) solid var(--uf-color-line-strong);
+    }
+
+    .uf-map--stairs[data-view="picture"] .uf-map-branch[data-status="achieved"] > .uf-map-card {
+      border-bottom-color: var(--uf-color-success);
+    }
+
+    /* The road: milestones either side of a dashed road, a marker where each meets it. */
+    .uf-map--road[data-view="picture"] > .uf-map-branches {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: var(--uf-space-7);
+      row-gap: var(--uf-space-4);
+    }
+
+    .uf-map--road[data-view="picture"] > .uf-map-branches::before {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      left: 50%;
+      border-left: var(--uf-border-rule) dashed var(--uf-color-line-strong);
+      transform-origin: top;
+      animation: uf-map-road var(--uf-duration-draw) var(--uf-easing-enter) both;
+    }
+
+    .uf-map--road[data-view="picture"] .uf-map-branch:nth-child(odd) {
+      grid-column: 1;
+    }
+
+    .uf-map--road[data-view="picture"] .uf-map-branch:nth-child(even) {
+      grid-column: 2;
+      margin-top: var(--uf-space-7);
+    }
+
+    .uf-map--road[data-view="picture"] .uf-map-branch::after {
+      content: "";
+      position: absolute;
+      top: var(--uf-space-4);
+      width: var(--uf-space-4);
+      height: var(--uf-space-4);
+      border-radius: var(--uf-radius-full);
+      background: var(--uf-map-tone, var(--uf-color-line-strong));
+    }
+
+    .uf-map--road[data-view="picture"] .uf-map-branch:nth-child(odd)::after {
+      right: calc(var(--uf-space-7) / -2 - var(--uf-space-2));
+    }
+
+    .uf-map--road[data-view="picture"] .uf-map-branch:nth-child(even)::after {
+      left: calc(var(--uf-space-7) / -2 - var(--uf-space-2));
+    }
+  }
+
+  @container uf-map-world (min-width: 64rem) {
+    /* The life map: the centre in a circle, seven numbered branches around it. */
+    .uf-map--branches[data-view="picture"] {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(9rem, auto));
+      gap: var(--uf-space-5);
+    }
+
+    .uf-map--branches[data-view="picture"] > .uf-map-centre {
+      grid-area: 2 / 2;
+      align-self: center;
+      border-radius: var(--uf-radius-full);
+      padding: var(--uf-space-6);
+      text-align: center;
+    }
+
+    .uf-map--branches[data-view="picture"] > .uf-map-branches {
+      grid-area: 1 / 1 / 4 / 4;
+      display: grid;
+      grid-template-columns: subgrid;
+      grid-template-rows: subgrid;
+    }
+
+    .uf-map--branches[data-view="picture"] .uf-map-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: var(--uf-space-6);
+      min-height: var(--uf-space-6);
+      border-radius: var(--uf-radius-full);
+      border: var(--uf-border-thick) solid var(--uf-map-tone, var(--uf-color-line-strong));
+    }
+  }
+
+  /* Forced colours: the tones give way to the system's; the icons and words keep the meaning. */
+  @media (forced-colors: active) {
+    .uf-map-card,
+    .uf-map-centre {
+      border-color: CanvasText;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .uf-map-centre,
+    .uf-map-branch,
+    .uf-map-line,
+    .uf-map-reflect,
+    [data-just="achieved"] > .uf-map-card,
+    [data-just="achieved"] > .uf-map-card .uf-map-tick,
+    .uf-map--road[data-view="picture"] > .uf-map-branches::before {
+      animation: none;
+    }
+  }
+
+  /* end plan-maps */
+
+  /* demo-photos: "Choose a sample photo" in the judge demo (2026-10-23). Two or three across on a
+     phone 360 pixels wide, more on a wider screen; the chosen one ringed. Nothing moves. */
+  .uf-sample-photos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+    gap: var(--uf-space-3);
+    max-width: 36rem;
+  }
+
+  .uf-sample-photo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-1);
+    min-height: var(--uf-target);
+    cursor: pointer;
+  }
+
+  .uf-sample-photo img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    border-radius: var(--uf-radius-md);
+    border: var(--uf-border-thick) solid transparent;
+  }
+
+  .uf-sample-photo:has(input:checked) img {
+    border-color: var(--look-accent);
+  }
+
+  .uf-sample-photo input {
+    accent-color: var(--look-accent);
+  }
+
+  /* end demo-photos */
+
+  /* demo: the judge-demo walk's layout fixes (docs/audits/results/DEMO-walk.md). */
+
+  /* A2-60: a fieldset defaults to `min-inline-size: min-content`, so an auto-fill grid inside one
+     (the sample photos) widened it past a phone's card and the card cut it off. */
+  fieldset {
+    min-inline-size: 0;
+  }
+
+  /* end demo */
+}
+
+@keyframes uf-map-settle {
+  from {
+    transform: scale(0.96);
+  }
+}
+
+@keyframes uf-map-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--uf-motion-rise-small));
+  }
+}
+
+@keyframes uf-map-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes uf-map-pulse {
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes uf-map-road {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@layer components {
+  /* cv-ui: My CV (docs/design/mmereko-api-proposal.md §10.5). The only motion on the page is the
+   * status line's progress dots beside "Being made"; under reduced motion they go, leaving the
+   * word. The ATS bar: a `line-strong` track (3:1 on a card) filled in brand, its number in words
+   * beside it, so it never relies on colour alone. Every value a token. */
+  /* The learner's own words, links and advert titles wrap at 320px instead of scrolling the page
+   * sideways (WCAG 1.4.10, audit CV-A2 A2-46), as the privacy page's addresses do. */
+  .uf-cv {
+    overflow-wrap: anywhere;
+  }
+
+  .uf-cv-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--uf-space-2);
+  }
+
+  .uf-cv-progress {
+    display: inline-flex;
+    gap: var(--uf-space-1);
+  }
+
+  .uf-cv-progress span {
+    inline-size: var(--uf-space-2);
+    block-size: var(--uf-space-2);
+    border-radius: var(--uf-radius-full);
+    background: var(--uf-color-ink-muted);
+    animation: uf-cv-progress calc(var(--uf-duration-enter) * 2) var(--uf-easing-in-out);
+    /* Stops within five seconds (WCAG 2.2.2, audit CV-A2 A2-49): the word stays, and so do the dots. */
+    animation-iteration-count: 4;
+  }
+
+  .uf-cv-progress span:nth-child(2) {
+    animation-delay: calc(var(--uf-duration-enter) / 3);
+  }
+
+  .uf-cv-progress span:nth-child(3) {
+    animation-delay: calc(var(--uf-duration-enter) * 2 / 3);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .uf-cv-progress {
+      display: none;
+    }
+  }
+
+  .uf-cv-meter {
+    appearance: none;
+    display: block;
+    block-size: var(--uf-space-3);
+    inline-size: 100%;
+    overflow: hidden;
+    border: var(--uf-border-thin) solid var(--uf-color-line-strong);
+    border-radius: var(--uf-radius-full);
+    background: var(--uf-color-surface-sunk);
+  }
+
+  .uf-cv-meter::-webkit-meter-bar {
+    block-size: 100%;
+    border: 0;
+    border-radius: var(--uf-radius-full);
+    background: var(--uf-color-surface-sunk);
+  }
+
+  .uf-cv-meter::-webkit-meter-optimum-value,
+  .uf-cv-meter::-webkit-meter-suboptimum-value,
+  .uf-cv-meter::-webkit-meter-even-less-good-value {
+    background: var(--uf-color-brand);
+  }
+
+  .uf-cv-meter::-moz-meter-bar {
+    background: var(--uf-color-brand);
+  }
+
+  @keyframes uf-cv-progress {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  /* end cv-ui */
+
+  /*
+   * landing-people: the journey in pictures on the front door (the owner, 2026-10-23), bottom to
+   * top: Grade 10 on the wordmark, university above, graduation at the top. A column across the
+   * split, behind every word (the sharp half and the frost sit above it), taking no room: the
+   * layout is the same with or without it. Each picture fades at its foot into the next.
+   */
+  .uf-stage-people {
+    display: none;
+  }
+
+  @media (min-width: 64rem) {
+    .uf-stage-sharp {
+      position: relative;
+      z-index: 1;
+    }
+
+    /*
+     * One group, stacked from the bottom: Grade 10 standing on the wordmark, university right on
+     * their heads, graduation on top, each a little over the one below (their feet fade).
+     *
+     * Placed in the stage's first row (the room above the wordmark), so its foot is the wordmark's
+     * top on every screen (2026-10-24: a share of the stage's height and a width by the screen's
+     * width let it slide onto "GRADE 10" when the screen was shorter or wider). As tall as that
+     * room allows, up to the token's width; its width follows from the photos' shape.
+     */
+    .uf-stage-people {
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      position: absolute;
+      /* Both lines named: for a positioned item, an `auto` end is the stage's own bottom edge. */
+      grid-row: 1 / 2;
+      grid-column: 1 / 3;
+      bottom: 0;
+      /*
+       * On a laptop the charcoal half's words fill their half and can't give way (narrower, they
+       * would push the wordmark and the bar off the first screen), so the column starts just past
+       * their padding and the frosted half's words, which have room to spare, make way for it.
+       */
+      left: calc(50% - var(--uf-space-7) + var(--uf-space-4));
+      height: min(
+        calc(100% - var(--uf-space-4)),
+        calc(var(--uf-shape-stage-people) / (var(--uf-shape-stage-people-ratio)))
+      );
+      aspect-ratio: var(--uf-shape-stage-people-ratio);
+      isolation: isolate;
+      pointer-events: none;
+    }
+
+    .uf-stage-with-people .uf-stage-frost {
+      padding-left: max(var(--uf-space-7), calc(var(--uf-shape-stage-people) - var(--uf-space-4)));
+    }
+
+    /* A soft glow in the brand's mauve behind the group, so the photos belong to the page. */
+    .uf-stage-people::before {
+      content: "";
+      position: absolute;
+      inset: -12% -45%;
+      z-index: -1;
+      background: radial-gradient(
+        closest-side,
+        color-mix(in srgb, var(--uf-color-brand) 45%, transparent),
+        transparent
+      );
+    }
+
+    .uf-person {
+      display: block;
+      flex: none;
+      width: 100%;
+      height: auto;
+      /* One look for three photos taken in different light (no shadow: the fade would box it). */
+      filter: saturate(0.92) contrast(1.04);
+      -webkit-mask-image: linear-gradient(to bottom, black 72%, transparent);
+      mask-image: linear-gradient(to bottom, black 72%, transparent);
+    }
+
+    /*
+     * Each picture's foot tucks behind the heads of the one below: the lower pair is drawn in
+     * front (the group is its own stacking context, so this never lifts a photo over a word).
+     */
+    .uf-person + .uf-person {
+      margin-bottom: calc(-1 * var(--uf-shape-stage-people-tuck));
+    }
+
+    .uf-person-0 {
+      z-index: 3;
+    }
+
+    .uf-person-1 {
+      z-index: 2;
+    }
+
+    .uf-person-2 {
+      z-index: 1;
+    }
+  }
+
+  /*
+   * A big screen: the charcoal half has room to spare, so the column stands left of the split,
+   * its right edge just short of the frosted half's words, and the charcoal half's words stop
+   * short of its widest left edge.
+   */
+  @media (min-width: 90rem) {
+    .uf-stage-people {
+      left: auto;
+      right: calc(50% - var(--uf-space-7) + var(--uf-space-4));
+    }
+
+    .uf-stage-with-people .uf-stage-frost {
+      padding-left: var(--uf-space-7);
+    }
+
+    .uf-stage-with-people .uf-stage-sharp {
+      padding-right: max(var(--uf-space-7), calc(var(--uf-shape-stage-people) - var(--uf-space-4)));
+    }
+  }
+
+  /* High contrast: no pictures behind the words. */
+  @media (forced-colors: active) {
+    .uf-stage-people {
+      display: none;
+    }
+  }
+
+  /* end landing-people */
+
+  /*
+   * web6: the signed-in Menu as a native disclosure (app/(app)/nav.tsx, A4-15). On a phone the
+   * nav panel shows only while the header's `details` is open, which its summary does with no
+   * JavaScript. From a laptop's width the panel is the sidebar, always shown. A browser without
+   * `:has` shows the panel open on a phone: long, but every link there.
+   */
+  @media (width < 64rem) {
+    .uf-sidebar:not(:has(.uf-menu[open])) .uf-nav-panel {
+      display: none;
+    }
+  }
+
+  /* end web6 */
+
+  /*
+   * cards8: the course card's picture (components/programme-card.tsx, lib/course-art.ts). A photo
+   * of the course's field across the card's top, behind everything in the card (`isolation` keeps
+   * the layers inside it), under a scrim of the card's own colour: light over the empty band at
+   * the top (no word sits there; the badges start below it), then `scrim-text` from the band
+   * down, which holds every word to AA over a white pixel (packages/tokens COURSE_ART_PAIRS), and
+   * solid at the picture's foot. Nothing moves, so reduced motion has nothing to stop.
+   */
+  .uf-course-card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .uf-course-art {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: -1;
+    display: block;
+    block-size: var(--uf-course-art-height);
+    pointer-events: none;
+  }
+
+  .uf-course-art img {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+
+  .uf-course-art-scrim {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: -1;
+    block-size: var(--uf-course-art-height);
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      var(--uf-course-art-scrim-top) 0,
+      var(--uf-course-art-scrim-text) var(--uf-course-art-band),
+      var(--uf-color-surface) 100%
+    );
+  }
+
+  .uf-course-card-band {
+    padding-block-start: var(--uf-course-art-band);
+  }
+
+  /* High contrast: no picture behind the words, and no empty band where it was. */
+  @media (forced-colors: active) {
+    .uf-course-art,
+    .uf-course-art-scrim {
+      display: none;
+    }
+
+    .uf-course-card-band {
+      padding-block-start: 0;
+    }
+  }
+
+  /* end cards8 */
+
+  /* maps: the plan map on a canvas card (app/(app)/goals/maps/[id]/plan-map-canvas.tsx,
+   * 2026-10-24). The card holds a window onto the picture, laid out at its own width
+   * (tokens.canvas), so the `plan-maps` block's container queries draw the picture on a 360px
+   * phone too. Before the page is live the window scrolls natively both ways, so the map reads
+   * without JavaScript; once live (`data-enhanced`) the map moves by one transform, from the
+   * custom properties the canvas writes once a frame, over a dotted ground that moves and scales
+   * with it. Every value a token; every animation stilled under reduced motion. Held by
+   * test/plan-map-canvas.test.tsx. */
+  .uf-canvas {
+    container: uf-canvas / inline-size;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-2);
+    min-width: 0;
+    padding: var(--uf-space-2);
+    border-radius: var(--uf-radius-lg);
+    border: var(--uf-border-thin) solid var(--uf-color-line);
+    background: var(--uf-color-surface);
+  }
+
+  .uf-canvas-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--uf-space-2);
+  }
+
+  /* Before the page is live the buttons can't work yet: they keep their place, unseen. */
+  .uf-canvas:not([data-enhanced]) .uf-canvas-tools {
+    visibility: hidden;
+  }
+
+  .uf-canvas-zooms {
+    display: flex;
+    align-items: center;
+    gap: var(--uf-space-1);
+  }
+
+  .uf-canvas-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--uf-target);
+    min-height: var(--uf-target);
+    border-radius: var(--uf-radius-full);
+    border: var(--uf-border-thick) solid var(--uf-color-line-strong);
+    background: var(--uf-color-surface-sunk);
+    color: var(--uf-color-ink);
+    cursor: pointer;
+    transition-property: border-color, color;
+    transition-duration: var(--uf-duration-fast);
+  }
+
+  .uf-canvas-btn:hover {
+    border-color: var(--uf-color-brand);
+    color: var(--uf-color-brand);
+  }
+
+  .uf-canvas-icon {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .uf-canvas-zoom {
+    min-width: var(--uf-space-8);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--uf-weight-medium);
+  }
+
+  .uf-canvas-viewport {
+    position: relative;
+    height: var(--uf-canvas-height);
+    overflow: auto;
+    overscroll-behavior: contain;
+    border-radius: var(--uf-radius-md);
+    background-color: var(--uf-color-canvas);
+  }
+
+  /* The canvas moves these itself, once a frame: the page's default transition (every property,
+     `* { transition-duration }`) would make each move lag behind the finger. */
+  .uf-canvas-viewport,
+  .uf-canvas-stage,
+  .uf-canvas-world,
+  .uf-canvas-paths,
+  .uf-canvas-paths path,
+  .uf-minimap rect {
+    transition: none;
+  }
+
+  /* The ground the map lies on: dots that scroll with it and space out as it zooms in, lined up
+     with the map's corner (the stage's margin). */
+  .uf-canvas-stage {
+    min-width: 100%;
+    min-height: 100%;
+    background-image: radial-gradient(
+      circle,
+      var(--uf-color-line-strong) var(--uf-canvas-dot),
+      transparent calc(var(--uf-canvas-dot) + var(--uf-border-thin))
+    );
+    background-size: calc(var(--uf-canvas-grid) * var(--uf-canvas-scale, 1))
+      calc(var(--uf-canvas-grid) * var(--uf-canvas-scale, 1));
+    background-position: var(--uf-canvas-margin, 0) var(--uf-canvas-margin, 0);
+  }
+
+  .uf-canvas-viewport:focus-visible {
+    outline: var(--uf-border-thick) solid var(--uf-color-focus);
+    outline-offset: calc(var(--uf-border-thick) * -1);
+  }
+
+  /* Live: the page never scrolls under a pan or a pinch; the map moves instead. */
+  .uf-canvas[data-enhanced] .uf-canvas-viewport {
+    overflow: hidden;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .uf-canvas[data-panning] .uf-canvas-viewport {
+    cursor: grabbing;
+  }
+
+  /* The picture's own width: the `plan-maps` block lays it out from 48rem (64rem) of this. */
+  .uf-canvas-world {
+    container: uf-map-world / inline-size;
+    position: relative;
+  }
+
+  .uf-canvas-world--ring,
+  .uf-canvas-world--cloud {
+    width: var(--uf-canvas-world-ring);
+  }
+
+  .uf-canvas-world--stairs,
+  .uf-canvas-world--branches {
+    width: var(--uf-canvas-world-wide);
+  }
+
+  .uf-canvas-world--road {
+    width: var(--uf-canvas-world-road);
+  }
+
+  /* Live: the stage is sized by the canvas (the zoomed map and a window's margin all round); the
+     pan is the window's scroll over it, the zoom one scale. */
+  .uf-canvas[data-enhanced] .uf-canvas-stage {
+    position: relative;
+  }
+
+  .uf-canvas[data-enhanced] .uf-canvas-world {
+    position: absolute;
+    top: var(--uf-canvas-margin, 0);
+    left: var(--uf-canvas-margin, 0);
+    transform-origin: 0 0;
+    transform: scale(var(--uf-canvas-scale, 1));
+  }
+
+  /* While a finger or the mouse pans, no text is selected, and the map rides one layer. */
+  .uf-canvas[data-panning] .uf-canvas-world {
+    user-select: none;
+    will-change: transform;
+  }
+
+  /* The road and the climb line, behind the cards (decoration, measured by the canvas). */
+  .uf-canvas-paths {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .uf-canvas-road,
+  .uf-canvas-road-line,
+  .uf-canvas-climb {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .uf-canvas-road {
+    stroke: var(--uf-color-surface-sunk);
+    stroke-width: var(--uf-canvas-road);
+  }
+
+  .uf-canvas-road-line {
+    stroke: var(--uf-color-line-strong);
+    stroke-width: var(--uf-border-thick);
+    stroke-dasharray: var(--uf-space-3) var(--uf-space-3);
+  }
+
+  .uf-canvas-climb {
+    stroke: var(--uf-color-brand);
+    stroke-width: var(--uf-border-rule);
+  }
+
+  .uf-canvas-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+
+  /* It draws itself in once, when the card first comes into view; the road's centre line after. */
+  .uf-canvas:not([data-seen]) .uf-canvas-draw {
+    stroke-dashoffset: 1;
+  }
+
+  .uf-canvas:not([data-seen]) .uf-canvas-road-line {
+    opacity: 0;
+  }
+
+  .uf-canvas[data-seen] .uf-canvas-draw {
+    animation: uf-map-draw var(--uf-duration-journey) var(--uf-easing-enter) both;
+  }
+
+  .uf-canvas[data-seen] .uf-canvas-road-line {
+    animation: uf-canvas-fade var(--uf-duration-enter) var(--uf-easing-enter) both;
+    animation-delay: var(--uf-duration-journey);
+  }
+
+  /* With the drawn road, the straight dashed one gives way; the milestones sit on the road. */
+  .uf-canvas-world:has(.uf-canvas-road)
+    .uf-map--road[data-view="picture"]
+    > .uf-map-branches::before {
+    display: none;
+  }
+
+  @container uf-map-world (min-width: 48rem) {
+    .uf-canvas-world--road .uf-map--road[data-view="picture"] > .uf-map-branches {
+      column-gap: calc(var(--uf-space-8) * 2);
+    }
+
+    .uf-canvas-world--road .uf-map--road[data-view="picture"] .uf-map-branch:nth-child(odd)::after {
+      right: calc(var(--uf-space-8) * -1 - var(--uf-space-2));
+    }
+
+    .uf-canvas-world--road
+      .uf-map--road[data-view="picture"]
+      .uf-map-branch:nth-child(even)::after {
+      left: calc(var(--uf-space-8) * -1 - var(--uf-space-2));
+    }
+
+    .uf-canvas-world--road .uf-map--road[data-view="picture"] .uf-map-branch::after {
+      box-shadow: 0 0 0 var(--uf-border-thick) var(--uf-color-canvas);
+    }
+
+    /* The goal waits where the road ends and where the stairs lead: top centre, top right. */
+    .uf-canvas-world--road .uf-map--road[data-view="picture"] > .uf-map-centre {
+      align-self: center;
+      max-width: var(--uf-width-form);
+      text-align: center;
+    }
+
+    .uf-canvas-world--stairs .uf-map--stairs[data-view="picture"] > .uf-map-centre {
+      align-self: flex-end;
+      max-width: var(--uf-width-form);
+    }
+  }
+
+  /* A part lifts under the pointer or the keyboard; one done glows softly; one planned is dashed,
+     so how it went reads without colour too (with the word and the icon). */
+  .uf-canvas .uf-map-card,
+  .uf-canvas .uf-map-centre {
+    transition-property: transform, box-shadow;
+    transition-duration: var(--uf-duration-normal);
+    transition-timing-function: var(--uf-easing-enter);
+  }
+
+  .uf-canvas .uf-map-branch > .uf-map-card:hover,
+  .uf-canvas .uf-map-branch > .uf-map-card:focus-within {
+    transform: translateY(calc(var(--uf-motion-lift) * -2));
+  }
+
+  .uf-canvas .uf-map-branch[data-status="planned"] > .uf-map-card {
+    border-style: dashed;
+  }
+
+  .uf-canvas .uf-map-branch[data-status="achieved"] > .uf-map-card {
+    position: relative;
+  }
+
+  .uf-canvas .uf-map-branch[data-status="achieved"] > .uf-map-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: 0 0 var(--uf-space-6) var(--uf-space-1)
+      color-mix(in srgb, var(--uf-color-success) 40%, transparent);
+  }
+
+  /* The mini-map: where the window is on the whole map; a tap or a drag there moves it. */
+  .uf-minimap {
+    position: absolute;
+    left: var(--uf-space-5);
+    bottom: var(--uf-space-5);
+    width: var(--uf-canvas-minimap);
+    height: auto;
+    max-height: calc(var(--uf-canvas-minimap) * 1.25);
+    padding: var(--uf-space-1);
+    border-radius: var(--uf-radius-md);
+    border: var(--uf-border-thin) solid var(--uf-color-line-strong);
+    background: var(--uf-glass-card);
+    cursor: pointer;
+    touch-action: none;
+  }
+
+  .uf-minimap-part {
+    fill: var(--uf-color-surface-sunk);
+    stroke: var(--uf-color-line-strong);
+    stroke-width: var(--uf-border-thin);
+    vector-effect: non-scaling-stroke;
+  }
+
+  .uf-minimap-part[data-status="achieved"] {
+    fill: var(--uf-color-success-soft);
+    stroke: var(--uf-color-success);
+  }
+
+  .uf-minimap-part[data-centre] {
+    fill: var(--uf-color-map-tone1-soft);
+    stroke: var(--uf-color-map-tone1);
+  }
+
+  .uf-minimap-view {
+    fill: color-mix(in srgb, var(--uf-color-focus) 12%, transparent);
+    stroke: var(--uf-color-focus);
+    stroke-width: var(--uf-border-thick);
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* On the smallest phones the mini-map would cover the map: it goes (the buttons stay). */
+  @container uf-canvas (max-width: 30rem) {
+    .uf-minimap {
+      display: none;
+    }
+  }
+
+  /* Where the map was, while the canvas is open over the page. */
+  .uf-canvas-away {
+    padding: var(--uf-space-4);
+    border-radius: var(--uf-radius-lg);
+    border: var(--uf-border-thin) dashed var(--uf-color-line-strong);
+  }
+
+  /* The canvas full screen: a modal dialog over the whole page, which stops scrolling behind. */
+  .uf-canvas-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: var(--uf-space-3);
+    border: 0;
+    background: var(--uf-color-canvas);
+    color: var(--uf-color-ink);
+  }
+
+  .uf-canvas-dialog::backdrop {
+    background: var(--uf-color-canvas);
+  }
+
+  :root:has(.uf-canvas-dialog[open]) {
+    overflow: hidden;
+  }
+
+  .uf-canvas-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-3);
+    height: 100%;
+  }
+
+  .uf-canvas-dialog-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--uf-space-3);
+  }
+
+  .uf-canvas-close {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--uf-space-2);
+    min-height: var(--uf-target);
+    padding-inline: var(--uf-space-4);
+    border-radius: var(--uf-radius-full);
+    border: var(--uf-border-thick) solid var(--uf-color-line-strong);
+    background: var(--uf-color-surface);
+    color: var(--uf-color-ink);
+    font-weight: var(--uf-weight-medium);
+    cursor: pointer;
+  }
+
+  .uf-canvas-close:hover {
+    border-color: var(--uf-color-brand);
+  }
+
+  .uf-canvas[data-expanded] {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .uf-canvas[data-expanded] .uf-canvas-viewport {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .uf-canvas[data-seen] .uf-canvas-draw,
+    .uf-canvas[data-seen] .uf-canvas-road-line {
+      animation: none;
+    }
+
+    .uf-canvas:not([data-seen]) .uf-canvas-draw {
+      stroke-dashoffset: 0;
+    }
+
+    .uf-canvas:not([data-seen]) .uf-canvas-road-line {
+      opacity: 1;
+    }
+
+    .uf-canvas .uf-map-card,
+    .uf-canvas .uf-map-centre,
+    .uf-canvas-btn {
+      transition: none;
+    }
+  }
+
+  /* Forced colours: the system's colours; the words and icons keep every meaning. */
+  @media (forced-colors: active) {
+    .uf-canvas-viewport {
+      border: var(--uf-border-thin) solid CanvasText;
+    }
+
+    .uf-canvas-stage {
+      background-image: none;
+    }
+
+    .uf-canvas-btn,
+    .uf-canvas-close {
+      border-color: ButtonText;
+    }
+
+    .uf-canvas-road {
+      stroke: GrayText;
+    }
+
+    .uf-canvas-climb,
+    .uf-canvas-road-line {
+      stroke: CanvasText;
+    }
+
+    .uf-minimap-view {
+      fill: none;
+      stroke: Highlight;
+    }
+
+    .uf-canvas .uf-map-branch[data-status="achieved"] > .uf-map-card::after {
+      display: none;
+    }
+  }
+
+  /* end maps */
+
+  /*
+   * cards9: a subject's small card on My subjects (subjects-view.tsx, lib/subject-art.ts). The
+   * course card's picture and scrim (cards8, above) fill the whole tile, which is about as wide
+   * as it is twice high, like the picture: the light scrim over the band, then the text scrim and
+   * solid under the subject's chip, which brings its own opaque ground. The offer card uses
+   * cards8 as it is. Nothing moves; forced colours drop the picture through cards8's rule.
+   */
+  .uf-subject-tile .uf-course-art,
+  .uf-subject-tile .uf-course-art-scrim {
+    block-size: 100%;
+  }
+
+  /* end cards9 */
+
+  /*
+   * polish-shell: smoothness for the shell (2026-10-24). A disclosure's panel (the phone's Menu,
+   * the preview notice's "More") used to snap open; now it drops in a little and fades, the
+   * way motion.dev's accordion and menu examples reveal a panel, here as CSS on the tokens
+   * (`duration.normal`, `easing.enter`, `motion.riseSmall`), with no library. The animation runs
+   * when the panel starts to show (display: none to shown), so it never delays the first screen.
+   * Off under reduced motion, on top of the tokens' 0ms.
+   */
+  .uf-reveal {
+    animation: uf-reveal var(--uf-duration-normal) var(--uf-easing-enter) both;
+  }
+
+  /* From a laptop's width the nav panel is the sidebar, always shown: nothing to reveal. */
+  @media (min-width: 64rem) {
+    .uf-nav-panel.uf-reveal {
+      animation: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .uf-reveal {
+      animation: none;
+    }
+  }
+
+  /* end polish-shell */
+
+  /* polish-pages: the signed-in pages, consistent and smooth (2026-10-24). The home's cards settle
+   * into place once, in reading order, from CSS (a staggered entrance like motion.dev's "stagger"
+   * examples, adapted: transform only and a few pixels, so no card's words are ever invisible and
+   * the first screen never waits on JavaScript or on the animation to paint). Every time and
+   * distance is a token, which tokens.css sets to 0 under reduced motion; there the animation is
+   * also off. Held by test/pages-polish.test.ts.
+   */
+  @keyframes uf-settle {
+    from {
+      transform: translateY(var(--uf-motion-rise-small));
+    }
+  }
+
+  .uf-settle > * {
+    animation: uf-settle var(--uf-duration-enter) var(--uf-easing-enter) both;
+    animation-delay: calc(var(--uf-settle-i, 0) * var(--uf-duration-fast) / 2);
+  }
+
+  .uf-settle > :nth-child(2) {
+    --uf-settle-i: 1;
+  }
+
+  .uf-settle > :nth-child(3) {
+    --uf-settle-i: 2;
+  }
+
+  .uf-settle > :nth-child(4) {
+    --uf-settle-i: 3;
+  }
+
+  .uf-settle > :nth-child(n + 5) {
+    --uf-settle-i: 4;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .uf-settle > * {
+      animation: none;
+    }
+  }
+
+  /* end polish-pages */
+
+  /*
+   * cv-embed: "Open Mmereko" on My CV (app/(app)/cv/mmereko-canvas.tsx). A modal dialog over the
+   * whole screen: a bar (Mmereko's name, the separate-service line, a new tab, Close) above a frame
+   * that fills the rest. It appears at once, with no animation, so reduced motion has nothing to
+   * stop. The bar wraps at 360px (WCAG 1.4.10); the page behind is held still by the component.
+   * Every value a token.
+   */
+  .uf-mmereko-canvas {
+    inline-size: 100%;
+    block-size: 100%;
+    max-inline-size: none;
+    max-block-size: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--uf-color-surface);
+    color: var(--uf-color-ink);
+    overflow-wrap: anywhere;
+  }
+
+  .uf-mmereko-canvas[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .uf-mmereko-canvas::backdrop {
+    background: var(--uf-color-canvas);
+  }
+
+  .uf-mmereko-canvas-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--uf-space-3);
+    padding: var(--uf-space-3) var(--uf-space-4);
+    border-block-end: var(--uf-border-thin) solid var(--uf-color-line);
+  }
+
+  .uf-mmereko-canvas-frame {
+    flex: 1 1 auto;
+    inline-size: 100%;
+    min-block-size: 0;
+    border: 0;
+    background: var(--uf-color-surface);
+  }
+
+  /* end cv-embed */
+}
+
+@keyframes uf-canvas-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes uf-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--uf-motion-rise-small) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

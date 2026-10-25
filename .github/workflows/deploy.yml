@@ -1,0 +1,67 @@
+name: Deploy
+
+# Production is deployed by asking, after CI passes on main, never by Vercel noticing a push.
+#
+# Vercel's Git integration deploys a commit the moment it lands, before its checks finish.
+# For this product that window matters: a broken consent gate or crisis flow would be live for
+# the minutes CI takes to go red. So this waits for CI to succeed on main, then calls a deploy
+# hook, which builds whatever is at the head of main. When the Vercel project is connected
+# (D8), turn off its automatic production deploys for main so this is the only way in.
+#
+# Unset, this warns and skips rather than failing: a red tick nobody can fix teaches people
+# to ignore red ticks. The warning says main was NOT deployed, because a silent skip here is
+# the very failure this file exists to prevent.
+#
+# Secret: VERCEL_DEPLOY_HOOK_URL (Vercel > Settings > Git > Deploy Hooks, branch: main).
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # Never cancel a deploy in flight: a half-cancelled deployment is worse than a queued one.
+  group: deploy-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy main to Vercel (cpt1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # A push to main only, not a PR run that happens to share the name.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    steps:
+      # The secrets context is not available in `if:`. Resolve it into an output first.
+      - name: Hook configured?
+        id: cfg
+        run: echo "set=${{ secrets.VERCEL_DEPLOY_HOOK_URL != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Warn if unconfigured
+        if: steps.cfg.outputs.set != 'true'
+        run: |
+          echo "::warning::VERCEL_DEPLOY_HOOK_URL is not set, so main was NOT deployed. Create a deploy hook in Vercel (Settings > Git > Deploy Hooks, branch: main) and add the URL as a repository secret."
+
+      # The URL is the credential: never echoed. The response is printed so a failure says why.
+      - name: Ask Vercel to deploy main
+        if: steps.cfg.outputs.set == 'true'
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -X POST "$HOOK" -o response.json -w '%{http_code}')
+          echo "Vercel answered HTTP $status"
+          cat response.json || true
+          echo
+          case "$status" in
+            200|201) echo "Deployment queued." ;;
+            *) echo "::error::Deploy hook returned HTTP $status. main is NOT deployed."; exit 1 ;;
+          esac

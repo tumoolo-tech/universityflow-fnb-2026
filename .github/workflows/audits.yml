@@ -1,0 +1,431 @@
+name: Audits
+
+# The TUMO OLO audit pipeline, as in confetti-confectionery, plus what an AI product owes.
+#
+# CI (ci.yml) is this repo's own gate and needs nothing external. This file is the rest:
+#
+#   Owed checks       every PR. Reads the diff and lists what it obliges that only a person or
+#                     an audit can meet: a first-language review of crisis phrases, the owner
+#                     re-verifying a catalogue record, A10 after a model change. Posted as one
+#                     comment that updates in place. Reports, never fails
+#   Run plan          the shared suite reads planning.md + status.md + the diff and says which
+#                     audits this phase owes, and why
+#   Deterministic     A8 (dependencies). Blocks on a new high advisory. The two accepted ones
+#                     are listed by GHSA id in package.json, with the reason in status.md
+#   Phase gate        fails while status.md lists an open Critical or High finding
+#   A9                Claude reviews the PR diff for security issues and comments. Never fails
+#                     the build: a model-graded finding must be read before it blocks
+#   Prompt audits     everything the phase owes, at depth. Manual or scheduled; they cost money
+#
+# Jobs that need a secret WARN AND SKIP when it is missing, rather than fail: a red tick nobody
+# can fix teaches people to ignore red ticks. A skip is a gap, not a pass, and the warning
+# says so in the run.
+#
+# Secrets: AUDIT_SUITE_TOKEN (read access to tumoolo-tech/tumoOLO_Audits), ANTHROPIC_API_KEY.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: Which tier to run
+        type: choice
+        options: [push, pr, gate, schedule]
+        default: gate
+      only:
+        description: 'Limit to these audits, comma-separated (e.g. A5,A8)'
+        type: string
+        default: ''
+  schedule:
+    # Mondays 05:00 SAST: the weekly dependency scan.
+    - cron: '0 3 * * 1'
+
+concurrency:
+  group: audits-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  SUITE: ${{ github.workspace }}/.audit-suite
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # This project's own obligations. No suite, no secret.
+  # ---------------------------------------------------------------------------
+  owed:
+    name: Owed checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          # Node only, no pnpm here. setup-node v5 turns caching on when package.json names a
+          # package manager, and then fails looking for pnpm.
+          package-manager-cache: false
+
+      - name: What this change owes
+        id: owed
+        run: node scripts/ci/obligations.mjs --base "origin/${{ github.base_ref }}" > owed.md
+
+      # One comment per PR, edited in place, found by a marker, so pushes don't stack comments.
+      - name: Post or update the PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          marker='<!-- universityflow:owed-checks -->'
+          { echo "$marker"; cat owed.md; } > body.md
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@body.md > /dev/null
+          else
+            gh api "repos/$REPO/issues/$PR/comments" -F body=@body.md > /dev/null
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Shared-suite jobs. Each degrades to a warning when the suite can't be checked out.
+  # ---------------------------------------------------------------------------
+  plan:
+    name: Run plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      selected: ${{ steps.plan.outputs.selected }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The planner diffs against the base, so it needs history, not a shallow tip.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Private repo: needs a PAT with read access, stored as AUDIT_SUITE_TOKEN.
+      - name: Check out the audit suite
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: tumoolo-tech/tumoOLO_Audits
+          # The audited suite commit (A8-03): never a branch, since the jobs run it with node.
+          # Bump deliberately, after reading the diff.
+          ref: 29eafd714ca87df7077c5b1d29e5a9b0a0e85b0d
+          path: .audit-suite
+          token: ${{ secrets.AUDIT_SUITE_TOKEN || github.token }}
+          persist-credentials: false
+
+      - name: Suite available?
+        id: suite
+        run: |
+          if [ -f "$SUITE/runner/audit.mjs" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::The shared audit suite could not be checked out. Set AUDIT_SUITE_TOKEN (a PAT with read access to tumoolo-tech/tumoOLO_Audits). Suite audits were SKIPPED. This is a gap, not a pass."
+          fi
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.suite.outputs.ok == 'true'
+        with:
+          node-version-file: .nvmrc
+          # Node only, no pnpm here. setup-node v5 turns caching on when package.json names a
+          # package manager, and then fails looking for pnpm.
+          package-manager-cache: false
+
+      - name: Compute the plan
+        id: plan
+        if: steps.suite.outputs.ok == 'true'
+        env:
+          TIER: ${{ inputs.tier || (github.event_name == 'schedule' && 'schedule') || (github.event_name == 'pull_request' && 'pr') || 'push' }}
+          BASE: ${{ github.event.pull_request.base.sha || '' }}
+          ONLY: ${{ inputs.only }}
+        run: |
+          ARGS="--tier $TIER"
+          [ -n "$BASE" ] && ARGS="$ARGS --base $BASE"
+          [ -n "$ONLY" ] && ARGS="$ARGS --only $ONLY"
+
+          node "$SUITE/runner/audit.mjs" plan $ARGS --verbose | tee plan.txt
+          node "$SUITE/runner/audit.mjs" plan $ARGS --json > plan.json
+          {
+            echo 'selected<<EOF'
+            node -e "console.log(JSON.parse(require('fs').readFileSync('plan.json','utf8')).selected.map(s=>s.id).join(','))"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Summarise
+        if: always() && steps.suite.outputs.ok == 'true'
+        run: |
+          {
+            echo '## Audit run plan'
+            echo
+            echo '```'
+            cat plan.txt
+            echo '```'
+            echo
+            echo 'Project audits A10 (AI safety), A11 (privacy and POPIA), A12 (messaging) and A13'
+            echo '(data accuracy) are not in the shared suite yet: see docs/audits/README.md.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: steps.suite.outputs.ok == 'true'
+        with:
+          name: audit-plan
+          path: |
+            plan.txt
+            plan.json
+          retention-days: 30
+
+  deterministic:
+    name: Deterministic checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out the audit suite
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: tumoolo-tech/tumoOLO_Audits
+          # The audited suite commit (A8-03): never a branch, since the jobs run it with node.
+          # Bump deliberately, after reading the diff.
+          ref: 29eafd714ca87df7077c5b1d29e5a9b0a0e85b0d
+          path: .audit-suite
+          token: ${{ secrets.AUDIT_SUITE_TOKEN || github.token }}
+          persist-credentials: false
+
+      - name: Suite available?
+        id: suite
+        run: |
+          if [ -f "$SUITE/runner/audit.mjs" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::The suite's A8 runner was SKIPPED (no AUDIT_SUITE_TOKEN). pnpm audit below still runs."
+          fi
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # A8's deterministic half: pnpm audit (blocking), outdated and dedupe (advisory).
+      - name: A8 — dependency and supply chain (suite)
+        if: steps.suite.outputs.ok == 'true'
+        run: node "$SUITE/runner/audit.mjs" check
+
+      # Runs with or without the suite, so a new high advisory blocks even before the token is
+      # set. The two accepted advisories are ignored by exact GHSA id in package.json, never by
+      # lowering the level.
+      - name: pnpm audit (high)
+        if: steps.suite.outputs.ok != 'true'
+        run: pnpm audit --audit-level=high
+
+  gate:
+    name: Phase gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # The gate is what a phase close has to pass: PRs and on demand, not every push.
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out the audit suite
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: tumoolo-tech/tumoOLO_Audits
+          # The audited suite commit (A8-03): never a branch, since the jobs run it with node.
+          # Bump deliberately, after reading the diff.
+          ref: 29eafd714ca87df7077c5b1d29e5a9b0a0e85b0d
+          path: .audit-suite
+          token: ${{ secrets.AUDIT_SUITE_TOKEN || github.token }}
+          persist-credentials: false
+
+      - name: Suite available?
+        id: suite
+        run: |
+          if [ -f "$SUITE/runner/audit.mjs" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::The phase gate was SKIPPED (no AUDIT_SUITE_TOKEN). Open Critical/High findings in status.md were NOT checked."
+          fi
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.suite.outputs.ok == 'true'
+        with:
+          node-version-file: .nvmrc
+          # Node only, no pnpm here. setup-node v5 turns caching on when package.json names a
+          # package manager, and then fails looking for pnpm.
+          package-manager-cache: false
+
+      # Reads status.md. Fails if a Critical or High is still open.
+      - name: Open findings must be clear
+        if: steps.suite.outputs.ok == 'true'
+        run: node "$SUITE/runner/audit.mjs" gate
+
+  security-review:
+    name: A9 — automated security review
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Reads only the diff, so it runs on every PR. It comments; it never fails the build.
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out the audit suite (for the scan config)
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: tumoolo-tech/tumoOLO_Audits
+          # The audited suite commit (A8-03): never a branch, since the jobs run it with node.
+          # Bump deliberately, after reading the diff.
+          ref: 29eafd714ca87df7077c5b1d29e5a9b0a0e85b0d
+          path: .audit-suite
+          token: ${{ secrets.AUDIT_SUITE_TOKEN || github.token }}
+          persist-credentials: false
+
+      # The secrets context is NOT available in `if:`, only in `run:` and `with:`. Resolve it
+      # into an output and test that: `if: ${{ secrets.X != '' }}` fails the whole run at parse.
+      - name: What is configured?
+        id: cfg
+        run: |
+          echo "key=${{ secrets.ANTHROPIC_API_KEY != '' }}" >> "$GITHUB_OUTPUT"
+          if [ -f "$SUITE/audits/A9-security-review-automated/config/security-scan-instructions.txt" ]; then
+            echo "suite=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "suite=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Warn if unconfigured
+        if: steps.cfg.outputs.key != 'true'
+        run: echo "::warning::ANTHROPIC_API_KEY is not set. A9 did NOT run on this PR. This is a gap, not a pass."
+
+      # Pinned by SHA, never a branch: a moving ref runs an upstream compromise with our API key
+      # against our source. Same SHA as the suite's registry. Bump deliberately.
+      - name: Review the diff (tuned)
+        if: steps.cfg.outputs.key == 'true' && steps.cfg.outputs.suite == 'true'
+        uses: anthropics/claude-code-security-review@0c6a49f1fa56a1d472575da86a94dbc1edb78eda
+        with:
+          claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          comment-pr: true
+          upload-results: true
+          exclude-directories: node_modules,dist,build,.next,out,coverage,.audit-suite,.turbo
+          custom-security-scan-instructions: .audit-suite/audits/A9-security-review-automated/config/security-scan-instructions.txt
+          false-positive-filtering-instructions: .audit-suite/audits/A9-security-review-automated/config/false-positive-filtering.txt
+
+      - name: Review the diff (defaults)
+        if: steps.cfg.outputs.key == 'true' && steps.cfg.outputs.suite != 'true'
+        uses: anthropics/claude-code-security-review@0c6a49f1fa56a1d472575da86a94dbc1edb78eda
+        with:
+          claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          comment-pr: true
+          upload-results: true
+          exclude-directories: node_modules,dist,build,.next,out,coverage,.audit-suite,.turbo
+
+  claude-audit:
+    name: Prompt audits
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: plan
+    # Opt-in: never on a plain push or a PR. These cost money and take minutes. Phase gates
+    # (manual dispatch) and the schedule only. An empty plan also means no suite: skip cleanly.
+    if: |
+      needs.plan.outputs.selected != '' &&
+      (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: tumoolo-tech/tumoOLO_Audits
+          # The audited suite commit (A8-03): never a branch, since the jobs run it with node.
+          # Bump deliberately, after reading the diff.
+          ref: 29eafd714ca87df7077c5b1d29e5a9b0a0e85b0d
+          path: .audit-suite
+          token: ${{ secrets.AUDIT_SUITE_TOKEN || github.token }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          # Node only, no pnpm here. setup-node v5 turns caching on when package.json names a
+          # package manager, and then fails looking for pnpm.
+          package-manager-cache: false
+
+      - name: Key present?
+        id: key
+        run: echo "set=${{ secrets.ANTHROPIC_API_KEY != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Warn if unconfigured
+        if: steps.key.outputs.set != 'true'
+        run: |
+          echo "::warning::ANTHROPIC_API_KEY is not set. Prompt audits (${{ needs.plan.outputs.selected }}) were NOT run."
+          echo "Run them in a Claude Code session: node .audit-suite/runner/audit.mjs brief <ID>"
+
+      - name: Render each brief
+        if: steps.key.outputs.set == 'true'
+        env:
+          SELECTED: ${{ needs.plan.outputs.selected }}
+        run: |
+          mkdir -p .audit-briefs
+          IFS=',' read -ra IDS <<< "$SELECTED"
+          for id in "${IDS[@]}"; do
+            node "$SUITE/runner/audit.mjs" brief "$id" > ".audit-briefs/$id.md" || true
+          done
+          ls -la .audit-briefs
+
+      # Each brief is self-contained: rules, audit, severity ladder, output format, overlay.
+      # Report only: the agent writes results, it never fixes, commits or pushes.
+      - name: Run the audits
+        if: steps.key.outputs.set == 'true'
+        uses: anthropics/claude-code-action@97c53473391bff1901034d4b454b5bac7ab7a029 # v1.0.239
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Run every audit brief in .audit-briefs/ against this repository, one at a time.
+            Each brief is complete and self-contained: follow it exactly.
+            Report only. Do not modify any file outside docs/audits/results/.
+            Write each result to the path its brief names, then stop.
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && steps.key.outputs.set == 'true'
+        with:
+          name: audit-results
+          path: |
+            .audit-briefs/
+            docs/audits/results/
+          retention-days: 90

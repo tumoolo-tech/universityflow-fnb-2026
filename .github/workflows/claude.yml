@@ -1,0 +1,64 @@
+name: Claude
+
+# Ask Claude about a PR or an issue by mentioning @claude in a comment. It reads the repo
+# (CLAUDE.md, status.md and the hard rules included) and answers in the thread.
+#
+# Deliberately READ-ONLY: the token below cannot push, so Claude here reviews, explains and
+# suggests, and changes reach main only through a branch and a PR that a person opens. Three
+# reasons: main is PR-only and owner-reviewed; the house rule is that no commit carries an AI
+# author or co-author line, and this action commits as its own bot; and a comment is untrusted
+# input, so an agent that can write to the repo from a comment is one prompt injection away from
+# doing so.
+#
+# Only the owner and collaborators can trigger it. Unset ANTHROPIC_API_KEY: warns and skips.
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  claude:
+    name: Answer @claude
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: >-
+      contains(github.event.comment.body, '@claude') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Key present?
+        id: key
+        run: echo "set=${{ secrets.ANTHROPIC_API_KEY != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Warn if unconfigured
+        if: steps.key.outputs.set != 'true'
+        run: echo "::warning::ANTHROPIC_API_KEY is not set, so @claude was NOT answered."
+
+      # Pinned by SHA (v1.0.237), never @v1: a moving tag runs whatever upstream ships next
+      # with our API key and our source. Bump deliberately.
+      - name: Claude
+        if: steps.key.outputs.set == 'true'
+        uses: anthropics/claude-code-action@97c53473391bff1901034d4b454b5bac7ab7a029 # v1.0.239
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          trigger_phrase: '@claude'
+          use_sticky_comment: true
+          claude_args: --max-turns 30
