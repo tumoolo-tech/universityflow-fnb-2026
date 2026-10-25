@@ -10,6 +10,7 @@ its `main` branch on 25 October 2026 with the deck update of pull request #139 (
 | | |
 |---|---|
 | **Try it** | <https://universityflow.tumoolo.tech/demo>: no password. Press **Try as Naledi**, or sign up as a new learner with any 080 number (the PIN shows on screen) |
+| **Demo video** | <https://youtu.be/MaMFUa-UEzA> (88 s) |
 | **The deck** | [`pitch/UniversityFlow_FNB_Hackathon_2026.pdf`](pitch/UniversityFlow_FNB_Hackathon_2026.pdf) |
 | **Judges' quick start** | [`pitch/UniversityFlow_Judges_Quick_Start.pdf`](pitch/UniversityFlow_Judges_Quick_Start.pdf) |
 | **The plan** | [`planning.md`](planning.md) (decisions, the journey, the agent, the stack) and [`status.md`](status.md) (where it is now) |
