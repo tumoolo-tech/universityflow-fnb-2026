@@ -2,7 +2,7 @@ import { common, moduleCard, modules } from '@universityflow/content';
 import type { ModuleCardView, SourceView } from '@universityflow/ui';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Badge, Card, Notice, SourceLink } from '@/components/ui';
+import { Badge, Card, Notice, panelLook, SourceLink } from '@/components/ui';
 
 /**
  * A module card (Phase 6c), rendered on the server from `moduleCardView` (packages/ui): How marks
@@ -56,6 +56,7 @@ export function ModuleCard({
       <Card className="flex flex-col gap-4">
         <Section id="card-how" title={how.title}>
           <p className="text-sm text-muted">{how.lead}</p>
+          {how.outlineNotUsed ? <Notice tone="warning">{how.outlineNotUsed}</Notice> : null}
           <dl className="flex flex-col gap-3">
             {how.rows.map((row) => (
               <div key={row.id} className="flex flex-col gap-1" data-testid={`card-how-${row.id}`}>
@@ -162,7 +163,7 @@ export function ModuleCard({
             <h3 className="font-bold">{books.free.title}</h3>
             <p className="text-sm text-muted">{books.free.lead}</p>
             {books.free.books.map((b) => (
-              <div key={b.url} className="flex flex-col gap-1 rounded-md bg-sunk p-3">
+              <div key={b.url} className={`${panelLook} flex flex-col gap-1 p-3`}>
                 <p className="flex flex-wrap items-center gap-2">
                   <Badge tone="info">{b.label}</Badge>
                   {b.draft ? <Badge tone="warning">{common.draftBadge}</Badge> : null}

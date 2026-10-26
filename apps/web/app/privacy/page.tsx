@@ -4,11 +4,15 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Fill, SiteFooter } from '@/components/site-footer';
 import { Page, PublicPage } from '@/components/ui';
+import { geminiRole } from '@/lib/server/chat-model';
+import { pageMetadata } from '@/lib/server/seo';
+import { getServices } from '@/lib/server/services';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: '/privacy',
   title: en.privacyPage.title,
   description: en.privacyPage.description,
-};
+});
 
 /**
  * The privacy policy (the owner's launch standard; POPIA s18, ECTA s43; audit A11-20). **A
@@ -16,11 +20,26 @@ export const metadata: Metadata = {
  * docs/store/privacy-and-data-safety.md, every word from packages/content (`en.privacyPage`);
  * every value only the owner can give shows as "Owner to fill". Open to anyone, it reads nothing
  * about the visitor. A server component with no JavaScript of its own.
- * Held by test/privacy-page.test.tsx.
+ * Held by test/privacy-page.test.tsx. While Google's Gemini answers the chat (a demo only), it is
+ * named as an operator after Anthropic and in the cross-border list (AI-01, gemini-notice.test).
  */
 export default async function PrivacyPage() {
   const p = en.privacyPage;
   const s = p.sections;
+  const gemini = geminiRole((await getServices()).model);
+  const g = en.geminiNotice;
+  const operators: ReadonlyArray<Operator> = gemini
+    ? s.operators.items.flatMap((o): Operator[] =>
+        o.id === 'anthropic' ? [o, { ...g.operator, does: g.operator.does[gemini] }] : [o],
+      )
+    : s.operators.items;
+  const crossBorder: ReadonlyArray<string> = gemini
+    ? [
+        ...s.operators.crossBorder.slice(0, 2),
+        g.crossBorder[gemini],
+        ...s.operators.crossBorder.slice(2),
+      ]
+    : s.operators.crossBorder;
   const contents: Array<[string, string]> = [
     ['who-we-are', s.whoWeAre.title],
     ['information-officer', s.officer.title],
@@ -119,12 +138,12 @@ export default async function PrivacyPage() {
           <Part id="who-helps-us" title={s.operators.title}>
             <p>{s.operators.lead}</p>
             <ul className="flex flex-col gap-4">
-              {s.operators.items.map((o) => (
+              {operators.map((o) => (
                 <li key={o.id} className="uf-privacy-operator">
                   <h3 className="text-lg">
                     <Fill value={o.name} />
                   </h3>
-                  {'partner' in o ? (
+                  {o.partner ? (
                     <p>
                       <Fill value={o.partner} />
                     </p>
@@ -136,12 +155,12 @@ export default async function PrivacyPage() {
                       [s.operators.labels.where, o.where],
                     ]}
                   />
-                  {'note' in o ? <p className="font-medium">{o.note}</p> : null}
+                  {o.note ? <p className="font-medium">{o.note}</p> : null}
                 </li>
               ))}
             </ul>
             <h3 className="text-lg">{s.operators.crossBorderTitle}</h3>
-            <Points items={s.operators.crossBorder} />
+            <Points items={crossBorder} />
             <h3 className="text-lg">{s.operators.separateTitle}</h3>
             <Points items={s.operators.separate} />
           </Part>
@@ -199,6 +218,17 @@ export default async function PrivacyPage() {
 }
 
 const digits = (phone: string) => phone.replace(/\D/g, '');
+
+/** One company under "Who helps us". */
+interface Operator {
+  readonly id: string;
+  readonly name: string;
+  readonly partner?: string;
+  readonly does: string;
+  readonly gets: string;
+  readonly where: string;
+  readonly note?: string;
+}
 
 function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (

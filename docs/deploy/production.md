@@ -228,8 +228,9 @@ CV that opens Mmereko's own site (`MMEREKO_APP_URL`, default `https://mmereko.tu
 https origin alone) in a full-screen canvas, for a learner 18 or over or at university, never an
 under-18 school learner. Off by default. It needs `UF_CV=1`, so in production it waits with My
 CV; it is not itself refused there, since UniversityFlow sends Mmereko nothing (no query, no
-message, no prefill) and the privacy page's "Separate services" line names it. Only `/cv`'s CSP
-gets `frame-src` for Mmereko's origin, and only with the switch on. `MMEREKO_APP_URL` is not one of
+message, no prefill) and the privacy page's "Separate services" line names it. With the switch on,
+every page's CSP gets `frame-src` for Mmereko's origin (a click to `/cv` keeps the policy of the
+page it started on, A5-28); the canvas itself is drawn only on `/cv`. `MMEREKO_APP_URL` is not one of
 the partner `MMEREKO_*` settings in the list above. Before turning it on, check from the live site
 that Mmereko's sign-in finishes inside the canvas (that depends on Mmereko's `frame-ancestors` and
 cookies); "Open in a new tab" is always there when it doesn't.

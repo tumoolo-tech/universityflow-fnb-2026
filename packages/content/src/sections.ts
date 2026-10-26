@@ -46,6 +46,8 @@ export { firstWeek } from './en/first-week';
 // Phase 6d: free books on a module card (open books, library search; D5–D7).
 export { freeBooks } from './en/free-books';
 export { funding } from './en/funding';
+// While Google's Gemini answers the chat on a demo (finding AI-01, 2026-10-24).
+export { geminiNotice } from './en/gemini-notice';
 export { goals } from './en/goals';
 export { home } from './en/home';
 export { me } from './en/me';
@@ -62,6 +64,8 @@ export { onboarding } from './en/onboarding';
 export { passTypes } from './en/pass-types';
 export { permissions } from './en/permissions';
 export { planMaps } from './en/plan-maps';
+// The phone app's own plan-map words: naming a map, the hub's summary (RT-06, 2026-10-25).
+export { planMapsApp } from './en/plan-maps-app';
 export { practice } from './en/practice';
 export { privacyPage } from './en/privacy-page';
 export { profileLook } from './en/profile-look';

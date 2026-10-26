@@ -27,7 +27,20 @@ export type CvBlock =
       readonly content: ReadonlyArray<CvInline>;
     }
   | { readonly kind: 'paragraph'; readonly lines: ReadonlyArray<ReadonlyArray<CvInline>> }
-  | { readonly kind: 'list'; readonly items: ReadonlyArray<ReadonlyArray<CvInline>> };
+  | {
+      readonly kind: 'list';
+      /** Numbered steps; given only when reading with `numbered` (a chat reply). */
+      readonly ordered?: boolean;
+      readonly items: ReadonlyArray<ReadonlyArray<CvInline>>;
+    };
+
+/** How far past the CV's own subset to read (packages/ui reply-text.ts). */
+export interface CvTextOptions {
+  /** `1.` / `1)` lines as an ordered list. Default false: the CV's subset has none. */
+  readonly numbered?: boolean;
+  /** Safe https links as links. False: a link is its words and its address, as text. */
+  readonly links?: boolean;
+}
 
 const ESCAPABLE = '[!-/:-@\\[-`{-~]';
 const INLINE = new RegExp(
@@ -40,6 +53,7 @@ const INLINE = new RegExp(
 const UNESCAPE = new RegExp(`\\\\(${ESCAPABLE})`, 'g');
 const HEADING = /^(#{1,6})[ \t]+(.*)$/;
 const BULLET = /^[ \t]*[-*+][ \t]+(.*)$/;
+const NUMBERED = /^[ \t]*\d{1,3}[.)][ \t]+(.*)$/;
 const RULE = /^\s*([-*_])(\s*\1){2,}\s*$/;
 const SAFE_URL = /^https:\/\/[^\s"'<>\\`]+$/;
 
@@ -71,7 +85,7 @@ function merged(runs: CvInline[]): CvInline[] {
   return out;
 }
 
-function inline(source: string): CvInline[] {
+function inline(source: string, links = true): CvInline[] {
   const runs: CvInline[] = [];
   let at = 0;
   for (const m of source.matchAll(INLINE)) {
@@ -80,11 +94,16 @@ function inline(source: string): CvInline[] {
     const [whole, escaped, label, url, strong, em] = m;
     if (escaped !== undefined) runs.push({ kind: 'text', text: escaped });
     else if (url !== undefined) {
-      if (isSafeCvLink(url)) runs.push({ kind: 'link', url, children: inline(label ?? '') });
+      if (!links) {
+        // Not a link, but its words and where it pointed, so nothing is hidden.
+        runs.push({ kind: 'text', text: `${cvInlineText(inline(label ?? '', false))} (${url})` });
+      } else if (isSafeCvLink(url)) {
+        runs.push({ kind: 'link', url, children: inline(label ?? '') });
+      }
       // A refused link is its own text: escapes still apply, nothing becomes structure.
       else runs.push({ kind: 'text', text: whole.replace(UNESCAPE, '$1') });
-    } else if (strong !== undefined) runs.push({ kind: 'strong', children: inline(strong) });
-    else runs.push({ kind: 'em', children: inline(em ?? '') });
+    } else if (strong !== undefined) runs.push({ kind: 'strong', children: inline(strong, links) });
+    else runs.push({ kind: 'em', children: inline(em ?? '', links) });
     at = start + whole.length;
   }
   runs.push({ kind: 'text', text: source.slice(at) });
@@ -92,16 +111,24 @@ function inline(source: string): CvInline[] {
 }
 
 /** The CV's text (Markdown in Mmereko's subset) as blocks. Null or empty: no blocks. */
-export function cvTextBlocks(markdown: string | null | undefined): CvBlock[] {
+export function cvTextBlocks(
+  markdown: string | null | undefined,
+  options: CvTextOptions = {},
+): CvBlock[] {
+  const { numbered = false, links = true } = options;
   const blocks: CvBlock[] = [];
   let lines: CvInline[][] = [];
   let items: CvInline[][] = [];
+  let ordered = false;
   const flush = () => {
     if (lines.length > 0) blocks.push({ kind: 'paragraph', lines });
-    if (items.length > 0) blocks.push({ kind: 'list', items });
+    if (items.length > 0) {
+      blocks.push(numbered ? { kind: 'list', ordered, items } : { kind: 'list', items });
+    }
     lines = [];
     items = [];
   };
+  const inline_ = (source: string) => inline(source, links);
   for (const raw of (markdown ?? '').replace(/\r\n?/g, '\n').split('\n')) {
     const line = raw.trimEnd();
     if (line.trim() === '' || RULE.test(line)) {
@@ -116,18 +143,21 @@ export function cvTextBlocks(markdown: string | null | undefined): CvBlock[] {
       blocks.push({
         kind: 'heading',
         level: Math.min(marks.length, 3) as 1 | 2 | 3,
-        content: inline(title.trim()),
+        content: inline_(title.trim()),
       });
       continue;
     }
-    const bullet = BULLET.exec(line);
+    const step = numbered ? NUMBERED.exec(line) : null;
+    const bullet = step ?? BULLET.exec(line);
     if (bullet) {
-      if (lines.length > 0) flush();
-      items.push(inline(bullet[1] ?? ''));
+      // A paragraph, or a list of the other kind, ends where this list starts.
+      if (lines.length > 0 || (items.length > 0 && ordered !== (step !== null))) flush();
+      ordered = step !== null;
+      items.push(inline_(bullet[1] ?? ''));
       continue;
     }
     if (items.length > 0) flush();
-    lines.push(inline(line.trim()));
+    lines.push(inline_(line.trim()));
   }
   flush();
   return blocks;

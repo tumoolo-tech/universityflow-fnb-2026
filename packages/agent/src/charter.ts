@@ -82,6 +82,12 @@ export const SAFETY_ADVICE_GUIDANCE = {
 export const NSFAS_DECIDES =
   'Never tell a learner whether they qualify for NSFAS or how much they would get. Explain the published criteria from funding_overview, and say that NSFAS decides on its own check of their application.';
 
+/**
+ * The same for bursaries (feat/bursaries, 2026-10-25): each funder sets its own rules and chooses
+ * whom it funds. In the prompt and in funding_overview's facts.
+ */
+export const BURSARY_FUNDER_DECIDES =
+  "Never tell a learner whether a funder will choose them for a bursary, or how much it would pay. Explain each bursary's published criteria and dates from funding_overview, say that the funder decides, and send them to the funder's own page. Never favour one funder over another.";
 export const CARE_GUIDANCE = [
   {
     topic: 'setback',

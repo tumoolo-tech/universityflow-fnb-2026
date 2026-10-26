@@ -4,7 +4,7 @@ import type { PracticeArtifact } from '@universityflow/agent';
 import { common, practice } from '@universityflow/content';
 import Link from 'next/link';
 import { useId } from 'react';
-import { Badge, Card, Notice } from '@/components/ui';
+import { Badge, Card, Notice, panelLook } from '@/components/ui';
 
 /**
  * Free practice (planning.md §3, Stage 3): links to Siyavula's free textbooks, practice and past
@@ -36,7 +36,7 @@ export function PracticeCard({ artifact }: { artifact: PracticeArtifact }) {
           {artifact.subjects.map((s) => (
             <li
               key={s.subjectId}
-              className="flex flex-col gap-2 rounded-md bg-sunk p-3"
+              className={`${panelLook} flex flex-col gap-2 p-3`}
               data-testid={`practice-${s.subjectId}`}
             >
               <div>

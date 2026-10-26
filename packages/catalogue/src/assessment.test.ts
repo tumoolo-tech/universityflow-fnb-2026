@@ -15,6 +15,7 @@ import { normaliseModuleCode } from './basics';
 import { type CatalogueRecords, catalogueViewOf, RAW_CATALOGUE } from './catalogue';
 import { isDraft } from './provenance';
 import { isUniversitySource } from './records';
+import { duplicateComponentNames, weightsAddUpTo100 } from './weights';
 
 /** Synthetic records only (hard rule 4): test pages, made-up module codes. */
 const TODAY = new Date('2028-03-01T08:00:00Z');
@@ -142,6 +143,22 @@ describe('moduleAssessment records: weights add up or are refused, never rescale
     };
     expect(moduleAssessmentSchema.safeParse(short).success).toBe(false);
     expect(weightingProblems({ yearMarkWeight: 33.3, examWeight: 66.6 })).not.toEqual([]);
+  });
+
+  // A1-81: one rule for every caller (weights.ts): names compared as the calculator compares
+  // marks to them (spacing too), weights summed exactly (float noise aside).
+  it('refuses two names that differ only in spacing, and a sum that only rounds to 100', () => {
+    const spaced = {
+      components: [
+        { name: 'Test  1', kind: 'test' as const, weight: 40 },
+        { name: 'test 1', kind: 'test' as const, weight: 10 },
+        { name: 'Exam', kind: 'exam' as const, weight: 50 },
+      ],
+    };
+    expect(weightingProblems(spaced)).toEqual(['Two components are called “test 1”']);
+    expect(duplicateComponentNames(['A', 'b', ' a ', 'B', 'a'])).toEqual([' a ', 'B']);
+    expect(weightsAddUpTo100([33.333, 33.333, 33.333])).toBe(false);
+    expect(weightsAddUpTo100([33.3, 33.3, 33.4])).toBe(true);
   });
 
   it('refuses a year/exam split that doesn’t match its components', () => {

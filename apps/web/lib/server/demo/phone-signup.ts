@@ -71,16 +71,18 @@ export async function leaveEarlier(
 /**
  * The browser that made an 080 account (judges pick easy numbers, so two would otherwise land in
  * one account and see each other's details): an httpOnly cookie, demo only, holding a keyed hash
- * of the number (HMAC-SHA256 under AUTH_SECRET with its own label), never the number. It names
- * the last account this browser made, and lasts as long as the account does (24 hours).
+ * of the number and the account's id (HMAC-SHA256 under AUTH_SECRET with its own label), never
+ * the number. It names the last account this browser made, and lasts as long as the account does
+ * (24 hours). Bound to the account, not the number alone (A5-27): once the account goes, a later
+ * judge's account on the same number is never this browser's.
  */
 export const DEMO_PHONE_COOKIE = 'uf_demo_phone';
-const OWNER_LABEL = 'uf-demo-phone-owner:v1:';
+const OWNER_LABEL = 'uf-demo-phone-owner:v2:';
 const DEMO_ACCOUNT_S = 24 * 60 * 60;
 
-function ownerMark(services: Services, phone: string): string {
+function ownerMark(services: Services, phone: string, studentId: string): string {
   return createHmac('sha256', services.config.authSecret)
-    .update(`${OWNER_LABEL}${normaliseTollFree(phone)}`)
+    .update(`${OWNER_LABEL}${normaliseTollFree(phone)}:${studentId}`)
     .digest('hex');
 }
 
@@ -89,9 +91,10 @@ function ownerMark(services: Services, phone: string): string {
  * that says it is taken (no PIN is issued or checked for it).
  */
 export async function requireFreeOrOwn(services: Services, phone: string): Promise<void> {
-  if (!(await services.store.demoPhoneHasAccount(phone))) return;
+  const account = await services.store.demoPhoneAccount(phone);
+  if (!account) return;
   const held = Buffer.from((await cookies()).get(DEMO_PHONE_COOKIE)?.value ?? '');
-  const mine = Buffer.from(ownerMark(services, phone));
+  const mine = Buffer.from(ownerMark(services, phone, account));
   if (held.length === mine.length && timingSafeEqual(held, mine)) return;
   throw new HttpError(409, 'phone', DEMO_080_TAKEN);
 }
@@ -100,11 +103,12 @@ export async function requireFreeOrOwn(services: Services, phone: string): Promi
 export async function markOwner(
   services: Services,
   phone: string,
+  studentId: string,
   request: Request,
 ): Promise<void> {
   const forwarded = request.headers.get('x-forwarded-proto');
   const https = (forwarded ?? new URL(request.url).protocol.replace(':', '')) === 'https';
-  (await cookies()).set(DEMO_PHONE_COOKIE, ownerMark(services, phone), {
+  (await cookies()).set(DEMO_PHONE_COOKIE, ownerMark(services, phone, studentId), {
     httpOnly: true,
     secure: https || process.env['VERCEL_ENV'] === 'production',
     sameSite: 'lax',

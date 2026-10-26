@@ -226,12 +226,15 @@ export function Card({
    */
   tone?: 'warning' | undefined;
 }) {
+  // The fill, edge and shadow are `.uf-card`'s (globals.css, RT-04), not utilities: a utility
+  // beats every `@layer components` rule, so a `bg-surface` here would keep a card inside a card
+  // its parent's colour. The warning tone's utilities win on purpose.
   return (
     <Tag
       className={cx(
-        'rounded-lg border',
-        tone === 'warning' ? 'border-warning bg-warning-soft text-ink' : 'border-line',
-        tone === 'warning' ? null : glow ? 'uf-glow-card' : 'bg-surface',
+        'uf-card rounded-lg border',
+        tone === 'warning' ? 'border-warning bg-warning-soft text-ink' : null,
+        tone !== 'warning' && glow ? 'uf-glow-card' : null,
         'p-5',
         className,
       )}
@@ -241,6 +244,18 @@ export function Card({
     </Tag>
   );
 }
+
+/**
+ * A tile inside a card (a subject in Free practice, a plan map in My plan maps, the goal's course,
+ * the course picker): the sunk fill and an edge of its own (`.uf-panel`, the tokens' `cardEdge`
+ * at 3:1 on the card, RT-04), so it reads as one thing inside its card. Every panel takes this
+ * look; none is typed by hand (test/card-separation.test.tsx). A neutral badge inside one is
+ * `tone="surface"` (A2-07).
+ */
+export const panelLook = 'uf-panel rounded-md bg-sunk';
+
+/** The space between sibling cards in a list or a grid (tokens.card.gap, RT-04). */
+export const cardListGap = 'gap-(--uf-card-gap)';
 
 export function Badge({
   tone = 'neutral',

@@ -29,6 +29,13 @@ export function showsComingNext(
 
 export function ComingNext() {
   const t = demoPersonas.comingNext;
+  // Module marks shipped with the module card (#129): weak spots are what is still to come (A6-06).
+  const items = {
+    studyCoach: t.items.studyCoach,
+    weakSpots: t.weakSpots,
+    lifePlan: t.items.lifePlan,
+    portfolio: t.items.portfolio,
+  };
   return (
     // On Card, the home's one card (20px inside, the one card-title size).
     <Card aria-labelledby="home-coming-next" className="flex flex-col gap-3">
@@ -37,7 +44,7 @@ export function ComingNext() {
       </h2>
       <p className="text-muted">{t.lead}</p>
       <ul className="grid gap-3 sm:grid-cols-2">
-        {Object.entries(t.items).map(([key, item]) => (
+        {Object.entries(items).map(([key, item]) => (
           <li key={key} className="flex flex-col gap-1 rounded-md border border-line bg-sunk p-3">
             <h3 className="text-base font-semibold">{t.label(item.name)}</h3>
             <p className="text-sm text-muted">{item.line}</p>

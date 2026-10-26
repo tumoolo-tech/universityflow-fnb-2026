@@ -16,7 +16,8 @@ name: CI
 #                                .gitleaksignore lists findings a person checked and found not to be
 #                                secrets (2026-10-24, the owner's call): two SHA-256 checksums and a
 #                                synthetic test value in packages/cv/contract, setting names in
-#                                config.ts, plan-map slot keys. Exact commit, file and line only:
+#                                config.ts, plan-map slot keys (two more of these, #156's, on
+#                                2026-10-26, the owner's call again). Exact commit, file and line only:
 #                                anything new still fails
 
 on:

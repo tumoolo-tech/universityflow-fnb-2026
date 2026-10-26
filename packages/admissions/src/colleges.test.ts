@@ -225,6 +225,34 @@ describe('collegeOptions', () => {
     expect(result.checked).toBe(1);
   });
 
+  // A1-84 / A10-67: the words say where a programme type starts from the catalogue's record.
+  it('hands on where each programme type starts, from the catalogue’s sourced record only', () => {
+    const entry = {
+      sourceUrl: 'https://www.dhet.gov.za/ncv-policy.pdf',
+      academicYear: 2027,
+      type: 'ncv' as const,
+      afterGrade: 9,
+      orAfter: null,
+      quote: 'The minimum entrance requirements are a Grade 9 Certificate.',
+      page: 'p. 13',
+    };
+    const view = collegeViewOf(
+      { colleges: [COLLEGE], programmes: [TOURISM], notices: [], entries: [entry] },
+      TODAY,
+      { includeDrafts: true },
+    );
+    expect(collegeOptions(view, grade10, TODAY).entries).toEqual({
+      ncv: {
+        afterGrade: 9,
+        orAfter: null,
+        sourceUrl: 'https://www.dhet.gov.za/ncv-policy.pdf',
+        draft: true,
+      },
+    });
+    // No record (or none a learner may see): nothing to say, never a usual grade (gotcha 40).
+    expect(collegeOptions(viewOf([TOURISM]), grade10, TODAY).entries).toEqual({});
+  });
+
   it('leaves out a grade the learner has not passed yet', () => {
     const result = collegeOptions(viewOf([GRADE_11]), grade10, TODAY);
     expect(result.options).toEqual([]);

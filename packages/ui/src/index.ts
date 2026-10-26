@@ -94,13 +94,16 @@ export {
   missingSlots,
   type OutlineNode,
   outlineOf,
+  PLAN_ICONS,
   PLAN_LIMITS,
   PLAN_LINKS,
+  PLAN_POSITION_MAX,
   PLAN_STATUSES,
   PLAN_TEMPLATE_IDS,
   PLAN_TEMPLATES,
   type PlanCounts,
   type PlanGoal,
+  type PlanIcon,
   type PlanLayout,
   type PlanLimitReason,
   type PlanLinkId,
@@ -118,6 +121,7 @@ export {
   type SeedPart,
   type SlotWords,
   slotChildren,
+  slotIcon,
   slotKey,
   slotLink,
   slotWords,
@@ -258,3 +262,5 @@ export {
   moduleCardView,
   type SourceView,
 } from './module-card';
+/** An AI reply in the chat as structure (RT-02), for the web and the app. */
+export { replyTextBlocks } from './reply-text';

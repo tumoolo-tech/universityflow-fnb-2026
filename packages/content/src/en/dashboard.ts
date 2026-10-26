@@ -182,6 +182,9 @@ export const dashboard = {
     title: 'Get help',
     lead: 'If things feel like too much, you don’t have to deal with it alone. Talking to someone can help, whatever is going on.',
     back: 'Back to UniversityFlow',
+    /** The page's search and share description (A6-04, wave 10). Owed the owner's review. */
+    description:
+      'If things feel like too much, you don’t have to deal with it alone. Helplines you can call or message now, open to anyone, with no sign-in needed.',
   },
   /**
    * A second or later year at university (A2-66, packages/ui `universityYear`): the home is no

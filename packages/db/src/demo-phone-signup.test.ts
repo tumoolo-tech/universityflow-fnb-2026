@@ -37,10 +37,41 @@ function stores(start = START) {
   };
 }
 
-/** A made-up toll-free number, built at runtime (hard rule 4), random so real-Postgres reruns differ. */
-function tollFree(): string {
-  return `080${String(randomInt(0, 10_000_000)).padStart(7, '0')}`;
+/**
+ * Made-up toll-free numbers, built at runtime (hard rule 4), from a counter: never one twice in a
+ * run, since the clock here is frozen and a repeated number would meet its 60-second PIN cooldown
+ * (CI-01: random numbers once counted 99 of 100). For a database that outlives the run
+ * (TEST_DATABASE_URL), each run starts in its own block of 1,000, one block per second, as
+ * `freshSyntheticPhones` does for cellphone numbers.
+ */
+function tollFreeNumbers(nowMs: number): () => string {
+  let next = (Math.floor(nowMs / 1000) % 9_000) * 1_000;
+  return () => `080${String(next++).padStart(7, '0')}`;
 }
+const tollFree = tollFreeNumbers(Date.now());
+
+describe('the made-up toll-free numbers this file signs up with (CI-01)', () => {
+  it('never repeat in a run: a repeat inside the frozen minute meets the PIN cooldown', () => {
+    const next = tollFreeNumbers(0);
+    const numbers = Array.from({ length: 10_000 }, next);
+    expect(new Set(numbers).size).toBe(numbers.length);
+    for (const n of numbers) expect(n).toMatch(/^080\d{7}$/);
+  });
+
+  it('a repeated number is refused by the cooldown, which is what counted 99 of 100', async () => {
+    const store = new Store(database, {
+      secret: TEST_SECRET,
+      clock: () => START,
+      demo: true,
+      demoPhoneSignup: true,
+    });
+    const phone = tollFree();
+    await store.requestOtp(phone, { ip: `test-address-${randomInt(0, 1_000_000_000)}` });
+    await expect(
+      store.requestOtp(phone, { ip: `test-address-${randomInt(0, 1_000_000_000)}` }),
+    ).rejects.toThrow(RateLimitedError);
+  });
+});
 
 async function studentExists(id: string): Promise<boolean> {
   const [row] = rowsOf<{ n: number }>(
@@ -154,6 +185,16 @@ describe('a demo store signs up a toll-free number', () => {
     // Any common form of the same number.
     expect(await s.demo.demoPhoneHasAccount(`+27${phone.slice(1)}`)).toBe(true);
     await expect(s.ordinary.demoPhoneHasAccount(phone)).rejects.toThrow(/demo/);
+  });
+
+  it('names the account a toll-free number holds now, so a browser’s mark binds to it (A5-27)', async () => {
+    const s = stores();
+    const phone = tollFree();
+    expect(await s.demo.demoPhoneAccount(phone)).toBeNull();
+    const signed = await signUpByPhone(s.demo, phone);
+    expect(await s.demo.demoPhoneAccount(phone)).toBe(signed.studentId);
+    expect(await s.demo.demoPhoneAccount(`+27${phone.slice(1)}`)).toBe(signed.studentId);
+    await expect(s.ordinary.demoPhoneAccount(phone)).rejects.toThrow(/demo/);
   });
 
   it('an ordinary store refuses a toll-free number, for sign-in and for a guardian', async () => {

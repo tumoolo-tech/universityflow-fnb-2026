@@ -38,6 +38,8 @@ import { sql as learnerRoleAndApiRoles } from './0038_learner_role_and_api_roles
 import { sql as cvReports } from './0039_cv_reports';
 import { sql as moduleOutlines } from './0040_module_outlines';
 import { sql as moduleMarks } from './0041_module_marks';
+import { sql as outlineRulesAndRetention } from './0042_outline_rules_and_retention';
+import { sql as planMapPlaces } from './0043_plan_map_places';
 
 /** Every migration, in the order they run. Append only. */
 export const MIGRATIONS: ReadonlyArray<{ id: string; sql: string }> = [
@@ -81,4 +83,6 @@ export const MIGRATIONS: ReadonlyArray<{ id: string; sql: string }> = [
   { id: '0039_cv_reports', sql: cvReports },
   { id: '0040_module_outlines', sql: moduleOutlines },
   { id: '0041_module_marks', sql: moduleMarks },
+  { id: '0042_outline_rules_and_retention', sql: outlineRulesAndRetention },
+  { id: '0043_plan_map_places', sql: planMapPlaces },
 ];

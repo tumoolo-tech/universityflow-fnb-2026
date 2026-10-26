@@ -30,6 +30,19 @@ describe('en.colleges', () => {
     expect(colleges.yearPrinted(2027)).toBe('The college printed this for 2027.');
   });
 
+  // A1-84 / A10-67: the entry level of a programme type is the catalogue's sourced record; the
+  // words only take it.
+  it('writes no entry level of its own: the grade comes from the catalogue', () => {
+    const words = JSON.stringify(colleges);
+    expect(words).not.toMatch(/Grade \d|matric|N3/);
+    expect(colleges.programmeTypeEntry(9, null)).toBe('Starts after Grade 9');
+    expect(colleges.programmeTypeEntry(12, 'N3')).toBe('Starts after matric or N3');
+    expect(colleges.groupAfter(9)).toBe('College courses after Grade 9');
+    expect(colleges.groupLeadAfter(9)).toBe(
+      'NC(V) courses at public TVET colleges start after Grade 9. These are the ones your report doesn’t rule out.',
+    );
+  });
+
   it('warns plainly when a name is not on the list, and never as a yes', () => {
     expect(colleges.check.notFound('Example')).toBe(
       'We didn’t find “Example” on DHET’s list of public TVET colleges.',

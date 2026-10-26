@@ -153,6 +153,19 @@ export interface CollegeOptions {
   /** How many college programmes were checked, so "nothing found" can't hide an empty list. */
   readonly checked: number;
   readonly includesDrafts: boolean;
+  /**
+   * Where each programme type starts, from the catalogue's sourced record (A1-84, A10-67), for
+   * the words; a type with no record a learner may see is absent, never a usual grade.
+   */
+  readonly entries: Partial<Readonly<Record<CollegeProgrammeType, ProgrammeTypeStart>>>;
+}
+
+/** Where a programme type starts, as the words take it. */
+export interface ProgrammeTypeStart {
+  readonly afterGrade: number;
+  readonly orAfter: string | null;
+  readonly sourceUrl: string;
+  readonly draft: boolean;
 }
 
 /** South Africa's calendar year at `at` (SAST, UTC+2). */
@@ -233,5 +246,20 @@ export function collegeOptions(
       a.collegeName.localeCompare(b.collegeName) ||
       a.nameAtCollege.localeCompare(b.nameAtCollege),
   );
-  return { options, closed: [...closed.values()], checked, includesDrafts: view.includesDrafts };
+  const entries: Partial<Record<CollegeProgrammeType, ProgrammeTypeStart>> = {};
+  for (const e of view.entries) {
+    entries[e.type] ??= {
+      afterGrade: e.afterGrade,
+      orAfter: e.orAfter,
+      sourceUrl: e.sourceUrl,
+      draft: isDraft(e),
+    };
+  }
+  return {
+    options,
+    closed: [...closed.values()],
+    checked,
+    includesDrafts: view.includesDrafts,
+    entries,
+  };
 }

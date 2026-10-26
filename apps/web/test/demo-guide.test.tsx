@@ -44,7 +44,20 @@ describe('/demo/guide', () => {
     render(await GuidePage());
     expect(screen.getByRole('heading', { level: 1, name: guide.title })).toBeTruthy();
     const honest = screen.getByRole('region', { name: guide.honestTitle });
-    for (const line of guide.honest) expect(within(honest).getByText(line)).toBeTruthy();
+    const lines = within(honest)
+      .getAllByRole('listitem')
+      .map((li) => li.textContent);
+    expect(lines).toEqual([...guide.honestNow]);
+  });
+
+  it('no longer says marks are still being built, and says the module cards are SAMPLES (A6-06)', async () => {
+    vi.stubEnv('UF_DEPLOYMENT', 'demo');
+    render(await GuidePage());
+    const honest = screen.getByRole('region', { name: guide.honestTitle });
+    const stale = guide.honest.at(-1) as string;
+    expect(stale).toMatch(/marks/);
+    expect(within(honest).queryByText(stale)).toBeNull();
+    expect(within(honest).getByText(guide.honestModuleCards)).toBeTruthy();
   });
 
   it('gives each learner their things to try and a button that starts them', async () => {
@@ -54,11 +67,13 @@ describe('/demo/guide', () => {
       const card = screen.getByRole('region', {
         name: guide.personaHeading(persona.name, persona.stage),
       });
-      const tries = guide.tries[id as keyof typeof guide.tries];
+      const key = id as keyof typeof guide.tries;
+      const more: ReadonlyArray<string> =
+        (guide.moreTries as Partial<Record<string, ReadonlyArray<string>>>)[key] ?? [];
       const items = within(card)
         .getAllByRole('listitem')
         .map((li) => li.textContent);
-      expect(items).toEqual([...tries]);
+      expect(items).toEqual([...guide.tries[key], ...more]);
       const start = within(card).getByRole('button', { name: en.demo.tryAs(persona.name) });
       const form = start.closest('form');
       expect(form?.getAttribute('action')).toBe('/api/demo/start');
@@ -67,6 +82,19 @@ describe('/demo/guide', () => {
       expect(input?.value).toBe(id);
     }
     expect(screen.getByRole('link', { name: guide.back }).getAttribute('href')).toBe('/demo');
+  });
+
+  it('has a try for a module card’s calculator and one for the sample outline (A6-06)', async () => {
+    vi.stubEnv('UF_DEPLOYMENT', 'demo');
+    render(await GuidePage());
+    const sipho = en.demoPersonas.personas['demo-second-year'];
+    const kagiso = en.demoPersonas.personas['demo-final-year'];
+    const card = (p: { name: string; stage: string }) =>
+      within(screen.getByRole('region', { name: guide.personaHeading(p.name, p.stage) }));
+    expect(card(sipho).getByText(guide.moreTries['demo-second-year'][0])).toBeTruthy();
+    expect(guide.moreTries['demo-second-year'][0]).toContain(en.moduleCard.calculator.title);
+    expect(card(kagiso).getByText(guide.moreTries['demo-final-year'][0])).toBeTruthy();
+    expect(guide.moreTries['demo-final-year'][0]).toContain(en.moduleOutline.useSample);
   });
 
   it('is linked from the picker', async () => {

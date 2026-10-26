@@ -1,8 +1,8 @@
 import { en } from '@universityflow/content/app';
 import { tokens } from '@universityflow/tokens';
-import type { Artifact, ChatWelcome } from '@universityflow/ui';
+import { type Artifact, type ChatWelcome, replyTextBlocks } from '@universityflow/ui';
 import { Stack, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   KeyboardAvoidingView,
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArtifactCard } from '../components/artifact-card';
+import { ReplyText, replyLabel } from '../components/reply-text';
 import { ReportReply } from '../components/report-reply';
 import { Body, Button, Notice } from '../components/ui';
 import { api, errorMessage, streamChat } from '../lib/api';
@@ -271,13 +272,7 @@ function MessageView({ message }: { message: Message }) {
           <Text style={[theme.text.body, { color: theme.color.ink }]}>{message.content}</Text>
         </View>
       ) : message.content ? (
-        <View accessible accessibilityLabel={label} style={styles.companion}>
-          {/* The companion's mark: decoration. */}
-          <View style={styles.mark} />
-          <Text style={[theme.text.body, styles.grow, { color: theme.color.ink }]}>
-            {message.content}
-          </Text>
-        </View>
+        <CompanionReply content={message.content} />
       ) : message.pending ? (
         <Body pair="pageMuted">{en.chat.sending}</Body>
       ) : null}
@@ -289,6 +284,26 @@ function MessageView({ message }: { message: Message }) {
       {!mine && message.content && !message.pending && STORED.test(message.id) ? (
         <ReportReply messageId={message.id} reported={message.reported === true} />
       ) : null}
+    </View>
+  );
+}
+
+/**
+ * The companion's reply as structure (RT-02): its lists and bold words, never the Markdown marks,
+ * read by a screen reader once, as the companion's words without the marks. A crisis reply and
+ * the learner's own message are shown as written (above).
+ */
+function CompanionReply({ content }: { content: string }) {
+  const blocks = useMemo(() => replyTextBlocks(content), [content]);
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${en.chat.assistant}: ${replyLabel(blocks)}`}
+      style={styles.companion}
+    >
+      {/* The companion's mark: decoration. */}
+      <View style={styles.mark} />
+      <ReplyText blocks={blocks} />
     </View>
   );
 }
@@ -307,7 +322,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: theme.border.thin,
     borderBottomColor: theme.color.line,
   },
-  grow: { flex: 1 },
   pressed: { opacity: 0.8 },
   list: { padding: theme.space['4'], gap: theme.space['4'] },
   welcome: { gap: theme.space['2'] },

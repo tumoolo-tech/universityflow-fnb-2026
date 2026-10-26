@@ -6,6 +6,7 @@ import {
   isPlanTemplateId,
   missingSlots,
   outlineOf,
+  PLAN_ICONS,
   PLAN_LIMITS,
   PLAN_LINKS,
   PLAN_STATUSES,
@@ -15,6 +16,7 @@ import {
   planCounts,
   planMove,
   planTemplate,
+  slotIcon,
   slotKey,
   slotWords,
   subtreeIds,
@@ -111,6 +113,22 @@ describe('plan map templates (proposal §2)', () => {
     const six = planTemplate('six-stops');
     expect(allSlots(six).find((s) => s.key === 'matric')?.link).toBe('goal');
     expect(allSlots(six).find((s) => s.key === 'applying')?.link).toBe('applications');
+  });
+
+  it('give every stop an icon from one fixed list, never a warning triangle beside a worry (MAPS-02)', () => {
+    for (const t of PLAN_TEMPLATES) {
+      for (const s of allSlots(t)) {
+        expect(s.icon, `${t.id} ${s.key}`).toBeTruthy();
+        expect(PLAN_ICONS, `${t.id} ${s.key}`).toContain(s.icon);
+      }
+    }
+    expect(PLAN_ICONS).not.toContain('alert');
+    // The stops most likely to hold a learner's worries get a shield, not a warning.
+    expect(slotIcon('thinking-cloud', 'slot:in-the-way')).toBe('shield');
+    expect(slotIcon('life-map', 'slot:holds-me-back')).toBe('shield');
+    expect(slotIcon('staircase', 'slot:get-in')).toBe('offers');
+    expect(slotIcon('six-stops', null)).toBeNull();
+    expect(slotIcon('six-stops', 'slot:centre')).toBeNull();
   });
 
   it('seed a new map with the centre and the default slots, never the extras', () => {

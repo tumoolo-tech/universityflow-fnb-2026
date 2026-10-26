@@ -2,7 +2,7 @@
  * `en.demoPhoneSignup`: the judge demo's on-screen phone sign-up, a HACKATHON EXCEPTION the owner
  * approved on 2026-10-24 (`UF_DEMO_PHONE_SIGNUP=onscreen`; docs/deploy/demo.md): judges go
  * through the real learner sign-up on made-up details. Only made-up 080 numbers, nothing is sent
- * (the PIN and a guardian's link are shown on screen), every account deleted within 24 hours.
+ * (the PIN and a guardian's link are shown on screen), every account deleted after 24 hours.
  * Every word here is owed the owner's wording review; none has had a legal review.
  */
 export const demoPhoneSignup = {
@@ -19,7 +19,7 @@ export const demoPhoneSignup = {
     'Use made-up details only: never your own name, number or ID number, or anyone else’s.',
     'Use a made-up number that starts with 080 (a toll-free number), never a cellphone number.',
     'Nothing is sent: there is no SMS. Your PIN, and an under-18’s link for their guardian, are shown on screen.',
-    'The account and everything in it is deleted within 24 hours.',
+    'The account and everything in it is deleted after 24 hours.',
   ],
   phoneLabel: 'A made-up 080 number',
   phoneHint: '10 digits, starting with 080. A cellphone number is refused.',
@@ -33,7 +33,7 @@ export const demoPhoneSignup = {
 
   /** Onboarding, on a demo sign-up account. */
   onboardingNotice:
-    'Judges’ demo: made-up details only. Nothing is sent, and this account is deleted within 24 hours.',
+    'Judges’ demo: made-up details only. Nothing is sent, and this account is deleted after 24 hours.',
   guardianPhoneHint: 'The made-up guardian’s number also starts with 080.',
   guardianLinkTitle: 'Nothing was sent: here is the guardian’s link',
   guardianLinkLead:
@@ -42,4 +42,7 @@ export const demoPhoneSignup = {
   /** A made-up 080 number another judge already made an account with: theirs, not shared. */
   numberTaken:
     'Someone has already signed up with that made-up number. Pick another made-up number that starts with 080.',
+  /** The sign-up page's search and share description (A6-04, wave 10). Owed the owner's review. */
+  pageDescription:
+    'Go through the real learner sign-up on the judges’ demo, with made-up details and a made-up number that starts with 080. Nothing is sent to a phone.',
 } as const;

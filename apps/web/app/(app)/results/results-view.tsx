@@ -1,37 +1,27 @@
-import type {
-  CollegeOption,
-  CollegeOptions,
-  ProgrammeResult,
-  Results,
-} from '@universityflow/admissions';
+import type { CollegeOptions, Results } from '@universityflow/admissions';
 import { isReportKind, reportGrade } from '@universityflow/catalogue/client';
 import { colleges as collegeWords, en } from '@universityflow/content';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { CollegeCard } from '@/components/college-card';
-import { ProgrammeCard } from '@/components/programme-card';
 import { Page, SourceLink } from '@/components/ui';
 import { formatDate } from '@/lib/client/api';
-import {
-  type GroupId,
-  type ListedInstitution,
-  type ListedProgramme,
-  ResultsList,
-} from './results-list';
-import { ShortlistButton } from './shortlist-button';
+import { loadResultsGroup } from './actions';
+import { COLLAPSED_GROUPS, resultsGroups } from './results-groups';
+import { type LoadGroup, ResultsList } from './results-list';
 
 /**
  * Stage 1's results, rendered on the server (audit A4-03).
  *
  * This was one client component that rendered and hydrated all 86 programme cards: about a
  * second of main-thread work on a budget phone, while taps on "Add to my shortlist" waited.
- * Now each card is rendered here once. The browser gets two kinds of island: the filter
+ * Now each shown card is rendered here once. The browser gets two kinds of island: the filter
  * (`ResultsList`, which only chooses which rendered cards to show) and each card's shortlist
- * button.
+ * button. A collapsed group (Plan B, the colleges' group) sends no cards at all until the learner
+ * opens it: the island then asks the page's server action for them (audit A4-19).
  */
 export function ResultsView(props: {
   results: Results;
-  shortlist: string[];
+  shortlist: ReadonlyArray<string>;
   reportKind: string;
   confirmedAt: string;
   universities: Array<{ id: string; name: string }>;
@@ -44,8 +34,9 @@ export function ResultsView(props: {
    * on an admission report, in their own group (NC(V) only) on a Grade 10 one. Absent: none.
    */
   colleges?: CollegeOptions | undefined;
+  /** For tests only: what fetches a collapsed group's cards (defaults to the server action). */
+  loadGroup?: LoadGroup | undefined;
 }) {
-  const shortlist = new Set(props.shortlist);
   // On Grade 10 marks, and Grade 11's June and September ones, there is no Qualify now and no
   // Plan B: one On track group (G10-3, §18.7 C2).
   const grade10 = props.results.basis === 'progress';
@@ -54,71 +45,28 @@ export function ResultsView(props: {
     : isReportKind(props.reportKind) && reportGrade(props.reportKind) === 11
       ? en.schoolRecord.resultsLeadInterim
       : en.results.leadGrade10;
-  const groups: Array<{ id: GroupId; list: ReadonlyArray<ProgrammeResult> }> = grade10
-    ? [
-        { id: 'on-track', list: props.results.onTrack },
-        { id: 'close', list: props.results.close },
-      ]
-    : [
-        { id: 'qualify-now', list: props.results.qualifyNow },
-        { id: 'close', list: props.results.close },
-        { id: 'plan-b', list: props.results.planB },
-      ];
-  const cards: Record<string, ReactNode> = {};
-  for (const { list } of groups) {
-    for (const r of list) {
-      cards[r.programmeId] = (
-        <ProgrammeCard
-          result={r}
-          action={
-            <ShortlistButton programmeId={r.programmeId} initial={shortlist.has(r.programmeId)} />
-          }
-        />
-      );
-    }
-  }
-  const listed = (r: ProgrammeResult): ListedProgramme => ({
-    id: r.programmeId,
-    institutionId: r.universityId,
-    institutionType: 'university',
-    text: `${r.name} ${r.faculty}`.toLowerCase(),
+  const { groups, institutions, cardsOf } = resultsGroups({
+    results: props.results,
+    shortlist: new Set(props.shortlist),
+    colleges: props.colleges,
+    universities: props.universities,
   });
-
-  // Public TVET colleges (planning.md §19.1): one card per college, its courses inside, in the
-  // order packages/admissions sorted them. In Plan B on an admission report; their own group on a
-  // Grade 10 one (NC(V) starts after Grade 9).
-  const byCollege = new Map<string, CollegeOption[]>();
-  for (const o of props.colleges?.options ?? []) {
-    byCollege.set(o.collegeId, [...(byCollege.get(o.collegeId) ?? []), o]);
+  // The shown groups' cards only: a collapsed group's arrive when it opens (A4-19).
+  const cards: Record<string, ReactNode> = {};
+  for (const { id } of groups) {
+    if (COLLAPSED_GROUPS.includes(id)) continue;
+    for (const { id: cardId, card } of cardsOf(id)) cards[cardId] = card;
   }
-  const collegeItems: ListedProgramme[] = [];
-  const institutions: ListedInstitution[] = props.universities.map((u) => ({
-    ...u,
-    type: 'university' as const,
-  }));
-  for (const [collegeId, options] of byCollege) {
-    const [first] = options;
-    if (!first) continue;
-    const id = `college-${collegeId}`;
-    cards[id] = <CollegeCard options={options} />;
-    collegeItems.push({
-      id,
-      institutionId: collegeId,
-      institutionType: 'public-tvet-college',
-      text: [first.collegeName, first.collegeShortName, first.mainTown ?? '', first.province]
-        .concat(options.map((o) => `${o.nameAtCollege} ${o.programme}`))
-        .join(' ')
-        .toLowerCase(),
-    });
-    institutions.push({ id: collegeId, name: first.collegeName, type: 'public-tvet-college' });
-  }
-  const listedGroups = groups.map(({ id, list }) => ({
-    id,
-    items: id === 'plan-b' ? [...list.map(listed), ...collegeItems] : list.map(listed),
-  }));
-  if (grade10 && collegeItems.length > 0)
-    listedGroups.push({ id: 'colleges', items: collegeItems });
   const closed = props.colleges?.closed ?? [];
+  // The colleges' own group (NC(V) only) says where NC(V) starts from its catalogue record
+  // (A1-84); with no record a learner may see, it names no grade at all.
+  const ncv = props.colleges?.entries.ncv;
+  const collegesGroup = ncv
+    ? {
+        title: collegeWords.groupAfter(ncv.afterGrade),
+        lead: collegeWords.groupLeadAfter(ncv.afterGrade),
+      }
+    : { title: collegeWords.groupNoEntry, lead: collegeWords.groupLeadNoEntry };
 
   return (
     <Page title={en.results.title} lead={lead}>
@@ -131,7 +79,13 @@ export function ResultsView(props: {
         <Link href="/documents">{en.results.updateReport}</Link>
       </p>
       {props.recheck ?? null}
-      <ResultsList groups={listedGroups} cards={cards} institutions={institutions} />
+      <ResultsList
+        groups={groups}
+        cards={cards}
+        institutions={institutions}
+        collegesGroup={collegesGroup}
+        loadGroup={props.loadGroup ?? loadResultsGroup}
+      />
       {props.colleges ? (
         <div className="flex flex-col gap-1 text-sm text-muted">
           <p>{collegeWords.checked(props.colleges.checked)}</p>

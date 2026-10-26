@@ -38,6 +38,12 @@ export const PLAN_LIMITS = {
   lastYear: 2040,
 } as const;
 
+/**
+ * How far a card's corner may sit from the canvas's own corner, in pixels at 100%, either way
+ * (RT-08). packages/db PLAN_POSITION_MAX and migration 0043 hold the same; a web test checks.
+ */
+export const PLAN_POSITION_MAX = 4000;
+
 export type PlanLimitReason = 'too-many-nodes' | 'too-many-children' | 'too-deep' | 'not-found';
 
 /** The pages a stop links to for the facts it must not hold (§6). Web paths. */
@@ -58,8 +64,36 @@ export type PlanLinkId = keyof typeof PLAN_LINKS;
  */
 export type PlanLayout = 'ring' | 'cloud' | 'stairs' | 'branches' | 'road';
 
+/**
+ * The icons a template's stops are drawn with, by name, from the apps' own sets (web
+ * components/icons.tsx holds every one; the app draws the ones it has). Decoration beside a
+ * heading: the heading names the stop. Never `alert`: a warning triangle beside the stop most
+ * likely to hold a learner's worries ("What might get in the way") reads as danger (MAPS-02).
+ */
+export const PLAN_ICONS = [
+  'results',
+  'subjects',
+  'applications',
+  'campus',
+  'goal',
+  'first-week',
+  'modules',
+  'offers',
+  'documents',
+  'chat',
+  'person',
+  'shield',
+  'heart',
+  'arrow',
+  'home',
+  'help',
+  'chevron',
+] as const;
+export type PlanIcon = (typeof PLAN_ICONS)[number];
+
 interface SlotSpec {
   readonly key: string;
+  readonly icon: PlanIcon;
   readonly link?: PlanLinkId;
   /** Not on a new map: "Add a stop from this template" puts it there. */
   readonly extra?: true;
@@ -77,10 +111,16 @@ export interface PlanTemplate {
 
 const HABITS: SlotSpec = {
   key: 'habits',
+  icon: 'heart',
   extra: true,
-  children: ['focus', 'planning', 'action', 'self-belief', 'motivation', 'keeping-at-it'].map(
-    (key) => ({ key }),
-  ),
+  children: [
+    { key: 'focus', icon: 'goal' },
+    { key: 'planning', icon: 'first-week' },
+    { key: 'action', icon: 'arrow' },
+    { key: 'self-belief', icon: 'shield' },
+    { key: 'motivation', icon: 'heart' },
+    { key: 'keeping-at-it', icon: 'results' },
+  ],
 };
 
 export const PLAN_TEMPLATES: ReadonlyArray<PlanTemplate> = [
@@ -90,13 +130,13 @@ export const PLAN_TEMPLATES: ReadonlyArray<PlanTemplate> = [
     ordered: false,
     pictureFrom: 48,
     slots: [
-      { key: 'grade-10', link: 'subjects' },
-      { key: 'grade-11', link: 'results' },
-      { key: 'matric', link: 'goal' },
-      { key: 'applying', link: 'applications' },
-      { key: 'first-year', link: 'modules' },
-      { key: 'finishing' },
-      { key: 'before-grade-10', extra: true },
+      { key: 'grade-10', icon: 'subjects', link: 'subjects' },
+      { key: 'grade-11', icon: 'results', link: 'results' },
+      { key: 'matric', icon: 'documents', link: 'goal' },
+      { key: 'applying', icon: 'applications', link: 'applications' },
+      { key: 'first-year', icon: 'modules', link: 'modules' },
+      { key: 'finishing', icon: 'campus' },
+      { key: 'before-grade-10', icon: 'home', extra: true },
     ],
   },
   {
@@ -104,9 +144,14 @@ export const PLAN_TEMPLATES: ReadonlyArray<PlanTemplate> = [
     layout: 'cloud',
     ordered: false,
     pictureFrom: 48,
-    slots: ['why', 'good-at', 'learn', 'who-can-help', 'in-the-way', 'first-step'].map((key) => ({
-      key,
-    })),
+    slots: [
+      { key: 'why', icon: 'heart' },
+      { key: 'good-at', icon: 'person' },
+      { key: 'learn', icon: 'subjects' },
+      { key: 'who-can-help', icon: 'help' },
+      { key: 'in-the-way', icon: 'shield' },
+      { key: 'first-step', icon: 'arrow' },
+    ],
   },
   {
     id: 'staircase',
@@ -114,15 +159,15 @@ export const PLAN_TEMPLATES: ReadonlyArray<PlanTemplate> = [
     ordered: true,
     pictureFrom: 48,
     slots: [
-      { key: 'where-i-am-now' },
-      { key: 'finish-grade-10', link: 'subjects' },
-      { key: 'finish-grade-11', link: 'results' },
-      { key: 'write-matric', link: 'goal' },
-      { key: 'get-in', link: 'applications' },
-      { key: 'pass-first-year', link: 'modules' },
-      { key: 'each-year-after' },
-      { key: 'graduate' },
-      { key: 'before-grade-10', extra: true },
+      { key: 'where-i-am-now', icon: 'home' },
+      { key: 'finish-grade-10', icon: 'subjects', link: 'subjects' },
+      { key: 'finish-grade-11', icon: 'results', link: 'results' },
+      { key: 'write-matric', icon: 'documents', link: 'goal' },
+      { key: 'get-in', icon: 'offers', link: 'applications' },
+      { key: 'pass-first-year', icon: 'modules', link: 'modules' },
+      { key: 'each-year-after', icon: 'first-week' },
+      { key: 'graduate', icon: 'campus' },
+      { key: 'before-grade-10', icon: 'home', extra: true },
       HABITS,
     ],
   },
@@ -132,23 +177,24 @@ export const PLAN_TEMPLATES: ReadonlyArray<PlanTemplate> = [
     ordered: false,
     pictureFrom: 64,
     slots: [
-      { key: 'who-i-am' },
-      { key: 'holds-me-back' },
-      { key: 'what-i-want' },
+      { key: 'who-i-am', icon: 'person' },
+      { key: 'holds-me-back', icon: 'shield' },
+      { key: 'what-i-want', icon: 'goal' },
       {
         key: 'my-path',
+        icon: 'arrow',
         children: [
-          { key: 'path-grade-10', link: 'subjects' },
-          { key: 'path-grade-11', link: 'results' },
-          { key: 'path-matric', link: 'goal' },
-          { key: 'path-applying', link: 'applications' },
-          { key: 'path-first-year', link: 'modules' },
-          { key: 'path-graduate' },
+          { key: 'path-grade-10', icon: 'subjects', link: 'subjects' },
+          { key: 'path-grade-11', icon: 'results', link: 'results' },
+          { key: 'path-matric', icon: 'documents', link: 'goal' },
+          { key: 'path-applying', icon: 'applications', link: 'applications' },
+          { key: 'path-first-year', icon: 'modules', link: 'modules' },
+          { key: 'path-graduate', icon: 'campus' },
         ],
       },
-      { key: 'turning-it-around' },
-      { key: 'my-people' },
-      { key: 'my-week' },
+      { key: 'turning-it-around', icon: 'chevron' },
+      { key: 'my-people', icon: 'chat' },
+      { key: 'my-week', icon: 'first-week' },
     ],
   },
   {
@@ -157,13 +203,13 @@ export const PLAN_TEMPLATES: ReadonlyArray<PlanTemplate> = [
     ordered: true,
     pictureFrom: 48,
     slots: [
-      { key: 'where-i-am-now' },
-      { key: 'grades-10-11', link: 'results' },
-      { key: 'matric-done', link: 'goal' },
-      { key: 'accepted', link: 'offers' },
-      { key: 'first-year-passed', link: 'modules' },
-      { key: 'graduated' },
-      { key: 'before-grade-10', extra: true },
+      { key: 'where-i-am-now', icon: 'home' },
+      { key: 'grades-10-11', icon: 'results', link: 'results' },
+      { key: 'matric-done', icon: 'documents', link: 'goal' },
+      { key: 'accepted', icon: 'offers', link: 'offers' },
+      { key: 'first-year-passed', icon: 'modules', link: 'modules' },
+      { key: 'graduated', icon: 'campus' },
+      { key: 'before-grade-10', icon: 'home', extra: true },
     ],
   },
 ];
@@ -185,6 +231,7 @@ export interface FlatSlot {
   readonly depth: number;
   /** Its place among the template's siblings. */
   readonly index: number;
+  readonly icon: PlanIcon;
   readonly link?: PlanLinkId;
   readonly extra: boolean;
 }
@@ -200,6 +247,7 @@ export function allSlots(template: PlanTemplate): FlatSlot[] {
         parent,
         depth,
         index,
+        icon: s.icon,
         extra: isExtra,
         ...(s.link ? { link: s.link } : {}),
       });
@@ -238,6 +286,12 @@ export function slotLink(templateId: PlanTemplateId, slotId: string | null): Pla
   return allSlots(planTemplate(templateId)).find((s) => s.key === key)?.link ?? null;
 }
 
+/** The icon a template stop is drawn with; null for the centre and a learner's own part. */
+export function slotIcon(templateId: PlanTemplateId, slotId: string | null): PlanIcon | null {
+  const key = slotKey(slotId);
+  return allSlots(planTemplate(templateId)).find((s) => s.key === key)?.icon ?? null;
+}
+
 /** One node of a map as the API returns it: the learner's words only where they wrote some. */
 export interface PlanNode {
   readonly id: string;
@@ -251,6 +305,11 @@ export interface PlanNode {
   readonly differently: string | null;
   /** The learner's own aim, `YYYY-MM`: never a real deadline (§6). */
   readonly targetMonth: string | null;
+  /**
+   * Where the learner put the card on the web canvas (RT-08), its top-left corner in pixels at
+   * 100%; null or absent, where the template puts it. The app's outline doesn't use it.
+   */
+  readonly place?: { readonly x: number; readonly y: number } | null;
 }
 
 /** The course and university in the middle, read live from My goal (§4), never stored. */
@@ -269,6 +328,11 @@ export interface PlanMapView {
   /** Whether the learner may write their own words now (the owner's switch, D2). */
   readonly wordsAllowed: boolean;
   readonly updatedAt: string;
+  /**
+   * The learner's About me words (their profile's badges: fixed words, up to three), read live
+   * for the middle of the picture, never copied into the map. Absent on older responses.
+   */
+  readonly words?: ReadonlyArray<string>;
 }
 
 export interface PlanCounts {

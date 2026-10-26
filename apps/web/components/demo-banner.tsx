@@ -1,4 +1,4 @@
-import { colleges, demo as copy, demoSignup } from '@universityflow/content';
+import { colleges, demo as copy, demoSignup, funding } from '@universityflow/content';
 import { DEMO_LOGOS_ON } from '@/lib/demo-logos';
 import { httpsUrlOrNull } from '@/lib/demo-signup';
 
@@ -51,6 +51,7 @@ export function DemoBanner({
       <p>{copy.bannerNotice}</p>
       {logos ? <p>{copy.logosNotice}</p> : null}
       {logos ? <p>{colleges.demoLogosNotice}</p> : null}
+      {logos ? <p>{funding.demoLogosNotice}</p> : null}
       {learner ? (
         <form action="/api/demo/switch" method="post">
           <button type="submit" className={action}>

@@ -4,7 +4,7 @@ import type { SafetyNoteView } from '@universityflow/agent';
 import { dialable } from '@universityflow/catalogue/client';
 import { common, safetyNotes as t } from '@universityflow/content';
 import { useId } from 'react';
-import { Badge, ButtonLink, SourceLink } from '@/components/ui';
+import { Badge, ButtonLink, panelLook, SourceLink } from '@/components/ui';
 import { formatDate } from '@/lib/client/api';
 
 /**
@@ -47,7 +47,7 @@ export function SafetyNotes({
         {shown.map((note) => (
           <li
             key={note.id}
-            className="flex flex-col gap-2 rounded-md bg-sunk p-3"
+            className={`${panelLook} flex flex-col gap-2 p-3`}
             data-testid={`safety-note-${note.id}`}
           >
             <p className="flex flex-wrap items-center gap-2 text-sm">

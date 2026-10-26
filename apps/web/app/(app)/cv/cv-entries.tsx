@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useRef, useState } from 'react';
-import { Button, Card, Field, Input, Select, TextArea } from '@/components/ui';
+import { Button, Card, Field, Input, panelLook, Select, TextArea } from '@/components/ui';
 import { type WrittenCare, WrittenCarePanel } from '@/components/written-care';
 import { api } from '@/lib/client/api';
 import { fill } from '@/lib/client/fill';
@@ -88,7 +88,7 @@ export function CvEntries({
       ) : (
         <ul className="flex flex-col gap-2">
           {entries.map((entry) => (
-            <li key={entry.id} className="flex flex-col gap-2 rounded-md bg-sunk p-3">
+            <li key={entry.id} className={`${panelLook} flex flex-col gap-2 p-3`}>
               {open === entry.id ? (
                 <EntryForm
                   id={formId(entry.id)}

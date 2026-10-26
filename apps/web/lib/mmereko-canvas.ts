@@ -7,12 +7,9 @@
  * Off unless `UF_CV_MMEREKO_CANVAS=1` (with `UF_CV=1`: the canvas lives on /cv). `MMEREKO_APP_URL`
  * names Mmereko's site, an https origin, by default https://mmereko.tumoolo.tech.
  *
- * No `server-only` and Web APIs only: the proxy (the CSP's `frame-src` on /cv) and the server both
- * read this file. `readConfig` decides where the switch may run.
+ * No `server-only` and Web APIs only: the proxy (the CSP's `frame-src`) and the server both read
+ * this file. `readConfig` decides where the switch may run.
  */
-
-/** The one page the canvas is on, and the only page whose CSP may frame Mmereko. */
-export const MMEREKO_CANVAS_PATH = '/cv';
 
 export const DEFAULT_MMEREKO_APP_URL = 'https://mmereko.tumoolo.tech';
 
@@ -97,14 +94,13 @@ export function readMmerekoCanvas(
 }
 
 /**
- * For the proxy: Mmereko's origin when the page is /cv, My CV is on and the canvas is on; null
- * everywhere else, and for a setting `readConfig` would refuse (the page is refused anyway).
+ * For the proxy: Mmereko's origin when My CV is on and the canvas is on, on every page; null
+ * otherwise, and for a setting `readConfig` would refuse (the page is refused anyway). Every page,
+ * not /cv alone (A5-28): a click to My CV keeps the policy of the page the visit started on, and
+ * the canvas is only ever drawn on /cv, for whom the server allows.
  */
-export function mmerekoFrameOrigin(
-  env: Record<string, string | undefined>,
-  pathname: string,
-): string | null {
-  if (pathname !== MMEREKO_CANVAS_PATH || env['UF_CV'] !== '1') return null;
+export function mmerekoFrameOrigin(env: Record<string, string | undefined>): string | null {
+  if (env['UF_CV'] !== '1') return null;
   try {
     return readMmerekoCanvas(env)?.origin ?? null;
   } catch {

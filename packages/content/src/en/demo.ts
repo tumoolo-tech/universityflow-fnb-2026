@@ -15,6 +15,11 @@ export const demo = {
   judgesLine:
     'For judges: no sign-up, no phone number. Ask the chat anything, tick a plan map, set a goal or try a sample report.',
   tryAs: (name: string) => `Try as ${name}`,
+  /** On the pressed button while the learner's copy is made (a few seconds). */
+  startingAs: (name: string) => `Making ${name}’s copy…`,
+  /** Said once, under the pressed button. */
+  startingNote:
+    'This takes a few seconds. Keep this page open: you’ll be taken in when it’s ready.',
   tryThisLabel: 'Try this',
   /** The demo starts per address per hour ran out. */
   busy: 'Lots of people are trying the demo from here right now. Wait a few minutes and try again.',
@@ -75,8 +80,15 @@ export const demo = {
   realPhotoLegend: 'Or use your own photo',
   /** In a 24-hour demo copy (one of the six made-up learners). */
   realPhotoLead:
-    'Upload a photo of yourself only. It’s deleted with this demo copy within 24 hours and used for nothing else.',
+    'Upload a photo of yourself only. It’s deleted with this demo copy after 24 hours and used for nothing else.',
   /** In a judge's own sign-up account, kept 30 days. */
   realPhotoLeadAccount:
-    'Upload a photo of yourself only. It’s deleted with your demo account within 30 days and used for nothing else.',
+    'Upload a photo of yourself only. It’s deleted with your demo account after 30 days and used for nothing else.',
+  /**
+   * The search and share description of the demo's picker and its /sign-in (A6-04, wave 10), and
+   * /sign-in's own title on the demo, apart from the picker's. Owed the owner's wording review.
+   */
+  description:
+    'Try UniversityFlow as one of six learners, from Grade 10 to a final year at university. Every learner is made up, and your copy is deleted after 24 hours.',
+  signInPageTitle: 'Ways into the judges’ demo',
 } as const;

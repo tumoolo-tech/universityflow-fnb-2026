@@ -151,3 +151,55 @@ describe('globals.css', () => {
     ).toBe(true);
   });
 });
+
+/** The declarations of the first `selector {` block in globals.css. */
+function block(selector: string): string {
+  const start = CSS.indexOf(`${selector} {`);
+  return start < 0 ? '' : CSS.slice(start, CSS.indexOf('}', start));
+}
+
+/**
+ * RT-01 (the owner's run-through, 2026-10-25): after "tell me more about ukzn" the chat page grew
+ * to 4,898px on an 800px screen, and scrolling it showed a black screen under the app. The campus
+ * card's screen-reader words (`.sr-only`, absolutely placed) had the page, not the conversation, as
+ * their containing block, so the conversation's own scrolling never clipped them. And on the demo,
+ * the banner above an app pinned to `100dvh` made the page a banner taller than the screen.
+ */
+describe('the chat page is one screen tall, whatever the conversation holds (RT-01)', () => {
+  it('makes the conversation the containing block of what is placed inside it', () => {
+    expect(block('.uf-chat-scroll')).toContain('position: relative;');
+  });
+
+  // From a laptop's width only: on a phone the banner would take a third of the conversation's room.
+  const LAPTOP = `@media (min-height: 30rem) and (min-width: ${tokens.breakpoint.laptop}) {`;
+  const laptop = () => {
+    const start = CSS.indexOf(LAPTOP);
+    return start < 0 ? '' : CSS.slice(start, CSS.indexOf('\n  }\n', start));
+  };
+
+  it('fits the banners and the app into one screen on a laptop, rather than the app alone', () => {
+    const rules = laptop();
+    const body = /body:has\(\.uf-chat\)\s*\{([^}]*)\}/.exec(rules)?.[1] ?? '';
+    expect(body).toContain('display: flex;');
+    expect(body).toContain('flex-direction: column;');
+    expect(body).toContain('height: 100dvh;');
+    const app = /\.uf-app:has\(\.uf-chat\)\s*\{([^}]*)\}/.exec(rules)?.[1] ?? '';
+    expect(app).toContain('flex: 1 1 0;');
+    expect(app).toContain('height: auto;');
+    expect(app).toContain('min-height: 0;');
+    expect(rules).toMatch(/\.uf-app:has\(\.uf-chat\) \.uf-sidebar\s*\{[^}]*height: auto;/);
+  });
+
+  it('on a phone, keeps the app a whole screen and lets the banner scroll away', () => {
+    expect(CSS.indexOf('body:has(.uf-chat)')).toBeGreaterThan(CSS.indexOf(LAPTOP));
+    expect(CSS.indexOf(LAPTOP)).toBeGreaterThan(CSS.indexOf('.uf-app:has(.uf-chat) {'));
+    expect(block('.uf-app:has(.uf-chat)')).toContain('height: 100dvh;');
+  });
+
+  it('keeps the screen heights in the stylesheet, where the chat can change them', () => {
+    // A utility class beats every `@layer components` rule, so one on the shell would win.
+    const layout = readFileSync(join(WEB, 'app', '(app)', 'layout.tsx'), 'utf8');
+    expect(layout).not.toMatch(/(?:^|[\s"'`])(?:lg:)?(?:min-)?h-dvh(?=$|[\s"'`])/);
+    expect(block('.uf-app')).toContain('min-height: 100dvh;');
+  });
+});

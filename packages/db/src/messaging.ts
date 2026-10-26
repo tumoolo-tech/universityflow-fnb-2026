@@ -25,7 +25,7 @@ import { EXPO_PUSH_TOKEN } from '@universityflow/messaging';
 import { and, desc, eq, gt, inArray, lte, sql } from 'drizzle-orm';
 import { sastDate } from './age';
 import { type Db, rowsOf } from './client';
-import { scopeToLearner } from './learner';
+import { actAsLearner } from './learner';
 import {
   auditLog,
   examSubjectChoices,
@@ -159,8 +159,7 @@ export class MessagingStore implements ReminderStore {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`messaging:${sid}`}))`);
       // From here on, as the learner: row-level security and the consent gate decide, on the
       // day `now` falls on in South Africa (an 18th birthday ends a guardian's consent, A1-13).
-      await scopeToLearner(tx, sid, now);
-      await tx.execute(sql`set local role uf_app`);
+      await actAsLearner(tx, sid, now);
       const [gate] = rowsOf<{ ok: boolean }>(
         await tx.execute(sql`select uf_may_process(${sid}::uuid) as ok`),
       );
@@ -383,8 +382,7 @@ export class MessagingStore implements ReminderStore {
   async examInputs(studentId: string): Promise<ExamInputs | null> {
     if (!isEntityId(studentId)) return null;
     return this.#db.transaction(async (tx) => {
-      await scopeToLearner(tx, studentId, this.#clock());
-      await tx.execute(sql`set local role uf_app`);
+      await actAsLearner(tx, studentId, this.#clock());
       const [gate] = rowsOf<{ ok: boolean }>(
         await tx.execute(sql`select uf_may_process(${studentId}::uuid) as ok`),
       );
@@ -486,8 +484,7 @@ export class MessagingStore implements ReminderStore {
         .limit(2);
       const [student] = found;
       if (found.length !== 1 || !student) return null;
-      await scopeToLearner(tx, student.id, this.#clock());
-      await tx.execute(sql`set local role uf_app`);
+      await actAsLearner(tx, student.id, this.#clock());
       const [gate] = rowsOf<{ ok: boolean }>(
         await tx.execute(sql`select uf_may_process(${student.id}::uuid) as ok`),
       );

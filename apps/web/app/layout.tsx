@@ -5,9 +5,11 @@ import { headers } from 'next/headers';
 import { connection } from 'next/server';
 import type { ReactNode } from 'react';
 import { bannerOnPath, DemoBanner } from '@/components/demo-banner';
+import { SiteJsonLd } from '@/components/site-json-ld';
 import { StagingBanner } from '@/components/staging-banner';
-import { PATH_HEADER } from '@/lib/csp';
+import { NONCE_HEADER, PATH_HEADER } from '@/lib/csp';
 import { isDemo, isStaging } from '@/lib/server/deployment';
+import { rootMetadata, siteUrl } from '@/lib/server/seo';
 import { demoLearnerSignedIn } from '@/lib/server/session';
 import './globals.css';
 
@@ -30,14 +32,10 @@ const outfit = localFont({
 
 /**
  * A staging site (UF_DEPLOYMENT=staging) and a judge demo (UF_DEPLOYMENT=demo) are never indexed,
- * so search never sends a learner there.
+ * so search never sends a learner there. `metadataBase`, Open Graph and Twitter: lib/server/seo.ts.
  */
 export function generateMetadata(): Metadata {
-  return {
-    title: { default: en.app.name, template: `%s · ${en.app.name}` },
-    description: en.app.tagline,
-    ...(isStaging() || isDemo() ? { robots: { index: false, follow: false } } : {}),
-  };
+  return rootMetadata();
 }
 
 export const viewport: Viewport = {
@@ -53,8 +51,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   await connection();
   // Read per request, so the banner follows the deployment's own environment.
   const staging = isStaging();
+  const request = await headers();
   // The landing page is the main one, even on the demo: no banner there (bannerOnPath).
-  const demo = isDemo() && bannerOnPath((await headers()).get(PATH_HEADER));
+  const demo = isDemo() && bannerOnPath(request.get(PATH_HEADER));
   // "Switch learner" only while a learner is signed in (A2-67); asked only on the demo.
   const learner = demo && (await demoLearnerSignedIn());
   return (
@@ -66,6 +65,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <StagingBanner staging={staging} />
         <DemoBanner demo={demo} learner={learner} />
         {children}
+        {/* The front door's structured data (A6-03), with this request's CSP nonce. */}
+        <SiteJsonLd
+          path={request.get(PATH_HEADER)}
+          nonce={request.get(NONCE_HEADER)}
+          base={siteUrl()}
+        />
       </body>
     </html>
   );

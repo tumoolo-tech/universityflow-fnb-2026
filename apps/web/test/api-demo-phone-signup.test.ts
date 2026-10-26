@@ -212,6 +212,49 @@ describe('a number already taken (two judges picking the same easy number)', () 
     expect(await accountId(owner)).toBe(id);
   });
 
+  // Phase 6 audit A5-27 (High): the mark named the number alone, so once an account went, the
+  // browser that made it was let in to the next judge's account on the same number.
+  it.each([
+    ['after "Switch learner"', 'switch'],
+    ['after the 24-hour sweep', 'sweep'],
+  ] as const)(
+    'a browser whose account is gone is never let in to the next one on the number (%s)',
+    async (_, gone) => {
+      const phone = tollFree();
+      const a = new Browser();
+      const first = await requestPin(a, phone);
+      await a.json(routes.verifyPin, '/api/auth/verify-pin', {
+        json: { phone, pin: first.body.demoPin },
+      });
+      const idA = await accountId(a);
+      if (gone === 'switch') {
+        const left = await a.call(routes.switch, '/api/demo/switch', {
+          method: 'POST',
+          body: '',
+          headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        });
+        expect(left.status).toBe(303);
+      } else {
+        // A day and more later, the next PIN request sweeps the account away.
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(Date.now() + 25 * 60 * 60 * 1000);
+      }
+      pastCooldown();
+      const b = new Browser();
+      const second = await requestPin(b, phone);
+      expect(second.status).toBe(200);
+      await b.json(routes.verifyPin, '/api/auth/verify-pin', {
+        json: { phone, pin: second.body.demoPin },
+      });
+      const idB = await accountId(b);
+      expect(idB).not.toBe(idA);
+      pastCooldown();
+      const back = await requestPin(a, phone);
+      expect(back.status).toBe(409);
+      expect(back.body.detail).toBe('demo-080-taken');
+    },
+  );
+
   it('the browser’s mark is a keyed hash, never the number', async () => {
     const owner = new Browser();
     const phone = await signUp(owner);

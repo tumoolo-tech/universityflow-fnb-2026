@@ -373,7 +373,8 @@ description. **Adjusted for AA** where marked: legibility wins.
 | `surfaceSunk` | `#211F25` | A tile inside a card | ink 14.65, inkMuted 8.01, brand 6.89 |
 | `ink` | `#F4F2F5` | Primary white text | (see the grounds) |
 | `inkMuted` | `#B9B4BC` | Poster body grey, **lightened** for AA | 5.07 on `stageBottom` |
-| `line` | `#2E2C32` | Hairline (white at about 10% on a card) | decorative |
+| `line` | `#2E2C32` | Hairline (white at about 10% on a card): dividers only, never a card's edge | decorative (1.40 on `canvas`) |
+| `cardEdge` | `#726A78` | A card's and a panel's edge (RT-04, §3.4) | 3.74 on `canvas`, 3.47 on `surface`, 3.14 on `surfaceSunk` |
 | `lineStrong` | `#78727D` | Outlined controls and pills | 3.50 on `surfaceSunk`, 3.86 on `surface`, 3.17 on the glass card |
 | `brand` | `#C99BB8` | The reference's dusty mauve | onBrand on it 7.75 |
 | `brandHover` | `#DDB5CE` | Lighter mauve | onBrand on it 10.11 |
@@ -422,6 +423,44 @@ Tracking `-0.02em` / `0.08em` / `0.32em`; display line height 0.9; entrance 600m
   JavaScript: the root chunks are unchanged (127.8 KB).
 - Body text stays at the 17px base. The owner's "huge" was the layout, not the type size; the
   display sizes now follow the viewport's height.
+
+### 3.4 Cards: every card its own unit (RT-04, 2026-10-25)
+
+The owner's run-through: "I cannot clearly see the separation of the cards." A card's edge was
+`line`, 1.40:1 on the page; a tile inside a card (the goal's course, a plan map, a practice
+subject, the course picker) had no edge at all, on a fill 1.10:1 from its parent's. Now, from
+`tokens.card` (web and app alike):
+
+| Level | Fill | Edge | Behind it | Edge contrast (WCAG 1.4.11, 3:1) |
+|---|---|---|---|---|
+| A card on the page | `surface` | `cardEdge` | `canvas` | 3.74 |
+| A card in a card, or a panel | `surfaceSunk` | `cardEdge` | `surface` | 3.47 |
+| A card in that | `surface` | `cardEdge` | `surfaceSunk` | 3.14 |
+
+- **Web.** `Card` draws its fill, edge and shadow from `.uf-card` (a utility would beat a nested
+  rule), so a `Card` inside a `Card` takes the next level by itself. A tile inside a card is
+  `panelLook` (`uf-panel rounded-md bg-sunk`: the sunk fill and the card edge); none is typed by
+  hand (`test/card-separation.test.tsx` scans the app). A card on the page has a still shadow
+  (`card.shadow`: a lit top edge and a dark fall-off), decoration only; a card's `h2` at its top,
+  or its `.uf-card-head`, is set off by a hairline. Lists of cards are 24px apart (`card.gap`,
+  `cardListGap`), the page's gap; panels in a card 12px.
+- **App.** `theme.card` and `theme.panel` from the same levels; `Card nested`, and every sunk
+  tile in a card spreads `theme.panel` (`__tests__/card-separation.test.tsx`). No shadow in the
+  app (React Native's Android elevation draws nothing visible on this dark ground).
+- **Held by** `CARD_PAIRS` (packages/tokens), generated from `card.levels`, so a new level can't
+  skip the 3:1 test; each level's fill differs from what is behind it by at least ΔE 3.
+
+### 3.5 The funding card (RT-05, 2026-10-25)
+
+`components/funding-card.tsx`, for any bursary record of NSFAS's shape (the other bursaries are
+being added as records). In order: the head (an optional funder logo slot on the demo's logo chip,
+the name, the year, Not yet verified on a draft); **the deadline** in a panel with a brand side
+rule, its caption "Deadline", the closing date at `text-2xl`, the days left as an accent badge
+while open ("6 days left to apply"; "Opens in 3 days" before; "Closed on …" after, the rule
+grey); **who can apply** as fact chips that wrap into columns; **Apply on <the record's site>**
+as the one primary button, the official source beside it; the longer rule (N+) behind My
+subjects' disclosure. The window's state is `fundingWindow` (`lib/funding-window.ts`), from the
+record's dates and today in South Africa, computed on the server.
 
 ## 4. The mobile app
 
@@ -487,11 +526,32 @@ answer, with the owner's changes noted at its top).
 - **Where:** a "My plan maps" card on My goal after "Change my goal" (D10); each map on its own
   page with "Back to My goal". Nothing on the home.
 - **One DOM, two layouts.** The map is one nested list in reading order (centre `h2`, each stop
-  an `li` with an `h3`, an `ol` for the staircase and the road). From 48rem (the life map from
-  64rem) and while the learner shows the Picture, CSS lays the same list out as a ring, a cloud, a
-  staircase or a road; the connectors are one `aria-hidden` SVG. Ring layouts with more than
-  eight stops stay a list. The staircase and the road start at 48rem, not 40rem, so 200% zoom on
-  a laptop is the outline. "Show as: Picture | List" (`aria-pressed`), remembered per browser.
+  an `li` with an `h3`, an `ol` for the staircase and the road). While the learner shows the
+  Picture, the page places the same list on a canvas card (below); the List is the outline.
+  "Show as: Picture | List" (`aria-pressed`), remembered per browser.
+- **The canvas (the owner's run-through, 2026-10-25: RT-06 to RT-08, A4-21).** The picture is a
+  night-sky board: one light shape in the middle (a starburst, a cloud, a circle with the
+  learner's About me words on a ribbon, or the brand's goal card with a flag), sticker cards
+  round it (a band in the card's tone across the top with its number and icon, the soft fill
+  below, a hard shadow in the tone), and branches in each card's tone that leave the middle's
+  edge and plug into the card's edge (a filled taper on the ring, the cloud and the life map;
+  arrows up the staircase; the charcoal road with a star marker per milestone).
+  `apps/web/app/(app)/goals/maps/[id]/map-layout.ts` is the pure maths: each template's
+  arrangement from the cards' **fixed footprints** (a card's height is a sum of fixed slots from
+  what it holds, `SLOT`, pinned in globals.css as `--uf-map-slot-*`, so the server's numbers are
+  final and nothing jumps on hydration), with no two things nearer than 32px at 1 to 12 stops and
+  no branch through another card (tested); the first view is placed before the page is live by a
+  small nonce'd script the server sends (`placeScript`), so the map does not shift when it
+  enhances. **A learner names their map** when starting it (the template is only its layout,
+  "Layout: Staircase") and can rename it; an older or app-made map without a name shows its
+  template's name with a prompt. **Cards move** (RT-08): drag (a mouse or pen past 6px; a finger
+  held 300ms, a moving finger pans), or the card's Move button and the arrow keys (one dot of the
+  24px grid, four with Shift; where it is said in words after each press; Enter puts it down,
+  Escape or leaving puts it back), saved per card (`place_x`/`place_y`, migration 0043) and
+  restored; a dropped card never lands on another (the nearest free dot, else back with a word);
+  Reset layout puts every card back. The middle stays put (the map's anchor). The mini-map is
+  docked under the window, never over a card. Ten sparks on a new Achieved (small, removable,
+  none under reduced motion, never beside a care card: the owner decides).
 - **Status** is a word and an icon: Planned (a circle, `lineStrong`), Achieved (a tick, `success`),
   Not achieved (a turning arrow, `inkMuted`: never danger, D7).
 - **Tones:** `mapTone1..6` and their soft fills (tokens), a side rule in the outline, the card's

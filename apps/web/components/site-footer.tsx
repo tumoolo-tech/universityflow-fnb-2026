@@ -47,6 +47,12 @@ export function SiteFooter({ width = 'page' }: { width?: PublicWidth } = {}) {
               {p.footer.helpLink}
             </Link>
           </li>
+          {/* The one public tool anyone can use without signing in (A6-05). */}
+          <li>
+            <Link href="/colleges/registered" className="inline-flex min-h-11 items-center">
+              {en.colleges.checkLink}
+            </Link>
+          </li>
         </ul>
       </div>
     </footer>

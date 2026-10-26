@@ -119,10 +119,10 @@ rebuild only when a native module changes; screen changes arrive by reloading.
    Windows' network settings, never Public). Check from the phone's browser that
    `http://192.168.1.23:3005/api/health` (or `:3000`) answers before going on.
 
-   **Not the judge demo.** <https://universityflow.vercel.app> has no phone PIN sign-in (the demo
-   signs judges in with personas or Firebase, both on the web only), so the app can't sign in
-   there. The development build talks plain `http` to your computer; a store build will only ever
-   talk `https`.
+   **Not the judge demo.** The development build talks plain `http` to your computer; a store
+   build will only ever talk `https`. For an app pointed at the live judges' demo
+   (<https://universityflow.tumoolo.tech>, its on-screen 080 sign-up), build the standalone
+   preview APK instead: [judges-app.md](judges-app.md).
 
 10. **Start Metro with that address** (in a third PowerShell window, from the repo folder):
 
@@ -191,5 +191,6 @@ rebuild only when a native module changes; screen changes arrive by reloading.
 - **Rebuild (step 7)** only when the integrator says a native module changed (for example after
   the react-native-svg batch, or when `expo-dev-client` is added).
 - A **preview build** (`eas build --profile preview --platform android`) is a standalone APK
-  that needs no computer, but only talks to an `https://` server with phone sign-in: there is
-  none yet (the demo has no PIN sign-in). It comes with the store release, release-checklist.md §3.
+  that needs no computer, but only talks to an `https://` server with phone sign-in. For the
+  hackathon it points at the judges' demo, whose on-screen sign-up takes made-up 080 numbers:
+  [judges-app.md](judges-app.md). The real one comes with the store release, release-checklist.md §3.

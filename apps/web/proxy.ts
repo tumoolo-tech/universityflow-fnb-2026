@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { buildCsp, CSP_HEADER, NONCE_HEADER, newNonce, PATH_HEADER, uploadOrigin } from './lib/csp';
-import { DEMO_SIGNUP_PATH, demoSignupOrNull } from './lib/demo-signup';
+import { demoSignupOrNull } from './lib/demo-signup';
 import { mmerekoFrameOrigin } from './lib/mmereko-canvas';
 import { stagingGate } from './lib/staging-gate';
 
@@ -24,9 +24,10 @@ export function proxy(request: NextRequest): NextResponse | Response {
     nonce,
     dev: process.env['NODE_ENV'] === 'development',
     uploadOrigin: uploadOrigin(process.env),
-    firebaseAuthDomain: firebaseAuthDomain(request),
-    // "Open Mmereko": its site may be framed on /cv only, with My CV and the canvas switched on.
-    mmerekoOrigin: mmerekoFrameOrigin(process.env, request.nextUrl.pathname),
+    firebaseAuthDomain: firebaseAuthDomain(),
+    // "Open Mmereko": its site may be framed with My CV and the canvas switched on, from every page,
+    // since a click to /cv keeps the policy of the page it started on (A5-28).
+    mmerekoOrigin: mmerekoFrameOrigin(process.env),
   });
 
   const requestHeaders = new Headers(request.headers);
@@ -42,11 +43,11 @@ export function proxy(request: NextRequest): NextResponse | Response {
 /**
  * The judge demo's real sign-up (a hackathon exception, docs/deploy/demo.md): the Firebase JS SDK
  * needs Google's domains, so the policy is widened for them only on a demo deployment with
- * UF_DEMO_SIGNUP=firebase, and only on the sign-up page. Everywhere else, null: unchanged.
+ * UF_DEMO_SIGNUP=firebase. On every page of that demo, not the sign-up page alone (A5-28): a click
+ * to the sign-up page keeps the policy of the page it started on. Everywhere else, null: unchanged.
  */
-function firebaseAuthDomain(request: NextRequest): string | null {
+function firebaseAuthDomain(): string | null {
   if (process.env['UF_DEPLOYMENT'] !== 'demo') return null;
-  if (request.nextUrl.pathname !== DEMO_SIGNUP_PATH) return null;
   const setting = demoSignupOrNull(process.env);
   return setting?.mode === 'firebase' ? setting.firebase.authDomain : null;
 }

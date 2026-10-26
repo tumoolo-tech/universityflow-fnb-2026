@@ -5,10 +5,15 @@ import Link from 'next/link';
 import { CrisisCard } from '@/components/crisis-card';
 import { SiteFooter } from '@/components/site-footer';
 import { Page, PublicPage } from '@/components/ui';
+import { pageMetadata } from '@/lib/server/seo';
 import { getServices } from '@/lib/server/services';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: en.dashboard.help.title };
+export const metadata: Metadata = pageMetadata({
+  path: '/help',
+  title: en.dashboard.help.title,
+  description: en.dashboard.help.description,
+});
 
 /**
  * Get help: the crisis card the chat shows (planning.md §4.3), a tap from every signed-in page.

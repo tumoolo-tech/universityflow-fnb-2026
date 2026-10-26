@@ -106,6 +106,21 @@ export {
   openBookSchema,
   subjectArea,
 } from './books';
+// Bursaries beside NSFAS (planning.md §3 Stage 2): the records, whether a window is open, and the list.
+export {
+  BURSARY_STATUSES,
+  type Bursary,
+  type BursaryStatus,
+  type BursaryWithStatus,
+  bursariesFor,
+  bursarySchema,
+  bursaryStatus,
+  FUNDER_KINDS,
+  FUNDING_FIELDS,
+  type FunderKind,
+  type FundingField,
+  fundingField,
+} from './bursary';
 export {
   type Campus,
   CHANGE_DEADLINE_SCOPES,
@@ -140,7 +155,8 @@ export {
   windowFor,
 } from './catalogue';
 // Public TVET colleges (planning.md §19.1): schemas and pure functions. The records load only
-// through `@universityflow/catalogue/colleges`.
+// through `@universityflow/catalogue/colleges`. Where each programme type starts is a sourced
+// record too (`ProgrammeTypeEntry`, A1-84 / A10-67).
 export {
   COLLEGE_PROGRAMME_TYPES,
   type College,
@@ -168,7 +184,10 @@ export {
   NCV_PROGRAMMES,
   normaliseCollegeName,
   OTHER_PROGRAMME,
+  type ProgrammeTypeEntry,
   programmesAt,
+  programmeTypeEntry,
+  programmeTypeEntrySchema,
   type RegistrationCheck,
   registrationCheck,
   SIMILAR_LIMIT,
@@ -317,3 +336,10 @@ export {
   type SubjectId,
   subject,
 } from './subjects';
+// A1-81: the one rule for a weighting's components (outline confirm, database, resolveScheme).
+export {
+  componentNameKey,
+  duplicateComponentNames,
+  WEIGHT_TOLERANCE,
+  weightsAddUpTo100,
+} from './weights';

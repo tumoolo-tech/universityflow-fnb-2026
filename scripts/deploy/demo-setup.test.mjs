@@ -166,6 +166,17 @@ test('the database URL: postgres, a password, a hosted host, a database and TLS'
   assert.match(noVerify.warnings[0], /last resort/);
 });
 
+test('CRON_SECRET (the scheduled sweep, A11-61): asked hidden, 32 or more random characters', () => {
+  const prompt = buildPrompts(rules).find((p) => p.name === 'CRON_SECRET');
+  assert.ok(prompt, 'asked');
+  assert.equal(prompt.secret, true);
+  assert.equal(prompt.check(`cron-${'c'.repeat(27)}`).ok, true);
+  assert.equal(prompt.check('c'.repeat(31)).ok, false);
+  assert.match(prompt.check('c'.repeat(31)).reason, /32/);
+  assert.equal(prompt.check(`${'c'.repeat(32)} `).ok, false);
+  assert.equal(refusalFor('CRON_SECRET', rules), null);
+});
+
 test('DATABASE_CA_CERT: a PEM certificate, pasted or from a .crt/.pem file, sent on one line', () => {
   const prompt = buildPrompts(rules).find((p) => p.name === 'DATABASE_CA_CERT');
   assert.equal(prompt.multiline, true);

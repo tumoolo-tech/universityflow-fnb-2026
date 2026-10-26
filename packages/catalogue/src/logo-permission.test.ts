@@ -142,7 +142,7 @@ describe('logoFindings', () => {
   // folder, named by institution id, shown only when the demo's switch is on. Remove after.
   it.each([
     'apps/web/public/demo-logos/wits.svg',
-    'apps/web/public/demo-logos/ukzn.png',
+    'apps/web/public/demo-logos/ukzn.webp',
     'apps/web/public/demo-logos/uj.png',
     'apps/web/public/demo-logos/up.webp',
   ])('allows the judge demo its logo %s', (file) => {
@@ -184,6 +184,24 @@ describe('logoFindings', () => {
     expect(logoFindings([file], none, ['boland'])).toEqual([
       { file, message: 'a college logo ships only from apps/web/public/demo-logos/colleges/' },
     ]);
+  });
+
+  // The judge demo's bursary funders' logos (the owner, 2026-10-25; the same exception): one
+  // subfolder, each named by a bursary id the catalogue holds. Remove after the hackathon.
+  it.each([
+    'apps/web/public/demo-logos/funders/sasol.webp',
+    'apps/web/public/demo-logos/funders/allan-gray-orbis.svg',
+  ])('allows the judge demo its funder logo %s', (file) => {
+    expect(logoFindings([file], none, [], ['sasol', 'allan-gray-orbis'])).toEqual([]);
+  });
+
+  it('fails a demo funder logo not named by a bursary id the catalogue holds', () => {
+    const file = 'apps/web/public/demo-logos/funders/fake-funder.webp';
+    expect(logoFindings([file], none, [], ['sasol'])).toEqual([
+      { file, message: 'a demo funder logo must be named <bursaryId>.svg, .png or .webp' },
+    ]);
+    const jpeg = 'apps/web/public/demo-logos/funders/sasol.jpg';
+    expect(logoFindings([jpeg], none, [], ['sasol'])).toHaveLength(1);
   });
 
   it('ignores files outside the folders a logo could ship from', () => {
@@ -233,11 +251,13 @@ describe('the repository (the real scan)', () => {
     // The scan reaches the app's real assets, so an empty list can't pass by walking nothing.
     expect(files).toContain('apps/native/assets/icon.png');
     expect(files).toContain('apps/web/public/demo-logos/colleges/boland.webp');
+    expect(files).toContain('apps/web/public/demo-logos/funders/sasol.webp');
     expect(
       logoFindings(
         files,
         RAW_CATALOGUE.universities,
         RAW_COLLEGES.colleges.map((c) => c.id),
+        (RAW_CATALOGUE.bursaries ?? []).map((b) => b.id),
       ),
     ).toEqual([]);
   });

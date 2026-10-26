@@ -30,7 +30,7 @@ export const INSTITUTION_TYPES = [
 ] as const;
 export type InstitutionType = (typeof INSTITUTION_TYPES)[number];
 
-/** The college programmes in scope: NC(V) starts after Grade 9, N4–N6 (Report 191) after matric or N3. */
+/** The college programmes in scope: NC(V) and N4–N6 (Report 191). Where each starts: `ProgrammeTypeEntry`. */
 export const COLLEGE_PROGRAMME_TYPES = ['ncv', 'n4-n6'] as const;
 export type CollegeProgrammeType = (typeof COLLEGE_PROGRAMME_TYPES)[number];
 
@@ -248,11 +248,36 @@ export const teachOutNoticeSchema = sourced({
   });
 export type TeachOutNotice = z.infer<typeof teachOutNoticeSchema>;
 
+/**
+ * Where a programme type starts, nationally (A1-84, A10-67): DHET's own rule for entering it, as
+ * the policy prints it ("A Grade 9 Certificate" for NC(V) Level 2; "A Senior Certificate, or a
+ * National Certificate: N3, or a National Senior Certificate" for N4 in Report 191). The words in
+ * packages/content take `afterGrade` and `orAfter` as parameters; they never hold the fact (hard
+ * rule 2). A college's own printed rule (`entryQuote`) still decides a verdict.
+ */
+export const programmeTypeEntrySchema = sourced({
+  type: z.enum(COLLEGE_PROGRAMME_TYPES),
+  /** The school grade the rule starts after: 9 (a Grade 9 certificate), or 12 (matric). */
+  afterGrade: z.int().min(9).max(12),
+  /** Another qualification the rule names that also lets a learner in, short ("N3"); or null. */
+  orAfter: z.string().min(2).nullable(),
+  /** The rule, word for word. */
+  quote: z.string().min(10),
+  /** Where in the source it is printed. */
+  page: z.string().min(1),
+}).refine((e) => isDhetSource(e.sourceUrl), {
+  message: "Where a programme type starts comes from DHET's own domain (dhet.gov.za)",
+  path: ['sourceUrl'],
+});
+export type ProgrammeTypeEntry = z.infer<typeof programmeTypeEntrySchema>;
+
 /** Every college record, drafts included: the shape of the data, and what `collegeViewOf` reads. */
 export interface CollegeRecords {
   readonly colleges: ReadonlyArray<College>;
   readonly programmes: ReadonlyArray<CollegeProgramme>;
   readonly notices?: ReadonlyArray<TeachOutNotice>;
+  /** Where each programme type starts (A1-84). */
+  readonly entries?: ReadonlyArray<ProgrammeTypeEntry>;
 }
 
 /** Whether `url` is on one of the college's own domains (its site record's). */
@@ -350,6 +375,8 @@ export interface CollegeView {
   readonly notices: ReadonlyArray<TeachOutNotice>;
   /** True when drafts were included, so the interface must label them. */
   readonly includesDrafts: boolean;
+  /** Where each programme type starts: verified records, drafts too in preview (A1-84). */
+  readonly entries: ReadonlyArray<ProgrammeTypeEntry>;
 }
 
 /**
@@ -376,7 +403,18 @@ export function collegeViewOf(
     // students would cost a learner an application and a year; hiding one costs a check.
     notices: (records.notices ?? []).filter((n) => teachOutNoticeSchema.safeParse(n).success),
     includesDrafts: options.includeDrafts,
+    entries: (records.entries ?? []).filter(
+      (e) => keep(e) && programmeTypeEntrySchema.safeParse(e).success,
+    ),
   };
+}
+
+/** Where a programme type starts, when a learner may see its record; undefined otherwise. */
+export function programmeTypeEntry(
+  view: Pick<CollegeView, 'entries'>,
+  type: CollegeProgrammeType,
+): ProgrammeTypeEntry | undefined {
+  return view.entries.find((e) => e.type === type);
 }
 
 export function collegeById(view: CollegeView, id: string): College | undefined {

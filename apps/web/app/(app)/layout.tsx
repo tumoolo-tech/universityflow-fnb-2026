@@ -26,8 +26,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const { config, model, voice, cv } = await getServices();
 
   return (
-    <div className="uf-app flex min-h-dvh flex-col lg:flex-row">
-      <header className="uf-sidebar border-b border-line bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-sidebar lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:border-r lg:border-b-0">
+    <div className="uf-app flex flex-col lg:flex-row">
+      <header className="uf-sidebar border-b border-line bg-surface lg:sticky lg:top-0 lg:flex lg:w-sidebar lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:border-r lg:border-b-0">
         <NavLinks
           // My CV only while the server's switch is on and an engine makes it (UF_CV, D8).
           cvLabel={config.cv && cv ? en.cv.title : null}

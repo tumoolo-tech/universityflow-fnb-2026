@@ -12,7 +12,7 @@ import {
   type SavedMark,
 } from '@universityflow/ui/mark-calculator';
 import { type FormEvent, useId, useMemo, useRef, useState } from 'react';
-import { Button, Field, Input, Notice, StatusLine } from '@/components/ui';
+import { Button, Field, Input, Notice, panelLook, StatusLine } from '@/components/ui';
 import { api, errorMessage } from '@/lib/client/api';
 import { useStatus } from '@/lib/client/status';
 
@@ -120,8 +120,13 @@ export function MarkCalculator({
                   id={id}
                   aria-describedby={describedBy}
                   aria-invalid={isInvalid}
-                  inputMode="decimal"
+                  // A score like "18/24" needs a "/": a phone's decimal pad has none (A7-24). The
+                  // ordinary keyboard, with nothing corrected or capitalised as it is typed.
+                  inputMode="text"
                   autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   value={values[f.key] ?? ''}
                   onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
                   onBlur={() => touch(f.key)}
@@ -164,7 +169,7 @@ export function MarkCalculator({
 
       <section
         aria-labelledby={resultId}
-        className="flex flex-col gap-3 rounded-md bg-sunk p-4"
+        className={`${panelLook} flex flex-col gap-3 p-4`}
         data-testid="calculator-result"
       >
         <h3 id={resultId} className="font-bold">

@@ -1,10 +1,11 @@
-import { PLAN_MAP_LIMITS } from '@universityflow/db';
+import { PLAN_MAP_LIMITS, PLAN_POSITION_MAX } from '@universityflow/db';
 import {
   PLAN_LIMITS,
   type PlanMapsResponse,
   type PlanMapView,
   type PlanNode,
   templateSeed,
+  PLAN_POSITION_MAX as UI_POSITION_MAX,
 } from '@universityflow/ui';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import type { WrittenCare } from '@/lib/server/plan-care';
@@ -42,6 +43,7 @@ const routes = {
   nodes: await import('../app/api/me/plan-maps/[id]/nodes/route'),
   node: await import('../app/api/me/plan-maps/[id]/nodes/[nodeId]/route'),
   move: (await import('../app/api/me/plan-maps/[id]/nodes/[nodeId]/move/route')).POST,
+  layout: await import('../app/api/me/plan-maps/[id]/layout/route'),
 };
 
 let n = 4_100_000;
@@ -71,7 +73,7 @@ async function adult() {
 
 async function create(
   browser: Browser,
-  json: unknown = { templateId: 'six-stops', linksGoal: false },
+  json: unknown = { templateId: 'six-stops', linksGoal: false, title: 'Synthetic map' },
 ) {
   return browser.json<{ map: PlanMapView }>(routes.maps.POST, '/api/me/plan-maps', { json });
 }
@@ -91,6 +93,96 @@ describe('the plan maps API (proposal §3.2)', () => {
   it('holds the same limits as the data layer', () => {
     const { firstYear: _f, lastYear: _l, ...limits } = PLAN_LIMITS;
     expect(limits).toEqual(PLAN_MAP_LIMITS);
+    expect(UI_POSITION_MAX).toBe(PLAN_POSITION_MAX);
+  });
+
+  it('keeps the learner’s own name for a new map as they wrote it; without one, the map is untitled (RT-06, MAPS-01)', async () => {
+    const browser = await adult();
+    // An app build that sends no name (or an empty one) still gets its map: untitled, shown by its
+    // template's name with a prompt to name it (the integrator's call, MAPS-01).
+    for (const title of [undefined, null, '', '   ']) {
+      const untitled = await create(browser, { templateId: 'staircase', linksGoal: false, title });
+      expect(untitled.status).toBe(200);
+      expect(untitled.body.map.title).toBeNull();
+      await browser.json(routes.map.DELETE, `/api/me/plan-maps/${untitled.body.map.id}`, {
+        method: 'DELETE',
+        params: { id: untitled.body.map.id },
+      });
+    }
+    expect(
+      (await create(browser, { templateId: 'staircase', linksGoal: false, title: 'x'.repeat(61) }))
+        .status,
+    ).toBe(400);
+    const made = await create(browser, {
+      templateId: 'staircase',
+      linksGoal: false,
+      title: 'My climb',
+    });
+    expect(made.status).toBe(200);
+    expect(made.body.map).toMatchObject({ title: 'My climb', templateId: 'staircase' });
+    // The learner's About me words are read live for the middle: none chosen yet.
+    expect(made.body.map.words).toEqual([]);
+    const list = await browser.json<PlanMapsResponse>(routes.maps.GET, '/api/me/plan-maps');
+    expect(list.body.maps.map((m) => m.title)).toEqual(['My climb']);
+    // Renamed later.
+    const renamed = await browser.json<{ map: PlanMapView }>(
+      routes.map.PATCH,
+      `/api/me/plan-maps/${made.body.map.id}`,
+      { method: 'PATCH', json: { title: 'My big climb' }, params: { id: made.body.map.id } },
+    );
+    expect(renamed.body.map.title).toBe('My big climb');
+  });
+
+  it('saves where cards sit on the canvas, within its bounds, and resets them (RT-08)', async () => {
+    const browser = await adult();
+    const { map } = (await create(browser)).body;
+    const grade10 = nodeOf(map, 'slot:grade-10');
+    const put = (json: unknown, who = browser, id = map.id) =>
+      who.json<{ map: PlanMapView }>(routes.layout.PUT, `/api/me/plan-maps/${id}/layout`, {
+        method: 'PUT',
+        json,
+        params: { id },
+      });
+    const saved = await put({ places: [{ nodeId: grade10.id, x: 96, y: 48 }] });
+    expect(saved.status).toBe(200);
+    expect(nodeOf(saved.body.map, 'slot:grade-10').place).toEqual({ x: 96, y: 48 });
+    expect(nodeOf(saved.body.map, 'slot:grade-11').place).toBeNull();
+    // Off the canvas, not a whole number, a step, unknown keys: refused, nothing saved.
+    for (const bad of [
+      { places: [{ nodeId: grade10.id, x: -24, y: 0 }] },
+      { places: [{ nodeId: grade10.id, x: 0, y: PLAN_POSITION_MAX + 1 }] },
+      { places: [{ nodeId: grade10.id, x: 2.5, y: 0 }] },
+      { places: [] },
+      { places: [{ nodeId: grade10.id, x: 0, y: 0, z: 1 }] },
+      { places: [{ nodeId: 'not-a-uuid', x: 0, y: 0 }] },
+    ]) {
+      expect((await put(bad)).status).toBe(400);
+    }
+    // Another learner's map is not there.
+    const other = await adult();
+    expect((await put({ places: [{ nodeId: grade10.id, x: 0, y: 0 }] }, other)).status).toBe(404);
+    // A write from another site is refused.
+    const forged = await browser.json(routes.layout.PUT, `/api/me/plan-maps/${map.id}/layout`, {
+      method: 'PUT',
+      json: { places: [{ nodeId: grade10.id, x: 0, y: 0 }] },
+      params: { id: map.id },
+      origin: 'https://evil.example',
+    });
+    expect(forged.status).toBe(403);
+    // Read back, then Reset layout.
+    const read = await browser.json<{ map: PlanMapView }>(
+      routes.map.GET,
+      `/api/me/plan-maps/${map.id}`,
+      { params: { id: map.id } },
+    );
+    expect(nodeOf(read.body.map, 'slot:grade-10').place).toEqual({ x: 96, y: 48 });
+    const reset = await browser.json<{ map: PlanMapView }>(
+      routes.layout.DELETE,
+      `/api/me/plan-maps/${map.id}/layout`,
+      { method: 'DELETE', params: { id: map.id } },
+    );
+    expect(reset.status).toBe(200);
+    expect(reset.body.map.nodes.every((x) => x.place === null)).toBe(true);
   });
 
   it('creates a map from a template, lists it, and reads it back', async () => {
@@ -220,7 +312,9 @@ describe('the plan maps API (proposal §3.2)', () => {
 
   it('puts a template stop back with its own stops, once', async () => {
     const browser = await adult();
-    const { map } = (await create(browser, { templateId: 'staircase', linksGoal: false })).body;
+    const { map } = (
+      await create(browser, { templateId: 'staircase', linksGoal: false, title: 'Synthetic map' })
+    ).body;
     const centre = nodeOf(map, 'slot:centre');
     const body = { parentId: centre.id, slotId: 'slot:habits' };
     const added = await browser.json<{ node: PlanNode }>(
@@ -253,7 +347,9 @@ describe('the plan maps API (proposal §3.2)', () => {
 
   it('shows My goal in the middle, read live: none, then the course, then unavailable', async () => {
     const browser = await adult();
-    const { map } = (await create(browser, { templateId: 'the-road', linksGoal: true })).body;
+    const { map } = (
+      await create(browser, { templateId: 'the-road', linksGoal: true, title: 'Synthetic map' })
+    ).body;
     expect(map.goal).toEqual({ kind: 'none' });
     const options = (
       await browser.json<{ options: Array<{ id: string; name: string; universityName: string }> }>(

@@ -60,6 +60,19 @@ describe('college logos on the judge demo', () => {
     );
   });
 
+  // A4-22: lazy, decoded off the main thread, never preloaded, and sized before it arrives.
+  it('loads the logo lazily, at low priority, with its size in the HTML', () => {
+    const { container } = render(<CollegeCard options={[OPTION]} demoLogos={DEMO_COLLEGE_LOGOS} />);
+    const img = container.querySelector('img');
+    expect(img?.getAttribute('loading')).toBe('lazy');
+    expect(img?.getAttribute('decoding')).toBe('async');
+    expect(img?.getAttribute('fetchpriority')).toBe('low');
+    const boland = DEMO_COLLEGE_LOGOS['boland'];
+    expect(img?.getAttribute('width')).toBe(String(boland?.width));
+    expect(img?.getAttribute('height')).toBe(String(boland?.height));
+    expect(Number(img?.getAttribute('width'))).toBeGreaterThan(0);
+  });
+
   it('says on the banner that the colleges’ logos are for the demo only, not affiliated', () => {
     render(<DemoBanner demo logos mainUrl={null} />);
     expect(screen.getByText(words.demoLogosNotice)).toBeTruthy();

@@ -885,7 +885,8 @@ const styles = StyleSheet.create({
   },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.space['2'] },
   tile: {
-    backgroundColor: theme.color.surfaceSunk,
+    // A panel in its card: the sunk fill and the card edge (RT-04).
+    ...theme.panel,
     borderRadius: theme.radius.sm,
     padding: theme.space['3'],
   },

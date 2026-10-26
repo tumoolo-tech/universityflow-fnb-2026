@@ -111,7 +111,13 @@ function summary(
     case 'application-pack':
       return `${en.applications.checklist}: ${artifact.checklist.filter((c) => c.done).length}/${artifact.checklist.length}`;
     case 'funding':
-      return `${en.applications.checklist}: ${artifact.checklist.filter((c) => c.done).length}/${artifact.checklist.length}`;
+      return [
+        `${en.applications.checklist}: ${artifact.checklist.filter((c) => c.done).length}/${artifact.checklist.length}`,
+        // feat/bursaries: how many other bursaries the tool returned; the list is on the web.
+        ...(artifact.bursaries?.length
+          ? [en.funding.bursariesCount(artifact.bursaries.length)]
+          : []),
+      ].join(' · ');
   }
 }
 
@@ -254,6 +260,7 @@ const styles = StyleSheet.create({
     gap: theme.space['2'],
     padding: theme.space['3'],
     borderRadius: theme.radius.sm,
-    backgroundColor: theme.color.surfaceSunk,
+    // A panel in its card: the sunk fill and the card edge (RT-04).
+    ...theme.panel,
   },
 });

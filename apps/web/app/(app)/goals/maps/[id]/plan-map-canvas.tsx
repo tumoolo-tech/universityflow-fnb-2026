@@ -2,6 +2,7 @@
 
 import type { PlanLayout } from '@universityflow/ui';
 import {
+  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
@@ -26,12 +27,11 @@ import {
   PAN_STEP,
   PAN_STEP_BIG,
   type Point,
+  placeScript,
   releaseVelocity,
   revealView,
-  roadPath,
   rubber,
   type Size,
-  stairPath,
   step,
   type View,
   wheelDelta,
@@ -45,26 +45,53 @@ import {
  * + and −) toward the pointer, with a dotted ground that moves and scales with it, a gentle coast
  * after a flick, edges that ease back, a mini-map, and a full-screen dialog (`CanvasDialog`).
  *
- * **Progressive:** the server draws the map inside a window that scrolls natively both ways, so
- * it reads before any JavaScript; this component then takes the window over (`data-enhanced`) and
- * moves the map with one CSS transform, written to custom properties once a frame, never through
- * React state. The maths is `canvas-math.ts`, every rule tested there. No library.
+ * **Cards move (RT-08, 2026-10-25).** A press on a card (not on its buttons) and a pull lifts it
+ * and carries it; a finger held still on it for `LIFT_HOLD_MS` lifts it, a finger that moves at
+ * once pans the map as before. While lifted the card follows the pointer in one CSS transform and
+ * the page redraws only that card's branches (`CardDrag.frame`), once a frame, never through
+ * React; letting go puts it down (`drop`), Escape puts it back (`cancel`). The keyboard's way is
+ * the card's own Move button (plan-map-view.tsx), which asks this canvas to bring the card into
+ * view (`uf-canvas-reveal`).
  *
- * **Never by accident:** a press becomes a pan only past a few pixels, and the click that ends a
- * pan is swallowed, so a drag that starts on a part's button never opens it; a tap still does.
- * **Reduced motion:** no coast, no glide, no draw-in: every move is a jump.
+ * **Progressive:** the server draws the whole picture at its final places (map-layout.ts) and
+ * sends a small script that puts the map on its first view before the page is live
+ * (`placeScript`, A4-21: nothing shifts when it hydrates); this component then takes the window
+ * over (`data-enhanced`) and moves the map with one CSS transform, written to custom properties
+ * once a frame. The maths is `canvas-math.ts`, every rule tested there. No library.
+ *
+ * **Never by accident:** a press becomes a pan or a lift only past a few pixels, and the click
+ * that ends either is swallowed, so a drag that starts on a part's button never opens it; a tap
+ * still does. **Reduced motion:** no coast, no glide, no draw-in: every move is a jump.
  */
 
 type CanvasCopy = PlanCopy['canvas'];
+type ArrangeCopy = PlanCopy['arrange'];
 
-/** Each picture's own width inside the card (tokens.canvas, held by test/plan-map-canvas.test.tsx). */
-const WORLD_CLASS: Record<PlanLayout, string> = {
-  ring: 'uf-canvas-world--ring',
-  cloud: 'uf-canvas-world--cloud',
-  stairs: 'uf-canvas-world--stairs',
-  branches: 'uf-canvas-world--branches',
-  road: 'uf-canvas-world--road',
-};
+/** How long a finger rests on a card before it lifts (not a duration token: it must never be 0). */
+export const LIFT_HOLD_MS = 300;
+
+/** Below this zoom the dotted ground is drawn quieter (`data-far`). */
+const FAR_ZOOM = 0.5;
+
+/** How the page moves a card: where it is now, each frame while lifted, put down, put back. */
+export interface CardDrag {
+  /** The card's top-left in map coordinates, or null when it can't move. */
+  start(id: string): Point | null;
+  /** Once a frame while lifted: redraw what follows the card (its branches), DOM only. */
+  frame(id: string, at: Point): void;
+  /** Puts it down, its new place in the DOM before this returns (the lift's transform then goes). */
+  drop(id: string, at: Point): void;
+  /** Puts it back where it was picked up, its branches redrawn there. */
+  cancel(id: string): void;
+}
+
+/** A part of the map for the mini-map: from the layout, never measured. */
+export interface MapPart {
+  readonly id: string;
+  readonly box: Box;
+  readonly status: string;
+  readonly centre: boolean;
+}
 
 const PERCENT = new Intl.NumberFormat('en-ZA', { style: 'percent' });
 
@@ -84,32 +111,80 @@ function glideTime(): number {
 }
 
 const FIELD = 'input, textarea, select, [contenteditable="true"]';
+/** What a press on a card must not start a lift from: its own controls. */
+const CONTROL = `button, a, label, ${FIELD}`;
 
-interface Measured {
-  readonly world: Size;
-  readonly parts: ReadonlyArray<Box & { readonly status: string; readonly centre: boolean }>;
-  readonly path: string;
+/** The event a card's Move button sends up to bring the card into view (MAPS-03). */
+export const REVEAL_EVENT = 'uf-canvas-reveal';
+
+const rem = (px: number) => `${px / 16}rem`;
+
+interface Lift {
+  readonly id: string;
+  readonly el: HTMLElement;
+  readonly origin: Point;
+  readonly start: Point;
+  readonly pointerId: number;
+  readonly touch: boolean;
+  lifted: boolean;
+  /** It has been carried somewhere: a lift let go without moving is put back, not down (MAPS-16). */
+  moved: boolean;
+  timer: number | null;
+  last: Point;
+  frame: number | null;
+  /** The Escape listener while lifted: the same function is removed on settling. */
+  esc: ((e: globalThis.KeyboardEvent) => void) | null;
+  /** The browser's long-press menu, kept off while lifted (MAPS-23). */
+  menu: ((e: Event) => void) | null;
 }
 
 export function MapCanvas({
   copy,
+  arrange,
   layout,
+  size,
+  hub,
+  parts,
+  drag,
+  canReset,
+  onResetLayout,
+  nonce,
   expanded = false,
   returnFocus = false,
   onOpen,
+  movePad,
   children,
 }: {
   copy: CanvasCopy;
+  arrange: ArrangeCopy;
   layout: PlanLayout;
+  /** The map's size, from its layout. */
+  size: Size;
+  /** The middle's box, for the first view and the mini-map. */
+  hub: Box;
+  parts: ReadonlyArray<MapPart>;
+  drag: CardDrag;
+  /** Something has been moved: Reset layout does something. */
+  canReset: boolean;
+  onResetLayout: () => void;
+  /** This request's CSP nonce, for the first-view script the server sends (A4-21). */
+  nonce?: string | undefined;
   /** In the full-screen dialog: focus starts in the map, and Open is the dialog's Close. */
   expanded?: boolean;
   /** Back on the page after the dialog closed: focus returns to Open (WCAG 2.4.3). */
   returnFocus?: boolean;
   onOpen?: () => void;
+  /**
+   * While a card is in Move mode: its on-screen pad (MAPS-11, WCAG 2.5.7), shown under the
+   * window at full size, never zoomed with the map and never over a card.
+   */
+  movePad?: ReactNode;
   children: ReactNode;
 }) {
   const openButton = useRef<HTMLButtonElement>(null);
-  const hintId = useId();
+  const ids = useId();
+  const hintId = `${ids}-hint`;
+  const portId = `${ids}-port`;
   const root = useRef<HTMLDivElement>(null);
   const port = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -118,18 +193,19 @@ export function MapCanvas({
   const view = useRef<View>({ x: 0, y: 0, scale: 1 });
   const frame = useRef<number | null>(null);
   const pointers = useRef(new Map<number, Point>());
-  const drag = useRef<{
+  const pan = useRef<{
     start: Point;
     from: View;
     moved: boolean;
     samples: Array<{ t: number; x: number; y: number }>;
   } | null>(null);
   const pinch = useRef<{ distance: number; centre: Point; from: View } | null>(null);
+  const lift = useRef<Lift | null>(null);
   const swallowClick = useRef(false);
   const [enhanced, setEnhanced] = useState(false);
   const [seen, setSeen] = useState(false);
   const [scale, setScale] = useState(1);
-  const [measured, setMeasured] = useState<Measured | null>(null);
+  const [showMini, setShowMini] = useState(true);
 
   const sizes = (): { port: Size; world: Size } => ({
     port: { width: port.current?.clientWidth ?? 0, height: port.current?.clientHeight ?? 0 },
@@ -149,6 +225,8 @@ export function MapCanvas({
       el.style.setProperty('--uf-canvas-x', `${v.x}px`);
       el.style.setProperty('--uf-canvas-y', `${v.y}px`);
       el.style.setProperty('--uf-canvas-scale', String(v.scale));
+      // Far out, the dotted ground goes quiet (it would turn to noise behind the cards).
+      root.current?.toggleAttribute('data-far', v.scale < FAR_ZOOM);
       const m = Math.max(el.clientWidth, el.clientHeight);
       el.style.setProperty('--uf-canvas-margin', `${m}px`);
       const st = stage.current;
@@ -220,11 +298,15 @@ export function MapCanvas({
     frame.current = requestAnimationFrame(tick);
   }
 
-  /** A part of the map, in map coordinates. */
+  /**
+   * A part of the map, in map coordinates: measured at the map's drawn zoom (the server's script
+   * may have scaled the world before the live view knows it, A4-21), the view's zoom with no size.
+   */
   function boxOf(el: Element): Box {
     const r = el.getBoundingClientRect();
     const w = world.current?.getBoundingClientRect();
-    const s = view.current.scale;
+    const drawn = (w?.width ?? 0) / (world.current?.offsetWidth || 1);
+    const s = drawn > 0 ? drawn : view.current.scale;
     return {
       x: (r.left - (w?.left ?? 0)) / s,
       y: (r.top - (w?.top ?? 0)) / s,
@@ -238,11 +320,13 @@ export function MapCanvas({
     return { x: p.width / 2, y: p.height / 2 };
   };
 
-  const home = (): View => {
+  /** The middle's box as drawn (the layout's, scaled to the page's root font size). */
+  const hubBox = (): Box => {
     const centre = world.current?.querySelector('.uf-map-centre');
-    const box = centre ? boxOf(centre) : { x: 0, y: 0, width: 0, height: 0 };
-    return homeView(box, sizes().port);
+    return centre ? boxOf(centre) : hub;
   };
+
+  const home = (): View => homeView(hubBox(), sizes().port);
 
   const wholeView = (): View => {
     const s = sizes();
@@ -252,12 +336,13 @@ export function MapCanvas({
   const zoomBy = (factor: number) =>
     goTo(zoomAt(view.current, view.current.scale * factor, middle()));
 
-  /** The view a card opens on: the map across it from the top when that reads, else the middle. */
+  /** The view a card opens on: the whole map when it reads, else the middle and its nearest cards. */
   function start() {
-    const centre = world.current?.querySelector('.uf-map-centre');
     const s = sizes();
-    const box = centre ? boxOf(centre) : { x: 0, y: 0, width: 0, height: 0 };
-    apply(kept(firstView(s.world, s.port, box, EDGE)));
+    const cards = [...(world.current?.querySelectorAll('.uf-map-branches > li') ?? [])].map(boxOf);
+    const hubNow = hubBox();
+    const body = world.current?.querySelector('.uf-map-centre-body');
+    apply(kept(firstView(s.world, s.port, hubNow, cards, EDGE, body ? boxOf(body) : hubNow)));
   }
 
   // Takes the window over once the page is live.
@@ -283,7 +368,7 @@ export function MapCanvas({
     port.current?.focus({ preventScroll: true });
   }, [expanded]);
 
-  // The road and the climb line draw themselves in once, when the card first comes into view.
+  // The branches and the road draw themselves in once, when the card first comes into view.
   useEffect(() => {
     const el = port.current;
     if (!el) return;
@@ -304,8 +389,18 @@ export function MapCanvas({
     return () => io.disconnect();
   }, []);
 
+  /** The least pan that shows `el`'s card (or `el` itself, when the card is taller than the window). */
+  function reveal(el: Element) {
+    const s = sizes();
+    const card = el.closest('.uf-map-card, .uf-map-centre');
+    let box = boxOf(card ?? el);
+    if (box.height * view.current.scale > s.port.height - 2 * EDGE) box = boxOf(el);
+    const next = revealView(view.current, box, s.port, EDGE);
+    if (next.x !== view.current.x || next.y !== view.current.y) goTo(next);
+  }
+
   // Wheel and trackpad: their own listener, not passive, so the page never scrolls under the map.
-  // Safari's trackpad pinch arrives as gesture events.
+  // Safari's trackpad pinch arrives as gesture events. A card moved by the keys asks to be seen.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the handlers read refs only.
   useEffect(() => {
     const el = port.current;
@@ -349,101 +444,142 @@ export function MapCanvas({
       if (frame.current !== null || pointers.current.size > 0) return;
       apply(kept({ x, y, scale: v.scale }));
     };
+    const onReveal = (e: Event) => {
+      if (e.target instanceof Element) reveal(e.target);
+    };
     el.addEventListener('wheel', onWheel, { passive: false });
     el.addEventListener('gesturestart', onGestureStart);
     el.addEventListener('gesturechange', onGestureChange);
     el.addEventListener('scroll', onScroll);
+    el.addEventListener(REVEAL_EVENT, onReveal);
     return () => {
       el.removeEventListener('wheel', onWheel);
       el.removeEventListener('gesturestart', onGestureStart);
       el.removeEventListener('gesturechange', onGestureChange);
       el.removeEventListener('scroll', onScroll);
+      el.removeEventListener(REVEAL_EVENT, onReveal);
     };
   }, []);
-
-  // Measures the map for the mini-map and the paths behind it, again whenever it changes size
-  // (a part opened, a step added), keeping the view on the map.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: measured from the DOM on each change.
-  useEffect(() => {
-    const w = world.current;
-    if (!w) return;
-    const measure = () => {
-      const size = { width: w.offsetWidth, height: w.offsetHeight };
-      const cards = [...w.querySelectorAll<HTMLElement>('.uf-map-branches > li > .uf-map-card')];
-      const centre = w.querySelector<HTMLElement>('.uf-map-centre');
-      const parts = [
-        ...(centre ? [{ ...boxOf(centre), status: '', centre: true }] : []),
-        ...cards.map((c) => ({
-          ...boxOf(c),
-          status: c.parentElement?.dataset['status'] ?? '',
-          centre: false,
-        })),
-      ];
-      const steps = parts.filter((p) => !p.centre);
-      let path = '';
-      if (layout === 'stairs') {
-        const lift = 16;
-        const goal = parts.find((p) => p.centre);
-        const climb = stairPath(steps.map((s) => ({ ...s, y: s.y - lift })));
-        // From the last step, up to the goal's level and along to it.
-        path =
-          climb && goal
-            ? `${climb} V${Math.round(goal.y + goal.height + lift)} H${Math.round(goal.x + goal.width / 2)}`
-            : climb;
-      }
-      if (layout === 'road') {
-        const list = w.querySelector('.uf-map-branches');
-        const lane = list ? boxOf(list) : null;
-        if (lane && steps.length > 0) {
-          const mid = lane.x + lane.width / 2;
-          const swing = Math.min(lane.width / 10, 56);
-          const marks = steps.map((s) => ({ x: mid, y: s.y + 24 }));
-          const points: Point[] = [{ x: mid, y: lane.y }];
-          marks.forEach((m, i) => {
-            const prev = points.at(-1) as Point;
-            points.push({ x: mid + (i % 2 === 0 ? -swing : swing), y: (prev.y + m.y) / 2 }, m);
-          });
-          points.push({ x: mid, y: lane.y + lane.height });
-          path = roadPath(points);
-        }
-      }
-      setMeasured({ world: size, parts, path });
-      apply(kept(view.current));
-    };
-    measure();
-    if (typeof ResizeObserver !== 'function') return;
-    const ro = new ResizeObserver(() => measure());
-    ro.observe(w);
-    if (port.current) ro.observe(port.current);
-    return () => ro.disconnect();
-  }, [layout]);
 
   const local = (e: { clientX: number; clientY: number }): Point => {
     const r = port.current?.getBoundingClientRect();
     return { x: e.clientX - (r?.left ?? 0), y: e.clientY - (r?.top ?? 0) };
   };
 
+  // ── Lifting a card (RT-08) ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Ends a lift: the card's own transform goes (or, for a drop, stays until the page has put the
+   * card at its new place: MAPS-12, it never shows at its start in between).
+   */
+  function settle(l: Lift, keepTransform = false) {
+    if (l.timer !== null) clearTimeout(l.timer);
+    if (l.frame !== null) cancelAnimationFrame(l.frame);
+    if (l.esc) document.removeEventListener('keydown', l.esc);
+    if (l.menu) document.removeEventListener('contextmenu', l.menu);
+    if (!keepTransform) l.el.style.transform = '';
+    l.el.removeAttribute('data-lifted');
+    root.current?.removeAttribute('data-lifting');
+    lift.current = null;
+  }
+
+  function putBack() {
+    const l = lift.current;
+    if (!l) return;
+    const lifted = l.lifted;
+    settle(l);
+    if (lifted) drag.cancel(l.id);
+  }
+
+  /** The card leaves the board: it follows the pointer from here; the map stops panning. */
+  function liftCard(l: Lift) {
+    stop();
+    l.lifted = true;
+    if (l.timer !== null) clearTimeout(l.timer);
+    l.timer = null;
+    pan.current = null;
+    root.current?.removeAttribute('data-panning');
+    root.current?.setAttribute('data-lifting', '');
+    l.el.setAttribute('data-lifted', '');
+    try {
+      port.current?.setPointerCapture(l.pointerId);
+    } catch {
+      // Not every browser can hold a pointer: the card still follows it.
+    }
+    if (l.touch) navigator.vibrate?.(8);
+    l.esc = (e) => {
+      if (e.key === 'Escape') putBack();
+    };
+    document.addEventListener('keydown', l.esc);
+    // Android's long-press menu would end the drag (and iOS would start selecting): not while lifted.
+    l.menu = (e) => e.preventDefault();
+    document.addEventListener('contextmenu', l.menu);
+    drag.frame(l.id, l.origin);
+  }
+
+  /** Where the card is now, in map coordinates: the pointer's travel at the map's zoom. */
+  const carried = (l: Lift, p: Point): Point => {
+    const s = view.current.scale || 1;
+    return {
+      x: Math.max(0, l.origin.x + (p.x - l.start.x) / s),
+      y: Math.max(0, l.origin.y + (p.y - l.start.y) / s),
+    };
+  };
+
   function onPointerDown(e: PointerEvent<HTMLElement>) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    if (e.target instanceof Element && e.target.closest(FIELD)) return;
+    const target = e.target instanceof Element ? e.target : null;
+    if (target?.closest(FIELD)) return;
     stop();
     const p = local(e);
     pointers.current.set(e.pointerId, p);
     if (pointers.current.size === 1) {
-      drag.current = {
+      pan.current = {
         start: p,
         from: view.current,
         moved: false,
         samples: [{ t: e.timeStamp, ...p }],
       };
+      // A press on a card (not on one of its controls) may become a lift.
+      const card = target?.closest<HTMLElement>('[data-drag-id]');
+      const id = card?.dataset['dragId'];
+      if (card && id && !target?.closest(CONTROL)) {
+        const origin = drag.start(id);
+        if (origin) {
+          const touch = e.pointerType === 'touch';
+          const l: Lift = {
+            id,
+            el: card,
+            origin,
+            start: p,
+            pointerId: e.pointerId,
+            touch,
+            lifted: false,
+            moved: false,
+            timer: null,
+            last: origin,
+            frame: null,
+            esc: null,
+            menu: null,
+          };
+          if (touch) {
+            l.timer = window.setTimeout(() => {
+              if (lift.current === l && !l.lifted) liftCard(l);
+            }, LIFT_HOLD_MS);
+          }
+          lift.current = l;
+        }
+      }
     } else if (pointers.current.size === 2) {
+      // Two fingers always pinch: a lifted card goes back where it was picked up.
+      putBack();
       const [a, b] = [...pointers.current.values()] as [Point, Point];
       pinch.current = {
         distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
         centre: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
         from: view.current,
       };
-      if (drag.current) drag.current.moved = true;
+      if (pan.current) pan.current.moved = true;
       for (const id of pointers.current.keys()) {
         try {
           port.current?.setPointerCapture(id);
@@ -468,7 +604,29 @@ export function MapCanvas({
       apply(rubber(zoomAt(moved, from.scale * ratio, centre), s.world, s.port, EDGE));
       return;
     }
-    const d = drag.current;
+    const l = lift.current;
+    if (l && l.pointerId === e.pointerId) {
+      const travelled = isDrag(p.x - l.start.x, p.y - l.start.y);
+      if (!l.lifted) {
+        if (travelled) {
+          // A finger that moves before the hold is up pans; a mouse or a pen lifts at once.
+          if (l.touch) settle(l);
+          else liftCard(l);
+        }
+      }
+      if (l.lifted) {
+        l.last = carried(l, p);
+        if (travelled) l.moved = true;
+        l.frame ??= requestAnimationFrame(() => {
+          l.frame = null;
+          const at = l.last;
+          l.el.style.transform = `translate(${at.x - l.origin.x}px, ${at.y - l.origin.y}px)`;
+          drag.frame(l.id, at);
+        });
+        return;
+      }
+    }
+    const d = pan.current;
     if (!d) return;
     const dx = p.x - d.start.x;
     const dy = p.y - d.start.y;
@@ -491,20 +649,41 @@ export function MapCanvas({
 
   function onPointerEnd(e: PointerEvent<HTMLElement>) {
     if (!pointers.current.delete(e.pointerId)) return;
+    const l = lift.current;
+    if (l && l.pointerId === e.pointerId) {
+      const lifted = l.lifted;
+      const at = l.last;
+      // The browser took the pointer away (a menu, a gesture: MAPS-23), or the card was never
+      // carried anywhere (a long press let go, MAPS-16): it goes back, nothing is saved.
+      const back = e.type === 'pointercancel' || !l.moved;
+      settle(l, lifted && !back);
+      if (lifted) {
+        pan.current = null;
+        swallow();
+        if (back) drag.cancel(l.id);
+        else {
+          // The page commits the new place synchronously (CardDrag.drop); only then does the
+          // card's lift go, with no easing, so it never jumps back to its start first.
+          drag.drop(l.id, at);
+          l.el.style.transform = '';
+        }
+        return;
+      }
+    }
     if (pinch.current) {
       if (pointers.current.size >= 2) return;
       pinch.current = null;
       const rest = [...pointers.current.values()][0];
       // One finger left: it carries on panning from here.
-      drag.current = rest ? { start: rest, from: view.current, moved: true, samples: [] } : null;
+      pan.current = rest ? { start: rest, from: view.current, moved: true, samples: [] } : null;
       if (!rest) {
         swallow();
         release(0, 0);
       }
       return;
     }
-    const d = drag.current;
-    drag.current = null;
+    const d = pan.current;
+    pan.current = null;
     root.current?.removeAttribute('data-panning');
     if (!d?.moved) return;
     swallow();
@@ -512,7 +691,7 @@ export function MapCanvas({
     release(vx, vy);
   }
 
-  /** The click that ends a pan is not a press on what it started over. */
+  /** The click that ends a pan or a lift is not a press on what it started over. */
   function swallow() {
     swallowClick.current = true;
     setTimeout(() => {
@@ -531,10 +710,10 @@ export function MapCanvas({
       ArrowUp: { x: 0, y: by },
       ArrowDown: { x: 0, y: -by },
     };
-    const pan = pans[e.key];
-    if (pan) {
+    const move = pans[e.key];
+    if (move) {
       e.preventDefault();
-      goTo({ x: v.x + pan.x, y: v.y + pan.y, scale: v.scale });
+      goTo({ x: v.x + move.x, y: v.y + move.y, scale: v.scale });
       return;
     }
     if (e.key === '+' || e.key === '=') {
@@ -553,23 +732,19 @@ export function MapCanvas({
   function onFocus(e: { target: EventTarget }) {
     const el = e.target;
     if (!(el instanceof Element) || el === port.current || !world.current?.contains(el)) return;
-    const s = sizes();
-    const card = el.closest('.uf-map-card, .uf-map-centre');
-    let box = boxOf(card ?? el);
-    if (box.height * view.current.scale > s.port.height - 2 * EDGE) box = boxOf(el);
-    const next = revealView(view.current, box, s.port, EDGE);
-    if (next.x !== view.current.x || next.y !== view.current.y) goTo(next);
+    reveal(el);
   }
 
   function onMini(e: PointerEvent<SVGSVGElement>, jump: boolean) {
-    if (!measured || (e.type === 'pointermove' && e.buttons === 0)) return;
+    if (e.type === 'pointermove' && e.buttons === 0) return;
     const r = e.currentTarget.getBoundingClientRect();
     if (r.width === 0) return;
+    const s = sizes();
     const point = {
-      x: ((e.clientX - r.left) / r.width) * measured.world.width,
-      y: ((e.clientY - r.top) / r.height) * measured.world.height,
+      x: ((e.clientX - r.left) / r.width) * s.world.width,
+      y: ((e.clientY - r.top) / r.height) * s.world.height,
     };
-    const to = centreOn(view.current, point, sizes().port);
+    const to = centreOn(view.current, point, s.port);
     if (jump) apply(kept(to));
     else goTo(to);
   }
@@ -582,6 +757,7 @@ export function MapCanvas({
       data-expanded={expanded ? '' : undefined}
       data-enhanced={enhanced ? '' : undefined}
       data-seen={seen ? '' : undefined}
+      suppressHydrationWarning
     >
       <fieldset className="uf-canvas-tools">
         <legend className="sr-only">{copy.tools}</legend>
@@ -631,6 +807,18 @@ export function MapCanvas({
           >
             <Icon d="M12 3v4M12 17v4M3 12h4M17 12h4M12 9a3 3 0 1 0 0 6 3 3 0 1 0 0-6" />
           </button>
+          <button
+            type="button"
+            className="uf-canvas-btn"
+            aria-label={arrange.resetLayout}
+            title={arrange.resetLayout}
+            aria-disabled={!canReset}
+            onClick={() => {
+              if (canReset) onResetLayout();
+            }}
+          >
+            <Icon d="M4 4h6v6H4ZM14 4h6v6h-6ZM4 14h6v6H4ZM14 14h6v6h-6Z" />
+          </button>
           {expanded ? null : (
             <button
               type="button"
@@ -650,11 +838,13 @@ export function MapCanvas({
       {/* A labelled region the keyboard can reach: the arrows, + and − and 0 work from here. */}
       <section
         ref={port}
+        id={portId}
         aria-label={copy.label}
         aria-describedby={hintId}
         // biome-ignore lint/a11y/noNoninteractiveTabindex: the canvas is operated by keys (WCAG 2.1.1).
         tabIndex={0}
         className="uf-canvas-viewport"
+        suppressHydrationWarning
         onKeyDown={onKeyDown}
         onFocus={onFocus}
         onPointerDown={onPointerDown}
@@ -668,71 +858,80 @@ export function MapCanvas({
           e.stopPropagation();
         }}
       >
-        <div ref={stage} className="uf-canvas-stage">
-          <div ref={world} className={`uf-canvas-world ${WORLD_CLASS[layout]}`}>
-            {measured?.path ? (
-              <svg
-                aria-hidden="true"
-                className="uf-canvas-paths"
-                width={measured.world.width}
-                height={measured.world.height}
-                viewBox={`0 0 ${measured.world.width} ${measured.world.height}`}
-              >
-                {layout === 'road' ? (
-                  <>
-                    <path
-                      className="uf-canvas-road uf-canvas-draw"
-                      pathLength={1}
-                      d={measured.path}
-                    />
-                    <path className="uf-canvas-road-line" d={measured.path} />
-                  </>
-                ) : (
-                  <path
-                    className="uf-canvas-climb uf-canvas-draw"
-                    pathLength={1}
-                    d={measured.path}
-                  />
-                )}
-              </svg>
-            ) : null}
+        <div ref={stage} className="uf-canvas-stage" suppressHydrationWarning>
+          <div
+            ref={world}
+            className="uf-canvas-world"
+            style={{ width: rem(size.width), height: rem(size.height) }}
+          >
             {children}
           </div>
         </div>
       </section>
       <p id={hintId} className="sr-only">
-        {copy.keys}
+        {`${copy.keys} ${arrange.keys}`}
       </p>
 
-      {measured && measured.world.width > 0 ? (
-        // A pointer's shortcut only (the buttons and keys do the same), so hidden from readers.
-        <svg
-          aria-hidden="true"
-          className="uf-minimap"
-          viewBox={`0 0 ${measured.world.width} ${measured.world.height}`}
-          preserveAspectRatio="xMidYMid meet"
-          onPointerDown={(e) => {
-            e.currentTarget.setPointerCapture?.(e.pointerId);
-            onMini(e, false);
-          }}
-          onPointerMove={(e) => onMini(e, true)}
+      {/* The mini-map, docked under the window so it never covers a card (RT-07): a pointer's
+          shortcut only (the buttons and keys do the same), so hidden from readers. */}
+      <div className="uf-canvas-foot">
+        {movePad}
+        <button
+          type="button"
+          className="uf-canvas-foot-btn"
+          aria-pressed={showMini}
+          onClick={() => setShowMini((v) => !v)}
         >
-          {measured.parts.map((p) => (
-            <rect
-              key={`${p.x}-${p.y}`}
-              className="uf-minimap-part"
-              data-status={p.status || undefined}
-              data-centre={p.centre ? '' : undefined}
-              x={p.x}
-              y={p.y}
-              width={p.width}
-              height={p.height}
-              rx={12}
-            />
-          ))}
-          <rect ref={miniView} className="uf-minimap-view" x={0} y={0} width={0} height={0} />
-        </svg>
-      ) : null}
+          {showMini ? arrange.hideMiniMap : arrange.showMiniMap}
+        </button>
+        {showMini && size.width > 0 ? (
+          <svg
+            aria-hidden="true"
+            className="uf-minimap"
+            viewBox={`0 0 ${size.width} ${size.height}`}
+            preserveAspectRatio="xMidYMid meet"
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture?.(e.pointerId);
+              onMini(e, false);
+            }}
+            onPointerMove={(e) => onMini(e, true)}
+          >
+            {parts.map((p, k) => (
+              <rect
+                key={p.id}
+                className="uf-minimap-part"
+                data-status={p.status || undefined}
+                data-centre={p.centre ? '' : undefined}
+                style={
+                  p.centre
+                    ? undefined
+                    : ({
+                        '--uf-map-tone': `var(--uf-color-map-tone${((k - 1) % 6) + 1})`,
+                      } as CSSProperties)
+                }
+                x={p.box.x}
+                y={p.box.y}
+                width={p.box.width}
+                height={p.box.height}
+                rx={12}
+              />
+            ))}
+            <rect ref={miniView} className="uf-minimap-view" x={0} y={0} width={0} height={0} />
+          </svg>
+        ) : null}
+      </div>
+
+      {expanded ? null : (
+        // The first view before the page is live (A4-21). jsdom never runs it; the test does.
+        <script
+          nonce={nonce}
+          data-canvas-place=""
+          // The server's and the browser's builds print the same rule in different words.
+          suppressHydrationWarning
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: our own script, from numbers only.
+          dangerouslySetInnerHTML={{ __html: placeScript(portId) }}
+        />
+      )}
     </div>
   );
 }

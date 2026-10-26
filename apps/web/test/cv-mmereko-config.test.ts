@@ -138,7 +138,12 @@ describe('mmerekoCanvasFor: 18 or over, or at university', () => {
   });
 });
 
-describe('the CSP: Mmereko may be framed on /cv only, with the switch on', () => {
+/**
+ * A5-28 (Phase 6 audit): a policy belongs to the document a visit started on, and a click to My CV
+ * (next/link) keeps it. With Mmereko's origin on /cv alone, the frame was refused after any click
+ * from another page (seen in a browser, 2026-10-25). So every page carries it while the switch is on.
+ */
+describe('the CSP: Mmereko may be framed from every page, only with the switch on', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   function csp(path: string): string {
@@ -166,35 +171,32 @@ describe('the CSP: Mmereko may be framed on /cv only, with the switch on', () =>
     ).toContain(`frame-src 'self' https://uf-demo-test.firebaseapp.com ${DEFAULT_MMEREKO_APP_URL}`);
   });
 
-  it('frames Mmereko on /cv', () => {
-    stub(ON);
-    expect(csp('/cv')).toContain(`frame-src 'self' ${DEFAULT_MMEREKO_APP_URL}`);
-  });
-
-  it.each(['/', '/home', '/chat', '/me', '/cv/x', '/cvs', '/privacy', '/demo/sign-up'])(
-    'never frames it on %s',
+  it.each(['/cv', '/', '/home', '/chat', '/me', '/privacy'])(
+    'frames Mmereko from %s, so a click to My CV keeps it',
     (path) => {
       stub(ON);
-      expect(csp(path)).not.toContain('mmereko');
+      expect(csp(path)).toContain(`frame-src 'self' ${DEFAULT_MMEREKO_APP_URL}`);
+    },
+  );
+
+  it.each(['/cv', '/home'])(
+    'never frames it with the switch off, or with My CV off (%s)',
+    (path) => {
+      stub({ UF_CV: '1' });
+      expect(csp(path)).not.toContain('frame-src');
+      vi.unstubAllEnvs();
+      stub({ UF_CV_MMEREKO_CANVAS: '1' });
+      expect(csp(path)).not.toContain('frame-src');
+      vi.unstubAllEnvs();
+      stub({ ...ON, MMEREKO_APP_URL: 'http://mmereko.example' });
       expect(csp(path)).not.toContain('frame-src');
     },
   );
 
-  it('never frames it with the switch off, or with My CV off', () => {
-    stub({ UF_CV: '1' });
-    expect(csp('/cv')).not.toContain('frame-src');
-    vi.unstubAllEnvs();
-    stub({ UF_CV_MMEREKO_CANVAS: '1' });
-    expect(csp('/cv')).not.toContain('frame-src');
-    vi.unstubAllEnvs();
-    stub({ ...ON, MMEREKO_APP_URL: 'http://mmereko.example' });
-    expect(csp('/cv')).not.toContain('frame-src');
-  });
-
-  it('mmerekoFrameOrigin names the configured origin', () => {
-    expect(
-      mmerekoFrameOrigin({ ...ON, MMEREKO_APP_URL: 'https://cv.mmereko.example' }, '/cv'),
-    ).toBe('https://cv.mmereko.example');
-    expect(mmerekoFrameOrigin(ON, '/home')).toBeNull();
+  it('mmerekoFrameOrigin names the configured origin, wherever the visit is', () => {
+    expect(mmerekoFrameOrigin({ ...ON, MMEREKO_APP_URL: 'https://cv.mmereko.example' })).toBe(
+      'https://cv.mmereko.example',
+    );
+    expect(mmerekoFrameOrigin({ UF_CV: '1' })).toBeNull();
   });
 });

@@ -35,9 +35,12 @@ after(() => {
 });
 
 /** What the deployed app throws for this environment on this host, or null when it starts. */
-function appVerdict(target, env) {
+/** Where production must run (readConfig refuses anywhere else). */
+const CAPE_TOWN = app.REQUIRED_FUNCTION_REGION;
+
+function appVerdict(target, env, region) {
   try {
-    app.readConfig(simulateHost(target, env), undefined, NOW);
+    app.readConfig(simulateHost(target, env, region), undefined, NOW);
     return null;
   } catch (error) {
     assert.ok(error instanceof app.ConfigError, `not a ConfigError: ${error}`);
@@ -94,6 +97,12 @@ test('the host: production and a demo are Vercel production in vercel.json’s r
   assert.equal(staging.VERCEL_ENV, undefined);
 });
 
+test('in London (hackathon exception J) production is refused for its region; a demo still starts', () => {
+  const london = deployCheck(app, 'production', PRODUCTION, { now: NOW, region: 'lhr1' });
+  assert.match(london.verdict.error ?? '', /must run in cpt1, not lhr1/);
+  assert.equal(appVerdict('demo', DEMO, 'lhr1'), null);
+});
+
 test('an empty production environment: the exact ConfigError, and every missing variable named', () => {
   const result = deployCheck(app, 'production', {}, { now: NOW });
   assert.equal(result.verdict.error, appVerdict('production', {}));
@@ -115,8 +124,9 @@ test('an empty production environment: the exact ConfigError, and every missing 
 
 test('production with every value the owner can set still refuses: no SMS or jobs adapter exists', () => {
   const env = { ...PRODUCTION, UF_SMS_PROVIDER: 'chosen-sms', UF_JOBS_PROVIDER: 'chosen-jobs' };
-  const result = deployCheck(app, 'production', env, { now: NOW });
-  assert.equal(result.verdict.error, appVerdict('production', env));
+  // Production where it must run, whatever vercel.json says during exception J (tested below).
+  const result = deployCheck(app, 'production', env, { now: NOW, region: CAPE_TOWN });
+  assert.equal(result.verdict.error, appVerdict('production', env, CAPE_TOWN));
   assert.match(result.verdict.error, /UF_SMS_PROVIDER=chosen-sms has no adapter yet/);
   assert.equal(row(result, 'UF_SMS_PROVIDER')?.status, 'REFUSED');
   assert.match(row(result, 'UF_SMS_PROVIDER')?.reason ?? '', /no adapter yet/);
@@ -332,7 +342,11 @@ test('every attribution pattern is one readConfig really says', () => {
 
 test('the placeholders are exactly what each target needs: all of them start, any one missing refuses', () => {
   for (const target of ['production', 'staging', 'demo']) {
-    const env = simulateHost(target, PLACEHOLDERS[target]);
+    const env = simulateHost(
+      target,
+      PLACEHOLDERS[target],
+      target === 'production' ? CAPE_TOWN : undefined,
+    );
     const adapters = probingAdapters(app, env);
     assert.doesNotThrow(() => app.readConfig(env, adapters, NOW), target);
     for (const name of Object.keys(PLACEHOLDERS[target])) {

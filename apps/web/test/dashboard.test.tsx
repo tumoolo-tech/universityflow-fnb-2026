@@ -660,7 +660,8 @@ describe('the home in the shared look (docs/design/README.md, "One rhythm")', ()
       );
       expect(cards.length).toBeGreaterThanOrEqual(4);
       for (const card of cards) {
-        expect(card.className).toMatch(/(^|\s)rounded-lg border border-line(\s|$)/);
+        // Its fill, edge and shadow are `.uf-card`'s (RT-04, test/card-separation.test.tsx).
+        expect(card.className).toMatch(/(^|\s)uf-card rounded-lg border(\s|$)/);
         expect(card.className).toMatch(/(^|\s)p-5(\s|$)/);
         const title = document.getElementById(card.getAttribute('aria-labelledby') ?? '');
         // A headline card's title is a caps label; every other card title is the one size.

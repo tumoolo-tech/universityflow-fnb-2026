@@ -16,13 +16,14 @@ import {
   migrate,
   openDatabase,
   Store,
+  StudentStore,
   sastDate,
 } from '@universityflow/db';
 import { draftFromModuleOutline, sampleModuleOutline } from '@universityflow/documents';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { showsComingNext } from '@/components/coming-next';
 import { DEMO_DRAFT_ADULT_CONSENT_VERSION } from '@/lib/server/demo/outline-consent';
-import { cloneDemoPersona, DEMO_PERSONAS, demoPersona } from '@/lib/server/demo/personas';
+import { cloneDemoPersona, DEMO_PERSONAS, demoPersona, together } from '@/lib/server/demo/personas';
 import { type DemoPersonaId, isDemoPersonaId } from '@/lib/server/demo/types';
 import { homeData } from '@/lib/server/home';
 
@@ -428,4 +429,138 @@ describe('a judge’s copy', () => {
       expect(a, id).toEqual(b);
     }
   }, 120_000);
+});
+
+describe('making a copy quickly (the slow start, 2026-10-25)', () => {
+  /** Counts the calls of these StudentStore methods in flight at once, each and all together. */
+  function inFlight(names: ReadonlyArray<keyof StudentStore>) {
+    const peak = new Map<string, number>();
+    const now = new Map<string, number>();
+    let all = 0;
+    let allPeak = 0;
+    const proto = StudentStore.prototype as unknown as Record<
+      string,
+      (...args: unknown[]) => Promise<unknown>
+    >;
+    const spies = names.map((name) => {
+      const real = proto[name] as (...args: unknown[]) => Promise<unknown>;
+      return vi.spyOn(proto, name as string).mockImplementation(async function (
+        this: unknown,
+        ...args: unknown[]
+      ) {
+        now.set(name, (now.get(name) ?? 0) + 1);
+        peak.set(name, Math.max(peak.get(name) ?? 0, now.get(name) ?? 0));
+        allPeak = Math.max(allPeak, ++all);
+        try {
+          return await real.apply(this, args);
+        } finally {
+          now.set(name, (now.get(name) ?? 0) - 1);
+          all--;
+        }
+      });
+    });
+    return {
+      peak: (name: string) => peak.get(name) ?? 0,
+      allPeak: () => allPeak,
+      restore: () => {
+        for (const spy of spies) spy.mockRestore();
+      },
+    };
+  }
+
+  it('writes what doesn’t depend on each other at the same time, and keeps ordered things in order', async () => {
+    const seen = inFlight([
+      'updateProfile',
+      'saveConfirmedReport',
+      'setGoal',
+      'addToShortlist',
+      'updateApplication',
+      'setChecklistItem',
+      'createPlanMap',
+      'savePlanNode',
+    ]);
+    let studentId: string;
+    try {
+      studentId = await cloneDemoPersona(store, 'demo-grade-12', NOW);
+    } finally {
+      seen.restore();
+    }
+    // One after another, the copy waited for every write in turn: 20 to 40 seconds on the live demo.
+    expect(seen.allPeak()).toBeGreaterThan(4);
+    expect(seen.peak('setChecklistItem')).toBeGreaterThan(1);
+    // "The latest report" is the last confirmed, and each shortlist rank follows the last.
+    expect(seen.peak('saveConfirmedReport')).toBe(1);
+    expect(seen.peak('addToShortlist')).toBe(1);
+    expect((await store.forStudent(studentId).shortlist()).map((s) => s.rank)).toEqual([
+      1, 2, 3, 4,
+    ]);
+  });
+
+  it('keeps a university year’s offers in the order made, and answers them together', async () => {
+    const seen = inFlight(['addOffer', 'acceptOffer', 'declineOffer', 'setFirstWeekStep']);
+    let studentId: string;
+    try {
+      studentId = await cloneDemoPersona(store, 'demo-first-year', NOW);
+    } finally {
+      seen.restore();
+    }
+    expect(seen.peak('addOffer')).toBe(1);
+    expect(seen.peak('setFirstWeekStep')).toBeGreaterThan(1);
+    const offers = await store.forStudent(studentId).offers();
+    expect(offers.map((o) => [o.programmeId, o.status])).toEqual([
+      ['uj-bsc-it-computer-science', 'accepted'],
+      ['wits-bsc-computer-science', 'declined'],
+    ]);
+  });
+
+  it('deletes a copy whose seed fails only once every write has ended', async () => {
+    const order: string[] = [];
+    const failing = vi
+      .spyOn(StudentStore.prototype, 'createPlanMap')
+      .mockRejectedValue(new Error('synthetic failure'));
+    const saveConfirmedReport = StudentStore.prototype.saveConfirmedReport;
+    const slow = vi
+      .spyOn(StudentStore.prototype, 'saveConfirmedReport')
+      .mockImplementation(async function (this: StudentStore, input) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        try {
+          return await saveConfirmedReport.call(this, input);
+        } finally {
+          order.push('report ended');
+        }
+      });
+    const deleteAccount = StudentStore.prototype.deleteAccount;
+    const deleted = vi
+      .spyOn(StudentStore.prototype, 'deleteAccount')
+      .mockImplementation(async function (this: StudentStore) {
+        order.push('deleted');
+        return deleteAccount.call(this);
+      });
+    try {
+      await expect(cloneDemoPersona(store, 'demo-grade-11', NOW)).rejects.toThrow(
+        'synthetic failure',
+      );
+    } finally {
+      failing.mockRestore();
+      slow.mockRestore();
+      deleted.mockRestore();
+    }
+    // Naledi has reports: each ends (stored, or refused once the copy is gone) before the delete.
+    expect(order.at(-1)).toBe('deleted');
+    expect(order.filter((o) => o === 'deleted')).toHaveLength(1);
+    expect(order).toContain('report ended');
+  });
+});
+
+describe('together', () => {
+  it('waits for every task, then raises the first failure', async () => {
+    const ended: string[] = [];
+    const late = new Promise((resolve) => setTimeout(resolve, 30)).then(() => ended.push('late'));
+    await expect(together([Promise.reject(new Error('first')), late])).rejects.toThrow('first');
+    expect(ended).toEqual(['late']);
+  });
+
+  it('resolves when every task does', async () => {
+    await expect(together([Promise.resolve(1), Promise.resolve(2)])).resolves.toBeUndefined();
+  });
 });

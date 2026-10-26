@@ -7,7 +7,7 @@ import {
 import { gautengColleges, gautengProgrammes } from './gauteng';
 import { kwazuluNatalColleges, kwazuluNatalProgrammes } from './kwazulu-natal';
 import { limpopoMpumalangaColleges, limpopoMpumalangaProgrammes } from './limpopo-mpumalanga';
-import { teachOutNotices } from './register';
+import { programmeTypeEntries, teachOutNotices } from './register';
 import { westernCapeColleges, westernCapeProgrammes } from './western-cape';
 
 export { DHET_COLLEGE_LIST } from './register';
@@ -31,4 +31,5 @@ export const COLLEGE_RECORDS: CollegeRecords = {
     ...westernCapeProgrammes,
   ],
   notices: teachOutNotices,
+  entries: programmeTypeEntries,
 };

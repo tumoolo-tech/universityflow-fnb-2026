@@ -1,5 +1,6 @@
 import 'server-only';
 import { type CatalogueView, programmeById, universityById } from '@universityflow/catalogue';
+import { profileLook } from '@universityflow/content';
 import type { PlanMapRecord, PlanNodeRecord, StudentStore } from '@universityflow/db';
 import {
   isPlanTemplateId,
@@ -11,6 +12,7 @@ import {
   type PlanNode,
   type PlanTemplateId,
   planCounts,
+  resolveLook,
   slotWords,
 } from '@universityflow/ui';
 import { HttpError } from './http';
@@ -40,6 +42,7 @@ export function toPlanNode(r: PlanNodeRecord): PlanNode {
     whyNot: r.whyNot,
     differently: r.differently,
     targetMonth: r.targetMonth,
+    place: r.place,
   };
 }
 
@@ -50,6 +53,17 @@ export function planGoal(programmeId: string | null, view: CatalogueView): PlanG
   const university = programme ? universityById(view, programme.universityId) : undefined;
   if (!programme || !university) return { kind: 'unavailable' };
   return { kind: 'goal', course: programme.name, university: university.name };
+}
+
+/**
+ * The learner's About me words (their profile's badges, fixed words from `en.profileLook`), read
+ * live for the middle of the picture (the spec's "three words"): never stored in the map.
+ */
+export async function aboutMeWords(student: StudentStore): Promise<string[]> {
+  const profile = await student.profile();
+  if (!profile) return [];
+  const badges = profileLook.badges as Record<string, string>;
+  return resolveLook(profile).badgeIds.flatMap((id) => badges[id] ?? []);
 }
 
 export async function planMapView(
@@ -68,6 +82,7 @@ export async function planMapView(
     nodes: map.nodes.map(toPlanNode),
     wordsAllowed,
     updatedAt: map.updatedAt.toISOString(),
+    words: await aboutMeWords(student),
   };
 }
 

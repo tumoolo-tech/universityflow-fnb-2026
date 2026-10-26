@@ -132,6 +132,12 @@ export interface ModuleCardData {
   /** The judge demo's SAMPLE outline and made-up marks: the card says so. */
   readonly sample: boolean;
   readonly scheme: ResolvedScheme;
+  /**
+   * Set when the learner confirmed an outline for this module but the scheme couldn't use it
+   * (two parts of one name, weights not exactly 100: one confirmed before migration 0042): the
+   * scheme is the published rules alone, and the card says so (A1-81).
+   */
+  readonly outlineNotUsed?: true;
   readonly records: Readonly<Record<string, CardRecordInfo>>;
   readonly outline: CardOutline | null;
   readonly calendar: CardCalendar | null;
@@ -183,6 +189,8 @@ export interface ModuleCardView {
     readonly lead: string;
     readonly rows: ReadonlyArray<HowRow>;
     readonly otherRules: ReadonlyArray<{ readonly quote: string; readonly source: SourceView }>;
+    /** The learner's confirmed outline couldn't be used (A1-81): shown above the rules. */
+    readonly outlineNotUsed: string | null;
   };
   readonly dates: {
     readonly title: string;
@@ -507,6 +515,7 @@ export function moduleCardView(data: ModuleCardData, formatDate: FormatDate): Mo
         quote: r.quote,
         source: sourceView(r.source, data, formatDate),
       })),
+      outlineNotUsed: data.outlineNotUsed ? how.outlineNotUsed : null,
     },
     dates: datesPart(data, formatDate),
     books: booksPart(data),

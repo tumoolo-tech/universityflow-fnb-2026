@@ -72,6 +72,9 @@ export const moduleCard = {
     otherRulesTitle: 'Other rules to read',
     conflict: 'These disagree: ask your lecturer.',
     conflictOther: (source: string, value: string) => `${source} says: ${value}`,
+    /** A1-81: the learner's confirmed outline breaks a rule the card applies, so it was left out. */
+    outlineNotUsed:
+      'We couldn’t use the module outline you confirmed: two parts have the same name, or the parts don’t add up to exactly 100%. What you see here is the published rules only. Check your outline and confirm it again.',
   },
 
   sources: {
@@ -209,6 +212,12 @@ export const moduleCard = {
     save: 'Save my marks',
     saved: 'Marks saved.',
     sampleMarks: 'Sample marks, made up for the demo.',
+    /** A1-82: secured on coursework, but the rules here print no exam subminimum (not "none"). */
+    securedSubminimumNotPublished:
+      'Your marks so far already reach this on the weighting alone. But no exam subminimum is published here, and the exam may still have one: check with your lecturer before you decide how much to prepare.',
+    /** A1-82: secured on coursework, but exam admission (DP) isn't reached on these marks. */
+    securedDpNotMet:
+      'Your marks so far would reach this, but only if you may write the exam, and on these marks you don’t reach exam admission (see above). Talk to your lecturer or the faculty office now.',
   },
 
   /** The home's journey step after My modules (Stage 6). */

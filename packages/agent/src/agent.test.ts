@@ -1,4 +1,4 @@
-import type { Helpline } from '@universityflow/catalogue';
+import { catalogueView, type Helpline } from '@universityflow/catalogue';
 import { en } from '@universityflow/content';
 import { describe, expect, it } from 'vitest';
 import { targetIntakeFor } from './context';
@@ -56,6 +56,16 @@ describe('system prompt', () => {
     // Any school marks before the final matric results are provisional, not only Grade 11's.
     expect(prompt).not.toMatch(/Results from Grade 11 marks/);
     expect(prompt).toMatch(/before the final matric results/);
+  });
+
+  it('tells the model how a reply looks: the answer first, short, and only what the app shows (RT-02)', () => {
+    const prompt = systemPrompt();
+    expect(prompt).toMatch(/Lead with the answer/);
+    expect(prompt).toMatch(/"- " bullets/);
+    expect(prompt).toMatch(/\*\*bold\*\* only for/);
+    expect(prompt).toMatch(/No tables, code blocks, links, emojis or HTML/);
+    expect(prompt).toMatch(/at most one question/);
+    expect(prompt).toMatch(/Don't greet the learner again/);
   });
 
   it('tells the model to say plainly that it is an AI whenever asked (A10-31)', () => {
@@ -397,6 +407,53 @@ describe('tools', () => {
     const tool = TOOLS.find((t) => t.name === 'funding_overview');
     expect(tool?.description).not.toMatch(/who qualifies/);
     expect(tool?.description).toMatch(/published criteria/);
+  });
+
+  it('funding_overview returns the bursaries, each window’s status decided by code', async () => {
+    const { context } = fakeContext({ today: new Date('2026-10-13T08:00:00Z') });
+    const result = await runTool(context, 'funding_overview', {});
+    const facts = result.forModel as {
+      bursaries?: ReadonlyArray<{ id: string; status: string; work_back: string | null }>;
+    };
+    expect(facts.bursaries?.length).toBeGreaterThanOrEqual(8);
+    const funza = facts.bursaries?.find((b) => b.id === 'funza-lushaka');
+    expect(funza?.status).toBe('open');
+    expect(funza?.work_back).toMatch(/Teach one year for every year/);
+    expect(facts.bursaries?.find((b) => b.id === 'sasol')?.status).toBe('closed');
+    // Open windows first: the code orders them, the model only explains.
+    expect(facts.bursaries?.[0]?.status).toBe('open');
+    const card = result.artifacts[0];
+    expect(card?.kind === 'funding' ? card.bursaries?.length : 0).toBe(facts.bursaries?.length);
+  });
+
+  it('funding_overview filters bursaries by field, and refuses a field it doesn’t know', async () => {
+    const { context } = fakeContext();
+    const result = await runTool(context, 'funding_overview', { field: 'teaching' });
+    const ids = (result.forModel as { bursaries: ReadonlyArray<{ id: string }> }).bursaries.map(
+      (b) => b.id,
+    );
+    expect(ids).toEqual(['funza-lushaka']);
+    await expect(runTool(context, 'funding_overview', { field: 'astrology' })).rejects.toThrow(
+      ToolInputError,
+    );
+  });
+
+  it('never lets the model decide bursary eligibility: the funder decides', async () => {
+    const { context } = fakeContext();
+    const result = await runTool(context, 'funding_overview', {});
+    const rule = /Never tell a learner whether a funder will choose them/;
+    expect((result.forModel as { bursary_rule?: string }).bursary_rule).toMatch(rule);
+    expect(systemPrompt()).toMatch(rule);
+    const tool = TOOLS.find((t) => t.name === 'funding_overview');
+    expect(tool?.description).toMatch(/bursaries/);
+  });
+
+  it('shows no unverified bursary when the catalogue holds only verified records', async () => {
+    const { context } = fakeContext({
+      catalogue: catalogueView(new Date('2026-10-13T08:00:00Z'), { includeDrafts: false }),
+    });
+    const result = await runTool(context, 'funding_overview', {});
+    expect((result.forModel as { bursaries?: unknown[] }).bursaries ?? []).toEqual([]);
   });
 
   it('add_to_shortlist and remember change only what was asked', async () => {

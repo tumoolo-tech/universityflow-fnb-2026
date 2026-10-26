@@ -10,7 +10,7 @@ import {
 } from '@universityflow/content';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Badge, Button, Card, cx, SourceLink } from '@/components/ui';
+import { Badge, Button, Card, cx, panelLook, SourceLink } from '@/components/ui';
 import { formatDate } from '@/lib/client/api';
 import { courseArt } from '@/lib/course-art';
 import { CARD_ART_SIZES, CardArtLayers } from './card-art';
@@ -29,7 +29,6 @@ export function ProgrammeCard({
   result,
   shortlisted,
   onShortlist,
-  onDetails,
   action,
   bare = false,
 }: {
@@ -41,7 +40,6 @@ export function ProgrammeCard({
   bare?: boolean;
   shortlisted?: boolean;
   onShortlist?: () => void;
-  onDetails?: () => void;
   /** A control rendered where the shortlist button goes, e.g. a client island. */
   action?: ReactNode;
 }) {
@@ -50,7 +48,8 @@ export function ProgrammeCard({
   const body = (
     <>
       <div className={cx('flex flex-wrap items-center gap-2', !bare && 'uf-course-card-band')}>
-        <Badge tone="neutral">
+        {/* On a panel a neutral badge would be the panel's own colour (A2-07). */}
+        <Badge tone={bare ? 'surface' : 'neutral'}>
           <UniversityName name={result.universityName} />
         </Badge>
         <Badge tone="info">{qualifications[result.qualification]}</Badge>
@@ -60,12 +59,23 @@ export function ProgrammeCard({
         {result.name}
       </h3>
       <p className="text-sm text-muted">{result.faculty}</p>
+      {/* Whose scale and its most, then how the score stands against the minimum (RT-03). */}
       <p>
-        <strong>{results.yourScore(result.scoreLabel, result.score, result.scoreMaximum)}</strong>
-        {' · '}
+        <strong>
+          {results.scoreOn(
+            result.universityName,
+            result.scoreLabel,
+            result.score,
+            result.scoreMaximum,
+          )}
+        </strong>
+      </p>
+      <p>
         {result.requiredScore === null
           ? results.noMinimum
-          : results.needed(result.scoreLabel, result.requiredScore)}
+          : result.score >= result.requiredScore
+            ? `${results.asksAtLeast(result.requiredScore)} · ${results.above(result.score - result.requiredScore)}`
+            : results.asksAtLeast(result.requiredScore)}
       </p>
       {result.scoreGap > 0 || result.shortfalls.length > 0 || !result.passMet ? (
         <ul className="flex list-disc flex-col gap-1 pl-6">
@@ -120,16 +130,16 @@ export function ProgrammeCard({
           {whatINeed.open}
           <span className="sr-only">: {result.name}</span>
         </Link>
-        {onDetails ? (
-          <Button variant="quiet" onClick={onDetails}>
-            {results.details}
-          </Button>
-        ) : null}
+        <Link href={`${whatINeedHref}#why`} className="inline-flex min-h-11 items-center">
+          {results.details}
+          <span className="sr-only">: {result.name}</span>
+        </Link>
         <SourceLink href={result.sourceUrl} />
       </div>
     </>
   );
-  if (bare) return <div className="flex flex-col gap-3">{body}</div>;
+  // A panel inside its card (RT-04): the course reads as one thing, a level inside the Goal card.
+  if (bare) return <div className={cx(panelLook, 'flex flex-col gap-3 p-4')}>{body}</div>;
   return (
     <Card as="li" className="uf-course-card flex flex-col gap-3" aria-labelledby={headingId}>
       {/* The course's field in a picture (cards8), under the tokens' scrim. */}

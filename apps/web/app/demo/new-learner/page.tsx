@@ -6,17 +6,25 @@ import { Card, Page, PublicPage } from '@/components/ui';
 import { demoPhoneSignupOn } from '@/lib/demo-phone-signup';
 import { demoConfigRefusal } from '@/lib/server/demo/entry';
 import { isDemo } from '@/lib/server/deployment';
+import { pageMetadata } from '@/lib/server/seo';
 import { SignInForm } from '../../sign-in/sign-in-form';
 import { demoPhoneWords } from './words';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: copy.pageTitle, robots: { index: false } };
+export const metadata: Metadata = {
+  ...pageMetadata({
+    path: '/demo/new-learner',
+    title: copy.pageTitle,
+    description: copy.pageDescription,
+  }),
+  robots: { index: false },
+};
 
 /**
  * The judge demo's on-screen phone sign-up: a HACKATHON EXCEPTION the owner approved on
  * 2026-10-24 (`UF_DEMO_PHONE_SIGNUP=onscreen`, lib/demo-phone-signup.ts, docs/deploy/demo.md).
  * Judges sign up as a new learner the way a real learner does, on made-up details: the notice
- * first (made-up details, an 080 number, nothing sent, deleted within 24 hours), then the real
+ * first (made-up details, an 080 number, nothing sent, deleted after 24 hours), then the real
  * phone form, whose PIN is shown where it is typed. Then the real onboarding and home.
  *
  * Not found outside a demo, or on a demo with the switch off; on a demo whose configuration the

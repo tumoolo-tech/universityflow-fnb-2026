@@ -8,6 +8,7 @@ import { type FormEvent, memo, type RefObject, useEffect, useRef, useState } fro
 import { ArtifactView } from '@/components/artifacts';
 import { Icon, type IconName } from '@/components/icons';
 import { Button, cx } from '@/components/ui';
+import { ReplyText } from './reply-text';
 import { ReportReply } from './report-reply';
 
 export interface ChatMessage {
@@ -73,6 +74,8 @@ export function Chat(props: {
   name: string | null;
   hasReport: boolean;
   sample: boolean;
+  /** The line under the composer in place of `chat.disclaimer`: Gemini's while it answers (AI-01). */
+  disclaimer?: string;
   /** Where the learner is (packages/ui `chatWelcome`); school when not given. */
   welcome?: ChatWelcome;
 }) {
@@ -195,7 +198,12 @@ export function Chat(props: {
         <div ref={endRef} />
       </section>
 
-      <Composer busy={busy} sample={props.sample} fieldRef={fieldRef} onSend={send} />
+      <Composer
+        busy={busy}
+        line={props.sample ? chat.sampleLine : (props.disclaimer ?? chat.disclaimer)}
+        fieldRef={fieldRef}
+        onSend={send}
+      />
     </div>
   );
 }
@@ -237,7 +245,7 @@ const MessageList = memo(function MessageList({
               </span>
               <div className="flex min-w-0 flex-1 flex-col gap-3">
                 {m.content ? (
-                  <div className="whitespace-pre-wrap leading-normal">{m.content}</div>
+                  <ReplyText text={m.content} />
                 ) : busy ? (
                   <p className="flex items-center gap-2 text-muted" role="status">
                     <span aria-hidden="true" className="uf-typing">
@@ -272,12 +280,13 @@ const MessageList = memo(function MessageList({
  */
 function Composer({
   busy,
-  sample,
+  line,
   fieldRef,
   onSend,
 }: {
   busy: boolean;
-  sample: boolean;
+  /** Under the field: the disclaimer, or the preview's "no AI is connected". */
+  line: string;
   fieldRef: RefObject<HTMLTextAreaElement | null>;
   onSend: (text: string) => boolean;
 }) {
@@ -340,9 +349,7 @@ function Composer({
           <Icon name="arrow" className="size-5" />
         </Button>
       </div>
-      <p className="mt-1.5 text-center text-sm text-muted">
-        {sample ? chat.sampleLine : chat.disclaimer}
-      </p>
+      <p className="mt-1.5 text-center text-sm text-muted">{line}</p>
     </form>
   );
 }

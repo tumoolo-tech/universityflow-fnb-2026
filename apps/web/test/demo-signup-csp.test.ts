@@ -5,9 +5,9 @@ import { proxy } from '../proxy';
 
 /**
  * The judge demo's real sign-up (a hackathon exception, docs/deploy/demo.md) widens the CSP for
- * the Firebase JS SDK, and only: on a demo deployment, with UF_DEMO_SIGNUP=firebase, on the
- * sign-up page. Every other page, every other deployment and every API response keeps the policy
- * exactly as it was.
+ * the Firebase JS SDK, and only on a demo deployment with UF_DEMO_SIGNUP=firebase: on every page
+ * of it, since a click to the sign-up page keeps the policy of the page it started on (A5-28).
+ * Every other deployment, the switch off, and every API response keep the policy exactly as it was.
  */
 
 function directives(csp: string): Map<string, string[]> {
@@ -52,7 +52,7 @@ describe('buildCsp with the Firebase sources', () => {
   });
 });
 
-describe('proxy: the sign-up page only, on a demo with the switch on', () => {
+describe('proxy: every page, only on a demo with the switch on', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   function csp(path: string): string {
@@ -64,29 +64,28 @@ describe('proxy: the sign-up page only, on a demo with the switch on', () => {
     for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
   }
 
-  it('widens the sign-up page', () => {
-    stub(FIREBASE_ENV);
-    expect(csp('/demo/sign-up')).toContain('https://identitytoolkit.googleapis.com');
-    expect(csp('/demo/sign-up')).toContain('frame-src');
-  });
-
-  it.each(['/', '/home', '/sign-in', '/demo', '/onboarding', '/demo/sign-up/x'])(
-    'leaves %s as it was',
+  // A5-28 (Phase 6 audit): a click (next/link) to the sign-up page keeps the policy of the page it
+  // started on, so the sources must be there already: every page of the demo while the switch is on.
+  it.each(['/demo/sign-up', '/', '/demo', '/sign-in', '/home', '/onboarding'])(
+    'widens %s, so a click to the sign-up page keeps Firebase’s sources',
     (path) => {
       stub(FIREBASE_ENV);
-      expect(csp(path)).not.toContain('googleapis');
-      expect(csp(path)).not.toContain('frame-src');
+      expect(csp(path)).toContain('https://identitytoolkit.googleapis.com');
+      expect(csp(path)).toContain('frame-src');
     },
   );
 
-  it('leaves the sign-up page alone without the switch, on the fake, or outside a demo', () => {
-    stub({ ...FIREBASE_ENV, UF_DEMO_SIGNUP: '' });
-    expect(csp('/demo/sign-up')).not.toContain('googleapis');
-    vi.unstubAllEnvs();
-    stub({ UF_DEPLOYMENT: 'demo', UF_DEMO_SIGNUP: 'fake' });
-    expect(csp('/demo/sign-up')).not.toContain('googleapis');
-    vi.unstubAllEnvs();
-    stub({ ...FIREBASE_ENV, UF_DEPLOYMENT: '' });
-    expect(csp('/demo/sign-up')).not.toContain('googleapis');
-  });
+  it.each(['/demo/sign-up', '/'])(
+    'leaves %s alone without the switch, on the fake, or outside a demo',
+    (path) => {
+      stub({ ...FIREBASE_ENV, UF_DEMO_SIGNUP: '' });
+      expect(csp(path)).not.toContain('googleapis');
+      vi.unstubAllEnvs();
+      stub({ UF_DEPLOYMENT: 'demo', UF_DEMO_SIGNUP: 'fake' });
+      expect(csp(path)).not.toContain('googleapis');
+      vi.unstubAllEnvs();
+      stub({ ...FIREBASE_ENV, UF_DEPLOYMENT: '' });
+      expect(csp(path)).not.toContain('googleapis');
+    },
+  );
 });

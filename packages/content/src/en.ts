@@ -35,6 +35,7 @@ import {
   firstWeek,
   freeBooks,
   funding,
+  geminiNotice,
   goals,
   home,
   me,
@@ -48,6 +49,7 @@ import {
   passTypes,
   permissions,
   planMaps,
+  planMapsApp,
   practice,
   privacyPage,
   profileLook,
@@ -132,6 +134,10 @@ export const en = {
   colleges,
   // "Open Mmereko" on My CV: Mmereko's own site in a canvas, 18+ or at university (2026-10-24).
   cvMmereko,
+  // While Google's Gemini answers the chat on a demo (finding AI-01, 2026-10-24).
+  geminiNotice,
+  // The phone app's own plan-map words: naming a map, the hub's summary (RT-06, 2026-10-25).
+  planMapsApp,
 } as const;
 
 export type Strings = typeof en;

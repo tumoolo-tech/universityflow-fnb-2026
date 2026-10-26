@@ -1,5 +1,9 @@
 import { HttpError, handler, json, requireReady } from '@/lib/server/http';
-import { confirmedOutline, outlinesResponse } from '@/lib/server/module-outlines';
+import {
+  confirmedOutline,
+  deleteOutlineFile,
+  outlinesResponse,
+} from '@/lib/server/module-outlines';
 import { getServices } from '@/lib/server/services';
 
 /**
@@ -20,7 +24,8 @@ const OUTLINES_PER_HOUR = 30;
 
 /**
  * The learner confirms an outline part by part (hard rule 6), from an upload they checked or typed
- * in. The upload's file is deleted once the outline is saved (D10).
+ * in. The upload's file is deleted once the outline is saved (D10): at once, or by a retried job
+ * when storage fails (A1-88).
  */
 export const PUT = handler(async (request: Request) => {
   const { student, studentId } = await requireReady(request);
@@ -31,11 +36,12 @@ export const PUT = handler(async (request: Request) => {
     throw new HttpError(400, 'invalid');
   }
   const outline = confirmedOutline(body);
-  const { store, files } = await getServices();
+  const { store, files, jobs } = await getServices();
   if (!(await store.allow('module-outline', studentId, OUTLINES_PER_HOUR, HOUR_MS))) {
     throw new HttpError(429, 'rate-limited');
   }
-  const { id, fileKey } = await student.saveModuleOutline(outline);
-  if (fileKey) await files.delete(fileKey);
+  const { id, fileDeletionId } = await student.saveModuleOutline(outline);
+  // The outline is saved: a storage failure from here on never turns it into an error (A1-88).
+  if (fileDeletionId) await deleteOutlineFile({ store, files, jobs }, fileDeletionId);
   return json({ id, ...(await outlinesResponse(student)) });
 });

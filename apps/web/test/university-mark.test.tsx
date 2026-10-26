@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cleanup, render, screen } from '@testing-library/react';
@@ -66,6 +66,33 @@ describe('UniversityMark', () => {
     expect(chip?.querySelector('img')?.getAttribute('src')).toBe('/demo-logos/wits.svg');
     expect(chip?.querySelector('img')?.getAttribute('alt')).toBe('');
     expect(container.querySelector('[data-monogram]')).toBeNull();
+  });
+
+  // A4-22: lazy, decoded off the main thread, never preloaded, and sized before it arrives.
+  it('loads a demo logo lazily, at low priority, with its size in the HTML', () => {
+    const { container } = render(<UniversityMark name="UKZN" demoLogos={DEMO_UNIVERSITY_LOGOS} />);
+    const img = container.querySelector('.uf-demo-logo img');
+    expect(img?.getAttribute('loading')).toBe('lazy');
+    expect(img?.getAttribute('decoding')).toBe('async');
+    expect(img?.getAttribute('fetchpriority')).toBe('low');
+    const ukzn = DEMO_UNIVERSITY_LOGOS['UKZN'];
+    expect(img?.getAttribute('width')).toBe(String(ukzn?.width));
+    expect(img?.getAttribute('height')).toBe(String(ukzn?.height));
+    expect(Number(img?.getAttribute('height'))).toBeGreaterThan(0);
+  });
+
+  it('loads a permitted logo lazily too', () => {
+    const { container } = render(<UniversityMark name="UCT" logos={{ UCT: '/logos/uct.png' }} />);
+    const img = container.querySelector('img');
+    expect(img?.getAttribute('loading')).toBe('lazy');
+    expect(img?.getAttribute('decoding')).toBe('async');
+  });
+
+  it('keeps every university’s demo logo small: a chip, not a banner (A4-22: UKZN’s was 110 KB)', () => {
+    for (const logo of new Set(Object.values(DEMO_UNIVERSITY_LOGOS))) {
+      const file = resolve(HERE, '..', 'public', logo.src.slice(1));
+      expect(statSync(file).size, logo.src).toBeLessThanOrEqual(60 * 1024);
+    }
   });
 
   it('finds the demo logo by the full name too, and puts UCT’s white artwork on a dark chip', () => {

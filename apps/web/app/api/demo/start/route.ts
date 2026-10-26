@@ -20,7 +20,7 @@ const HOUR_MS = 60 * 60 * 1000;
  * JSON post with JSON.
  *
  * The same-origin check (CSRF), a per-address limit, and on each start the lazy sweep of copies
- * older than a day. A browser already on a copy has that copy deleted first (a judge's own account
+ * older than a day, while the new copy is made. A browser already on a copy has that copy deleted first (a judge's own account
  * from the real sign-up is only signed out of).
  */
 export const POST = handler(async (request: Request) => {
@@ -44,13 +44,14 @@ export const POST = handler(async (request: Request) => {
     );
     if (!allowed) throw new HttpError(429, 'rate-limited');
 
-    await sweepOldCopies(services);
     // A previous copy goes; a judge's own account (the real sign-up) is only signed out of.
     await leaveCurrent(services);
 
     let studentId: string;
     try {
-      studentId = await cloneDemoPersona(store, persona);
+      // The sweep of day-old copies runs while this copy is made, so a judge never waits for it
+      // (it never fails the start: core.ts).
+      [studentId] = await Promise.all([cloneDemoPersona(store, persona), sweepOldCopies(services)]);
     } catch (error) {
       console.error(`demo start: the seed failed (${(error as Error)?.name ?? 'Error'})`);
       throw new HttpError(503, 'state', 'demo-unavailable');

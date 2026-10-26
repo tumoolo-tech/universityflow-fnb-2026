@@ -37,6 +37,8 @@ export { crisis } from './en/crisis';
 export { cv } from './en/cv';
 export { dashboard } from './en/dashboard';
 export { deadlines } from './en/deadlines';
+// The judges' demo's on-screen sign-up (hackathon exception): shown when the demo sends a PIN.
+export { demoPhoneSignup } from './en/demo-phone-signup';
 export { documents } from './en/documents';
 export { errors } from './en/errors';
 export { firstWeek } from './en/first-week';
@@ -54,6 +56,8 @@ export { onboarding } from './en/onboarding';
 export { passTypes } from './en/pass-types';
 export { permissions } from './en/permissions';
 export { planMaps } from './en/plan-maps';
+// The phone app's own plan-map words: naming a map, the hub's summary (RT-06, 2026-10-25).
+export { planMapsApp } from './en/plan-maps-app';
 export { practice } from './en/practice';
 export { profileLook } from './en/profile-look';
 export { profilePhoto } from './en/profile-photo';

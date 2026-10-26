@@ -83,7 +83,8 @@ export function CountdownView({ countdown }: { countdown: ExamCountdownArtifact 
                 gap: theme.space['1'],
                 padding: theme.space['3'],
                 borderRadius: theme.radius.sm,
-                backgroundColor: theme.color.surfaceSunk,
+                // A panel in its card: the sunk fill and the card edge (RT-04).
+                ...theme.panel,
               }}
             >
               <Body pair="sunk" strong>

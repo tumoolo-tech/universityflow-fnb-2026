@@ -26,4 +26,7 @@ export const auth = {
     generic: 'Something went wrong. Please try again.',
   },
   devOutbox: 'Local stand-in: SMS messages appear here instead of being sent.',
+  /** /sign-in's search and share description (A6-04, wave 10). Owed the owner's wording review. */
+  description:
+    'Sign in to UniversityFlow with your cellphone number and a one-time PIN we send by SMS. There’s no password to remember, and it’s free for learners.',
 } as const;

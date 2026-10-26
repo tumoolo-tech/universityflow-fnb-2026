@@ -2,12 +2,13 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { en } from '@universityflow/content';
-import { tokens } from '@universityflow/tokens';
 import { type PlanMapView, templateSeed } from '@universityflow/ui';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EDGE, fitView, PAN_STEP, ZOOM } from '../app/(app)/goals/maps/[id]/canvas-math';
+import { MAP_GRID } from '../app/(app)/goals/maps/[id]/map-layout';
+import { LIFT_HOLD_MS } from '../app/(app)/goals/maps/[id]/plan-map-canvas';
 import { PlanMapPage } from '../app/(app)/goals/maps/[id]/plan-map-view';
 import { planCopy, templateCopy } from '../lib/server/plan-maps-copy';
 
@@ -63,6 +64,7 @@ function page() {
       copy={copy}
       template={templateCopy(map.templateId)}
       justCreated={false}
+      nonce="synthetic-nonce"
     />,
   );
 }
@@ -145,7 +147,8 @@ describe('the canvas card', () => {
     const region = viewport();
     expect(region.tabIndex).toBe(0);
     const hint = document.getElementById(region.getAttribute('aria-describedby') ?? '');
-    expect(hint?.textContent).toBe(c.keys);
+    // The window's keys, and how to move a card without a mouse (RT-08).
+    expect(hint?.textContent).toBe(`${c.keys} ${t.arrange.keys}`);
     // The map's words are inside it, once, in reading order.
     expect(within(region).getByRole('heading', { level: 2 })).toBeTruthy();
     expect(within(region).getAllByRole('heading', { level: 3 })).toHaveLength(6);
@@ -359,6 +362,331 @@ describe('motion', () => {
   });
 });
 
+describe('cards the learner moves (RT-08)', () => {
+  const at = (x: number, y: number, type = 'mouse', id = 1) => ({
+    pointerId: id,
+    pointerType: type,
+    isPrimary: true,
+    button: 0,
+    clientX: x,
+    clientY: y,
+  });
+  const cardOf = (heading: string) =>
+    screen.getByRole('heading', { name: heading }).closest('li') as HTMLElement;
+  // Cards are placed in rem, so the picture scales with the learner's font size.
+  const placeOf = (li: HTMLElement) => ({
+    x: Math.round(Number.parseFloat(li.style.left) * 16),
+    y: Math.round(Number.parseFloat(li.style.top) * 16),
+  });
+
+  it('a mouse drag on a card moves it, not the map, and saves where it lands, on the grid', async () => {
+    const fetch = vi.fn(async () => Response.json({ map: mapOf() }));
+    vi.stubGlobal('fetch', fetch);
+    page();
+    const li = cardOf('Grade 11');
+    const was = placeOf(li);
+    const before = view();
+    const grip = screen.getByRole('heading', { name: 'Grade 11' });
+    fireEvent.pointerDown(grip, at(300, 300));
+    fireEvent.pointerMove(grip, at(330, 320));
+    runFrames();
+    expect(li.hasAttribute('data-lifted')).toBe(true);
+    fireEvent.pointerMove(grip, at(400, 350));
+    runFrames();
+    fireEvent.pointerUp(grip, at(400, 350));
+    // The map itself did not pan.
+    expect(view()).toEqual(before);
+    expect(li.hasAttribute('data-lifted')).toBe(false);
+    const now = placeOf(li);
+    expect(now).not.toEqual(was);
+    expect(now.x % MAP_GRID).toBe(0);
+    expect(now.y % MAP_GRID).toBe(0);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toMatch(/\/api\/me\/plan-maps\/[^/]+\/layout$/);
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(String(init.body))).toEqual({
+      places: [{ nodeId: expect.any(String), x: now.x, y: now.y }],
+    });
+    expect(screen.getByRole('status').textContent).toBe(t.arrange.placed('Grade 11'));
+  });
+
+  it('a finger held still on a card lifts it; a finger that moves at once pans the map', () => {
+    vi.useFakeTimers();
+    try {
+      const fetch = vi.fn(async () => Response.json({ map: mapOf() }));
+      vi.stubGlobal('fetch', fetch);
+      page();
+      const li = cardOf('Grade 11');
+      const grip = screen.getByRole('heading', { name: 'Grade 11' });
+      const before = view();
+      // Moves at once: a pan.
+      fireEvent.pointerDown(grip, at(200, 200, 'touch', 7));
+      fireEvent.pointerMove(grip, at(150, 190, 'touch', 7));
+      fireEvent.pointerUp(grip, at(150, 190, 'touch', 7));
+      expect(li.hasAttribute('data-lifted')).toBe(false);
+      expect(view().x).toBeCloseTo(before.x - 50, 6);
+      // Held still past the hold time: the card lifts and follows.
+      fireEvent.pointerDown(grip, at(200, 200, 'touch', 8));
+      vi.advanceTimersByTime(LIFT_HOLD_MS + 1);
+      expect(li.hasAttribute('data-lifted')).toBe(true);
+      const panned = view();
+      fireEvent.pointerMove(grip, at(260, 230, 'touch', 8));
+      runFrames();
+      fireEvent.pointerUp(grip, at(260, 230, 'touch', 8));
+      expect(view()).toEqual(panned);
+      expect(li.hasAttribute('data-lifted')).toBe(false);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Escape during a drag puts the card back and saves nothing', () => {
+    const fetch = vi.fn(async () => Response.json({ map: mapOf() }));
+    vi.stubGlobal('fetch', fetch);
+    page();
+    const li = cardOf('Grade 11');
+    const was = placeOf(li);
+    const grip = screen.getByRole('heading', { name: 'Grade 11' });
+    fireEvent.pointerDown(grip, at(300, 300));
+    fireEvent.pointerMove(grip, at(400, 350));
+    runFrames();
+    expect(li.hasAttribute('data-lifted')).toBe(true);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(li.hasAttribute('data-lifted')).toBe(false);
+    expect(placeOf(li)).toEqual(was);
+    fireEvent.pointerUp(grip, at(400, 350));
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  const lineOf = (index: number) =>
+    document.querySelector(`[data-link="${index}"] [data-part="line"]`)?.getAttribute('d');
+
+  // MAPS-13: the branch followed the pointer; put back, it goes back with the card.
+  it('after Escape mid-drag, the card’s branch is drawn where it was before the drag', () => {
+    page();
+    const before = lineOf(1);
+    expect(before).toBeTruthy();
+    const grip = screen.getByRole('heading', { name: 'Grade 11' });
+    fireEvent.pointerDown(grip, at(300, 300));
+    fireEvent.pointerMove(grip, at(420, 380));
+    runFrames();
+    expect(lineOf(1)).not.toBe(before);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(lineOf(1)).toBe(before);
+    fireEvent.pointerUp(grip, at(420, 380));
+    expect(lineOf(1)).toBe(before);
+  });
+
+  // MAPS-12: the card never shows at its start between letting go and its new place.
+  it('on a drop the card goes straight to its new place, never back to its start first', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ map: mapOf() })),
+    );
+    page();
+    const li = cardOf('Grade 11');
+    const start = li.style.left;
+    const grip = screen.getByRole('heading', { name: 'Grade 11' });
+    const seen = new MutationObserver(() => {});
+    seen.observe(li, { attributes: true, attributeFilter: ['style'], attributeOldValue: true });
+    fireEvent.pointerDown(grip, at(300, 300));
+    fireEvent.pointerMove(grip, at(400, 350));
+    runFrames();
+    fireEvent.pointerUp(grip, at(400, 350));
+    const states = [
+      ...seen.takeRecords().map((r) => r.oldValue ?? ''),
+      li.getAttribute('style') ?? '',
+    ];
+    seen.disconnect();
+    const lifted = states.findIndex((s) => s.includes('translate('));
+    expect(lifted).toBeGreaterThan(-1);
+    const backAtStart = states
+      .slice(lifted)
+      .filter((s) => !s.includes('translate(') && s.includes(`left: ${start}`));
+    expect(backAtStart).toEqual([]);
+    expect(li.style.left).not.toBe(start);
+    expect(li.style.transform).toBe('');
+  });
+
+  // MAPS-23: Chrome on Android takes the pointer back (pointercancel) after its long-press menu.
+  it('a lifted card the browser takes the pointer from goes back, unsaved; its menu stays shut', () => {
+    const fetch = vi.fn(async () => Response.json({ map: mapOf() }));
+    vi.stubGlobal('fetch', fetch);
+    page();
+    const li = cardOf('Grade 11');
+    const was = placeOf(li);
+    const grip = screen.getByRole('heading', { name: 'Grade 11' });
+    fireEvent.pointerDown(grip, at(300, 300));
+    fireEvent.pointerMove(grip, at(400, 350));
+    runFrames();
+    const menu = new Event('contextmenu', { bubbles: true, cancelable: true });
+    grip.dispatchEvent(menu);
+    expect(menu.defaultPrevented).toBe(true);
+    fireEvent.pointerCancel(grip, at(400, 350));
+    expect(li.hasAttribute('data-lifted')).toBe(false);
+    expect(placeOf(li)).toEqual(was);
+    expect(fetch).not.toHaveBeenCalled();
+    // Not lifted, the browser's menu is the learner's again.
+    const later = new Event('contextmenu', { bubbles: true, cancelable: true });
+    grip.dispatchEvent(later);
+    expect(later.defaultPrevented).toBe(false);
+  });
+
+  // MAPS-16: a finger held, then let go without moving, put nothing anywhere.
+  it('a long press let go without moving puts the card back and saves nothing', () => {
+    vi.useFakeTimers();
+    try {
+      const fetch = vi.fn(async () => Response.json({ map: mapOf() }));
+      vi.stubGlobal('fetch', fetch);
+      page();
+      const li = cardOf('Grade 11');
+      const was = placeOf(li);
+      const grip = screen.getByRole('heading', { name: 'Grade 11' });
+      fireEvent.pointerDown(grip, at(200, 200, 'touch', 9));
+      vi.advanceTimersByTime(LIFT_HOLD_MS + 1);
+      expect(li.hasAttribute('data-lifted')).toBe(true);
+      fireEvent.pointerUp(grip, at(201, 200, 'touch', 9));
+      expect(li.hasAttribute('data-lifted')).toBe(false);
+      expect(placeOf(li)).toEqual(was);
+      vi.advanceTimersByTime(1000);
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('the mini-map sits outside the map’s window, so it never covers a card; it can be hidden', () => {
+    page();
+    const mini = document.querySelector('.uf-minimap') as SVGElement;
+    expect(mini).not.toBeNull();
+    expect(mini.closest('.uf-canvas-viewport')).toBeNull();
+    expect(mini.getAttribute('aria-hidden')).toBe('true');
+    // It draws every card and the middle from the layout, not from measuring.
+    expect(mini.querySelectorAll('.uf-minimap-part')).toHaveLength(7);
+    fireEvent.click(screen.getByRole('button', { name: t.arrange.hideMiniMap }));
+    expect(document.querySelector('.uf-minimap')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: t.arrange.showMiniMap }));
+    expect(document.querySelector('.uf-minimap')).not.toBeNull();
+  });
+
+  it('Reset layout puts every card back with one request, and is off while nothing has moved', async () => {
+    const fetch = vi.fn(async () => Response.json({ map: mapOf() }));
+    vi.stubGlobal('fetch', fetch);
+    page();
+    const reset = screen.getByRole('button', { name: t.arrange.resetLayout });
+    expect(reset.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(reset);
+    expect(fetch).not.toHaveBeenCalled();
+    const grip = screen.getByRole('heading', { name: 'Grade 11' });
+    fireEvent.pointerDown(grip, at(300, 300));
+    fireEvent.pointerMove(grip, at(400, 350));
+    runFrames();
+    fireEvent.pointerUp(grip, at(400, 350));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(reset.getAttribute('aria-disabled')).toBe('false'));
+    fireEvent.click(reset);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    const [url, init] = fetch.mock.calls[1] as unknown as [string, RequestInit];
+    expect(url).toMatch(/\/layout$/);
+    expect(init.method).toBe('DELETE');
+    expect(await screen.findByText(t.arrange.resetDone)).toBeTruthy();
+  });
+});
+
+describe('Reset layout can be undone (MAPS-22)', () => {
+  it('offers Undo for ten seconds, which puts every moved card back with one request', async () => {
+    const map = mapOf();
+    const moved = map.nodes.find((n) => n.slotId === 'slot:grade-11') as (typeof map.nodes)[number];
+    const placed = {
+      ...map,
+      nodes: map.nodes.map((n) => (n.id === moved.id ? { ...n, place: { x: 1200, y: 1416 } } : n)),
+    };
+    const fetch = vi.fn(async () => Response.json({ map: mapOf() }));
+    vi.stubGlobal('fetch', fetch);
+    render(
+      <PlanMapPage
+        map={placed}
+        copy={copy}
+        template={templateCopy(map.templateId)}
+        justCreated={false}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: t.arrange.resetLayout }));
+    const undo = await screen.findByRole('button', { name: t.arrange.undoReset });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    fireEvent.click(undo);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    const [url, init] = fetch.mock.calls[1] as unknown as [string, RequestInit];
+    expect(url).toMatch(/\/layout$/);
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(String(init.body))).toEqual({
+      places: [{ nodeId: moved.id, x: 1200, y: 1416 }],
+    });
+    await screen.findByText(t.arrange.undoneReset);
+    const li = screen.getByRole('heading', { name: 'Grade 11' }).closest('li') as HTMLElement;
+    expect(Number.parseFloat(li.style.left) * 16).toBe(1200);
+    expect(screen.queryByRole('button', { name: t.arrange.undoReset })).toBeNull();
+  });
+
+  it('the Undo goes after ten seconds', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const map = mapOf();
+      const placed = {
+        ...map,
+        nodes: map.nodes.map((n) =>
+          n.slotId === 'slot:grade-11' ? { ...n, place: { x: 1200, y: 1416 } } : n,
+        ),
+      };
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => Response.json({ map: mapOf() })),
+      );
+      render(
+        <PlanMapPage
+          map={placed}
+          copy={copy}
+          template={templateCopy(map.templateId)}
+          justCreated={false}
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: t.arrange.resetLayout }));
+      await screen.findByRole('button', { name: t.arrange.undoReset });
+      await vi.advanceTimersByTimeAsync(10_001);
+      expect(screen.queryByRole('button', { name: t.arrange.undoReset })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('the first view before the page is live (A4-21: no layout shift when it enhances)', () => {
+  it('the server sends a script that places the map exactly where the live canvas will', () => {
+    page();
+    const script = document.querySelector('script[data-canvas-place]') as HTMLScriptElement;
+    expect(script).not.toBeNull();
+    expect(script.getAttribute('nonce')).toBe('synthetic-nonce');
+    const live = view();
+    const port = viewport();
+    const root = port.closest('.uf-canvas') as HTMLElement;
+    // Undo what the live canvas did, then run the script as the browser would, before hydration.
+    for (const name of ['--uf-canvas-x', '--uf-canvas-y', '--uf-canvas-scale']) {
+      port.style.removeProperty(name);
+    }
+    root.removeAttribute('data-enhanced');
+    root.removeAttribute('data-placed');
+    new Function(script.textContent ?? '')();
+    expect(root.hasAttribute('data-placed')).toBe(true);
+    expect(root.hasAttribute('data-enhanced')).toBe(false);
+    const placed = view();
+    expect(placed.x).toBeCloseTo(live.x, 6);
+    expect(placed.y).toBeCloseTo(live.y, 6);
+    expect(placed.scale).toBeCloseTo(live.scale, 6);
+  });
+});
+
 describe('the canvas’s CSS', () => {
   const CSS = readFileSync(join(__dirname, '..', 'app', 'globals.css'), 'utf8');
   const START = '/* maps: the plan map on a canvas card';
@@ -386,20 +714,18 @@ describe('the canvas’s CSS', () => {
     expect(block).toContain('@media (forced-colors: active)');
   });
 
-  it('lays each picture out at its own width inside the card, from a 360px phone up', () => {
-    for (const [layout, width] of [
-      ['ring', 'world-ring'],
-      ['cloud', 'world-ring'],
-      ['stairs', 'world-wide'],
-      ['branches', 'world-wide'],
-      ['road', 'world-road'],
-    ] as const) {
-      expect(block).toMatch(
-        new RegExp(
-          `\\.uf-canvas-world--${layout}[^{]*\\{[^}]*width:\\s*var\\(--uf-canvas-${width}\\)`,
-        ),
-      );
-    }
-    expect(Number.parseFloat(tokens.canvas.worldWide)).toBeGreaterThanOrEqual(64);
+  it('places the map the same way before the page is live (data-placed) as live (A4-21), and docks the mini-map outside the window', () => {
+    // The picture's size comes from its layout (no fixed widths any more), and the server's script
+    // puts the world where the live canvas will: the same scaled, absolutely placed world.
+    expect(block).not.toMatch(/uf-canvas-world--/);
+    expect(block).toMatch(
+      /\.uf-canvas\[data-enhanced\] \.uf-canvas-world,\s*\.uf-canvas\[data-placed\] \.uf-canvas-world\s*\{[^}]*position:\s*absolute/,
+    );
+    // The mini-map lives in the foot under the window, not positioned over it.
+    expect(block).toMatch(/\.uf-canvas-foot\s*\{/);
+    expect(block).not.toMatch(/\.uf-minimap\s*\{[^}]*position:\s*absolute/);
+    // Every branch's draw-in is stilled under reduced motion.
+    const reduced = block.slice(block.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(reduced).toMatch(/\.uf-map-link[^{]*\{[^}]*animation:\s*none/);
   });
 });

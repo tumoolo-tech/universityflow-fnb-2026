@@ -5,6 +5,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { en } from '@universityflow/content';
 import { afterEach, describe, expect, it } from 'vitest';
 import { StagingBanner } from '../components/staging-banner';
+import { rootMetadata } from '../lib/server/seo';
 
 /**
  * The staging banner (docs/deploy/README.md): on every page of a staging site, so nobody takes
@@ -33,6 +34,11 @@ describe('StagingBanner', () => {
     const layout = readFileSync(join(import.meta.dirname, '../app/layout.tsx'), 'utf8');
     expect(layout).toMatch(/<StagingBanner staging=\{staging\} \/>/);
     expect(layout).toMatch(/isStaging\(\)/);
-    expect(layout).toMatch(/robots: \{ index: false, follow: false \}/);
+    // The root metadata (lib/server/seo.ts, A6-02) decides noindex from the deployment.
+    expect(layout).toMatch(/generateMetadata\(\): Metadata \{\s*return rootMetadata\(\);/);
+    expect(rootMetadata({ UF_DEPLOYMENT: 'staging' }).robots).toEqual({
+      index: false,
+      follow: false,
+    });
   });
 });

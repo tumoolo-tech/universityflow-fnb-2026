@@ -1,4 +1,5 @@
 import { en } from '@universityflow/content';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { JudgeEntry } from '@/components/judge-entry';
@@ -9,8 +10,11 @@ import { DEMO_PHONE_SIGNUP_PATH, demoPhoneSignupOn } from '@/lib/demo-phone-sign
 import { demoSignupOrNull, httpsUrlOrNull } from '@/lib/demo-signup';
 import { signedInOrRefused } from '@/lib/server/demo/entry';
 import { isDemo } from '@/lib/server/deployment';
+import { pageMetadata } from '@/lib/server/seo';
 
 export const dynamic = 'force-dynamic';
+// The root's title; the front door's own canonical, description and share words (A6-02).
+export const metadata: Metadata = pageMetadata({ path: '/', description: en.home.description });
 
 /**
  * The journey in pictures, bottom to top: Grade 10, university, graduation (public/stage). Each
@@ -117,7 +121,11 @@ export default async function HomePage() {
             label={home.barLabel}
             items={[
               { icon: 'heart', text: home.barFree },
-              { icon: 'shield', text: home.barHere },
+              // The demo is in London (hackathon exception J): it says where real learners'
+              // information will be, never that "your information stays in South Africa".
+              demo
+                ? { icon: 'shield', text: home.barHereDemo, detail: home.barHereDemoWhere }
+                : { icon: 'shield', text: home.barHere },
             ]}
             actions={
               demoLine ? (

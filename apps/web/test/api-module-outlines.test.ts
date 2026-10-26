@@ -198,6 +198,73 @@ describe('module outlines over the routes (Phase 6b)', () => {
     expect(listed.body.outlines).toEqual([]);
   });
 
+  it('refuses two parts with one name, with its reason (A1-81: resolveScheme would refuse it)', async () => {
+    const browser = await adult('adult-v3-test');
+    const { body } = await upload(browser);
+    if (!body.outline) throw new Error('no draft');
+    const good = confirmedFrom(body.outline, null);
+    const [first, second, ...rest] = good.components.items;
+    if (!first || !second) throw new Error('the sample has two parts');
+    const twice = {
+      ...good,
+      components: {
+        ...good.components,
+        items: [first, { ...second, name: first.name.toUpperCase() }, ...rest],
+      },
+    };
+    expect(await put(browser, twice)).toMatchObject({
+      status: 400,
+      body: { error: 'invalid', detail: 'duplicate-component-names' },
+    });
+  });
+
+  it('answers 200 for a saved outline when storage can’t delete its file, and a job carrying one id deletes it later (A1-88)', async () => {
+    const browser = await adult('adult-v3-test');
+    const uploaded = await upload(browser);
+    const { documentId, outline } = uploaded.body;
+    if (!outline) throw new Error('no draft');
+    const services = await getServices();
+    const deleted: string[] = [];
+    const real = services.files.delete.bind(services.files);
+    const spy = vi
+      .spyOn(services.files, 'delete')
+      .mockRejectedValueOnce(new Error('storage is down'))
+      .mockRejectedValueOnce(new Error('storage is still down'))
+      .mockImplementation(async (key: string) => {
+        deleted.push(key);
+        await real(key);
+      });
+    try {
+      const saved = await put(browser, confirmedFrom(outline, documentId));
+      expect(saved.status).toBe(200);
+      expect(saved.body.outlines).toEqual([
+        expect.objectContaining({ moduleCode: 'DEMO1001', fromDocument: true }),
+      ]);
+      const result = await services.database.db.execute(
+        `select payload from jobs where kind = 'file.delete' and status = 'pending'`,
+      );
+      const rows = (result as unknown as { rows: Array<{ payload: Record<string, string> }> }).rows;
+      expect(rows).toHaveLength(1);
+      // Hard rule 4: one id, never the storage key or anything about the learner.
+      expect(Object.keys(rows[0]?.payload ?? {})).toEqual(['fileDeletionId']);
+      expect(rows[0]?.payload['fileDeletionId']).toMatch(/^[0-9a-f-]{36}$/);
+
+      // The job's first run fails too (storage still down) and is retried; the next deletes it.
+      await services.jobRunner?.runDue(services.jobHandlers);
+      expect(deleted).toEqual([]);
+      const later = new Date(Date.now() + 60 * 60 * 1000);
+      await services.devRunDue?.(later);
+      expect(deleted).toHaveLength(1);
+      const done = await services.database.db.execute(
+        `select (select count(*)::int from file_deletions) as waiting,
+                (select count(*)::int from jobs where kind = 'file.delete' and status = 'pending') as pending`,
+      );
+      expect((done as unknown as { rows: unknown[] }).rows[0]).toEqual({ waiting: 0, pending: 0 });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('a learner removes their own outline, never another learner’s', async () => {
     const owner = await adult('adult-v3-test');
     const other = await adult('adult-v3-test');

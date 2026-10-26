@@ -2,7 +2,8 @@ import { demo as copy, demoPersonas } from '@universityflow/content';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { DemoPersonaCard } from '@/lib/server/demo/types';
-import { Button, Card, Notice, Page, PublicPage } from './ui';
+import { DemoStartForm } from './demo-start-form';
+import { Card, Notice, Page, PublicPage } from './ui';
 
 /** Why the last start was refused; `setup`: the server refuses the demo's configuration. */
 export type DemoStatus = 'busy' | 'unavailable' | 'setup';
@@ -64,12 +65,12 @@ export function DemoPicker({
                 <span className="font-semibold">{copy.tryThisLabel}: </span>
                 {p.tryThis}
               </p>
-              <form action="/api/demo/start" method="post">
-                <input type="hidden" name="persona" value={p.id} />
-                <Button type="submit" className="w-full">
-                  {copy.tryAs(p.name)}
-                </Button>
-              </form>
+              <DemoStartForm
+                persona={p.id}
+                label={copy.tryAs(p.name)}
+                startingLabel={copy.startingAs(p.name)}
+                startingNote={copy.startingNote}
+              />
             </Card>
           ))}
         </ul>

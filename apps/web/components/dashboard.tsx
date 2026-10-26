@@ -14,7 +14,7 @@ import { Avatar, lookStyle } from './avatar';
 import { GradeCheck } from './grade-check';
 import { Icon } from './icons';
 import { MarksChart } from './marks-chart';
-import { Badge, ButtonLink, buttonLook, Card, cx, Notice, PageHeader } from './ui';
+import { Badge, ButtonLink, buttonLook, Card, cx, Notice, PageHeader, panelLook } from './ui';
 import { UniversityName } from './university-mark';
 
 /**
@@ -373,7 +373,7 @@ function ThisYearPanel({ data }: { data: HomeData }) {
       title={dashboard.thisYear.title}
       className="md:col-span-2 xl:col-span-1"
     >
-      <div className="flex flex-col gap-1 rounded-md bg-sunk p-3">
+      <div className={`${panelLook} flex flex-col gap-1 p-3`}>
         <p className="text-sm text-muted">{t.modules}</p>
         {data.modules ? (
           <>
@@ -508,7 +508,7 @@ function ApplicationsPanel({ data }: { data: HomeData }) {
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {data.applications.map((a) => (
-            <li key={a.universityId} className="flex flex-col gap-2 rounded-md bg-sunk p-3">
+            <li key={a.universityId} className={`${panelLook} flex flex-col gap-2 p-3`}>
               <Link href={`/applications/${a.universityId}`} className="font-bold">
                 <UniversityName name={a.universityName} />
               </Link>
@@ -610,7 +610,7 @@ function GettingReadyPanel({ data }: { data: HomeData }) {
   return (
     <Panel id="home-ready" title={t.title} className="md:col-span-2 xl:col-span-3">
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <li className="flex flex-col gap-1 rounded-md bg-sunk p-3 sm:col-span-2 xl:col-span-1">
+        <li className={`${panelLook} flex flex-col gap-1 p-3 sm:col-span-2 xl:col-span-1`}>
           <p className="text-sm text-muted">{t.offer}</p>
           {accepted ? (
             <p className="font-bold">
@@ -620,7 +620,7 @@ function GettingReadyPanel({ data }: { data: HomeData }) {
             <p>{dashboard.offers.empty}</p>
           )}
         </li>
-        <li className="flex flex-col gap-1 rounded-md bg-sunk p-3">
+        <li className={`${panelLook} flex flex-col gap-1 p-3`}>
           <p className="text-sm text-muted">{t.firstWeek}</p>
           {data.firstWeek ? (
             <Link href="/first-week" className="uf-number" data-testid="home-first-week">
@@ -630,7 +630,7 @@ function GettingReadyPanel({ data }: { data: HomeData }) {
             <p>{t.firstWeekNone}</p>
           )}
         </li>
-        <li className="flex flex-col gap-1 rounded-md bg-sunk p-3">
+        <li className={`${panelLook} flex flex-col gap-1 p-3`}>
           <p className="text-sm text-muted">{t.modules}</p>
           {data.modules ? (
             <>

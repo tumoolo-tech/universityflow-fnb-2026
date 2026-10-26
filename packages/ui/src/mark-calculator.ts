@@ -387,6 +387,10 @@ function resultLines(
       return lines;
     }
     case 'already-secured':
+      // A1-82: admissions says what the exam may still hold; "whatever your exam mark" only
+      // when nothing about it is unpublished or unmet.
+      if (result.examAdmission === 'not-met') return [words.securedDpNotMet];
+      if (result.examSubminimum === 'not-published') return [words.securedSubminimumNotPublished];
       return [words.secured];
     case 'blocked':
       return [fill(words.blocked, result.components.join(', '))];

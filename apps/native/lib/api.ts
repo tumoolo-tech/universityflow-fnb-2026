@@ -123,6 +123,9 @@ export function errorMessage(error: unknown): string {
     case 'network':
       return en.errors.offline;
     case 'phone':
+      // The judges' demo takes made-up 080 numbers only, one account per number (demo.md §4b).
+      if (error.detail === 'demo-080-only') return en.demoPhoneSignup.only080;
+      if (error.detail === 'demo-080-taken') return en.demoPhoneSignup.numberTaken;
       return en.auth.errors.phone;
     case 'pin':
       return en.auth.errors.pin;
@@ -158,6 +161,10 @@ export function errorMessage(error: unknown): string {
         ? (reasons[error.detail] as string)
         : en.errors.generic;
     }
+    case 'invalid':
+      // A new plan map needs the learner's own name while words are allowed (RT-06).
+      if (error.detail === 'title-required') return en.planMapsApp.naming.needed;
+      return en.errors.generic;
     case 'upload': {
       const reasons = en.documents.errors as Record<string, string>;
       return error.detail && Object.hasOwn(reasons, error.detail)

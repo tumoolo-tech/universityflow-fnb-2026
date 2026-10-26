@@ -1,5 +1,6 @@
 import { createHmac, randomUUID } from 'node:crypto';
 import {
+  FILE_DELETION,
   PostgresFileStore,
   PostgresJobScheduler,
   SESSION_SWEEP,
@@ -302,6 +303,8 @@ describe('createServices: messaging channels (Phase 4a)', () => {
       REMINDER_SWEEP,
       GUARDIAN_CONSENT_SMS,
       SESSION_SWEEP,
+      // A1-88: an outline's file storage couldn't delete at once.
+      FILE_DELETION,
       // My CV (docs/design/mmereko-api-proposal.md §10.2): the stand-in engine's jobs, locally.
       CV_SUBMIT,
       CV_POLL,
@@ -321,6 +324,8 @@ describe('createServices: messaging channels (Phase 4a)', () => {
       smsAlerts: { onBudgetThreshold: () => undefined },
     });
     expect(live.jobHandlers.map((h) => h.kind)).toContain(SESSION_SWEEP);
+    // A1-88: the hosted scheduler runs the outline-file deletions too.
+    expect(live.jobHandlers.map((h) => h.kind)).toContain(FILE_DELETION);
     const seeded = await scheduleSessionSweep(scheduler, new Date());
     expect(seeded.created).toBe(false);
     expect(await scheduler.get(seeded.id)).toMatchObject({

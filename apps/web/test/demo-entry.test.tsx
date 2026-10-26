@@ -131,6 +131,40 @@ describe('the demo’s landing page says plainly what it is', () => {
   });
 });
 
+/**
+ * Where the information is (the owner, 2026-10-25). "Your information stays in South Africa" is the
+ * real service's promise; the demo's database (Supabase) and, since hackathon exception J, its
+ * functions are in London, and a judge's own sign-up puts real details there. So the demo's front
+ * door says where real learners' information will be and where the demo runs; production's is
+ * unchanged.
+ */
+describe('the front door says truthfully where information is kept', () => {
+  it('on the demo: real learners’ information will stay in South Africa; this demo runs in London', async () => {
+    stub(DEMO);
+    const { container } = render(await FrontDoor());
+    const bar = screen.getByRole('region', { name: en.home.barLabel });
+    expect(within(bar).getByText(en.home.barHereDemo)).toBeTruthy();
+    expect(within(bar).getByText(en.home.barHereDemoWhere)).toBeTruthy();
+    const text = container.textContent ?? '';
+    expect(text).not.toMatch(/stays in South Africa/);
+    expect(text).not.toContain(en.home.barHere);
+    expect(text).not.toContain(en.home.free);
+  });
+
+  it('in production: “Your information stays in South Africa”, and no demo wording', async () => {
+    stub(PRODUCTION);
+    const { container } = render(await FrontDoor());
+    const bar = screen.getByRole('region', { name: en.home.barLabel });
+    expect(within(bar).getByText('Your information stays in South Africa')).toBeTruthy();
+    const text = container.textContent ?? '';
+    for (const words of [en.home.barHereDemo, en.home.barHereDemoWhere, en.home.freeDemo]) {
+      expect(typeof words).toBe('string');
+      expect(text, words).not.toContain(words);
+    }
+    expect(text).not.toMatch(/London/);
+  });
+});
+
 describe('/sign-in on the demo', () => {
   it('says what the demo is, and has no phone field', async () => {
     stub(DEMO);

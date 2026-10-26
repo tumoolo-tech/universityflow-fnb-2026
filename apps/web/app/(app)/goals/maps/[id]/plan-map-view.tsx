@@ -9,13 +9,17 @@ import {
   type PlanMoveKind,
   type PlanNode,
   type PlanStatus,
+  planCounts,
   planMove,
   planTemplate,
+  slotIcon,
   subtreeIds,
 } from '@universityflow/ui';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   type CSSProperties,
+  type KeyboardEvent,
   type ReactNode,
   useEffect,
   useId,
@@ -23,6 +27,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import { flushSync } from 'react-dom';
+import { Icon } from '@/components/icons';
 import {
   Button,
   ButtonLink,
@@ -30,6 +36,7 @@ import {
   Input,
   Notice,
   Page,
+  panelLook,
   Select,
   StatusLine,
   TextArea,
@@ -39,19 +46,49 @@ import { ApiError, api, errorMessage } from '@/lib/client/api';
 import { fill } from '@/lib/client/fill';
 import { useStatus } from '@/lib/client/status';
 import type { PlanCopy, SlotCopy, TemplateCopy } from '@/lib/server/plan-maps-copy';
-import { CanvasDialog, MapCanvas } from './plan-map-canvas';
+import type { Box, Point } from './canvas-math';
+import { HubArt, MapLinks, markerPath } from './map-art';
+import {
+  CARD_STEPS,
+  CARD_WIDTH,
+  type CardShape,
+  cardHeight,
+  connectors,
+  defaultLayout,
+  freePlace,
+  HUB_WIDTH,
+  hubBodyHeight,
+  hubOuter,
+  type MapLayout,
+  nudge,
+  placeCards,
+  roadOf,
+  toPlace,
+  whereIs,
+} from './map-layout';
+import {
+  CanvasDialog,
+  type CardDrag,
+  MapCanvas,
+  type MapPart,
+  REVEAL_EVENT,
+} from './plan-map-canvas';
 
 /**
  * One plan map (docs/design/plan-maps-proposal.md §7, §8). **One DOM, two layouts:** the map is
  * always one nested list in reading order (the centre as the `h2`, each stop an `li` with an
- * `h3`, its steps nested); from a set width, globals.css lays the same list out as the picture
- * (a ring, a cloud, a staircase, branches, a road), with the connectors one `aria-hidden` SVG
- * behind it. There is no second copy of the words, so what a screen reader hears can't drift from
- * what is drawn. Editing is buttons, never drag: Edit opens the part in place; More moves it up,
- * down, in or out, or deletes it after asking inside the page.
+ * `h3`, its steps nested inside its card). As the Picture, on its canvas card, each stop is placed
+ * where its template puts it (map-layout.ts: every card a fixed footprint from what it holds, so
+ * nothing overlaps and nothing is measured, RT-07, A4-21) or where the learner moved it (RT-08:
+ * drag it, or its Move button and the arrow keys), with the branches drawn between the actual
+ * edges of what they join (map-art.tsx) and redrawn as a card moves. The middle stays where the
+ * template puts it: it is the map's anchor (MAPS-09). There is no second copy of the words, so
+ * what a screen reader hears can't drift from what is drawn. Editing is buttons: Edit opens the
+ * part in place; More moves it in the list or deletes it; a step inside a card is edited from
+ * the List, where the picture shows its first few.
  *
  * Every save is read by the chat's crisis check on the server (D3): when the words need care the
- * crisis card appears at once under the part, and focus moves to it. Its words come as props.
+ * crisis card appears at once, outside the zoomable canvas (A10-65), and focus moves to it.
  */
 
 type Care = { readonly at: string; readonly care: WrittenCare };
@@ -60,6 +97,9 @@ const VIEW_KEY = 'uf-plan-map-view';
 
 const STATUS_ORDER: ReadonlyArray<PlanStatus> = ['planned', 'achieved', 'not-achieved'];
 
+/** Layout pixels as rem, so the picture scales with the learner's font size, never overlapping. */
+const rem = (px: number) => `${Math.round((px / 16) * 1000) / 1000}rem`;
+
 /** How long a re-flow takes: the token, 0ms under reduced motion (tokens.css). */
 function flipDuration(): number {
   const value = getComputedStyle(document.documentElement).getPropertyValue('--uf-duration-normal');
@@ -67,17 +107,34 @@ function flipDuration(): number {
   return Number.isFinite(ms) ? ms : 0;
 }
 
+function reducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+/** How long after the last arrow press a card's place is said (MAPS-06). */
+const SAY_AFTER_MS = 600;
+
+/** How long Reset layout can be undone (MAPS-22). */
+const UNDO_MS = 10_000;
+
 export function PlanMapPage({
   map: initial,
   copy,
   template,
   justCreated,
+  nonce,
 }: {
   map: PlanMapView;
   copy: PlanCopy;
   template: TemplateCopy;
   /** Just started from My goal: focus goes to the title. */
   justCreated: boolean;
+  /** This request's CSP nonce, for the canvas's first-view script (A4-21). */
+  nonce?: string | undefined;
 }) {
   const router = useRouter();
   const [map, setMap] = useState(initial);
@@ -96,9 +153,25 @@ export function PlanMapPage({
   const [canvasOpen, setCanvasOpen] = useState(false);
   /** The canvas was opened and closed: the card's Open takes focus back when it returns. */
   const [canvasClosed, setCanvasClosed] = useState(false);
+  /** A card in Move mode (the keyboard's way to move it, RT-08), and where it is now. */
+  const [moving, setMoving] = useState<{ id: string; from: Point; at: Point } | null>(null);
   const inFlight = useRef(false);
   const title = useRef<HTMLHeadingElement>(null);
+  const section = useRef<HTMLElement>(null);
   const flip = useRef<Map<string, DOMRect> | null>(null);
+  /** Places waiting to be saved, the latest per card, and whether a save is on its way (MAPS-08). */
+  const pending = useRef(new Map<string, { to: Point; was: Point | null }>());
+  const saving = useRef(false);
+  const sayTimer = useRef<number | null>(null);
+  /** For a while after Reset layout: where the learner had put each card (MAPS-22). */
+  const [undo, setUndo] = useState<Array<{ nodeId: string; x: number; y: number }> | null>(null);
+  const undoTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (undoTimer.current !== null) clearTimeout(undoTimer.current);
+    },
+    [],
+  );
   const tpl = planTemplate(map.templateId);
   const outline = outlineOf(map.nodes);
 
@@ -193,7 +266,10 @@ export function PlanMapPage({
     if (!result) return;
     setMap((m) => ({ ...m, nodes: m.nodes.map((n) => (n.id === node.id ? result.node : n)) }));
     setEditing(null);
-    if (result.node.status === 'achieved' && node.status !== 'achieved') setJustAchieved(node.id);
+    // The sparks (M3+) only on a new Achieved whose words needed no care: never beside a crisis
+    // card (M7), never on Not achieved.
+    const achievedNow = result.node.status === 'achieved' && node.status !== 'achieved';
+    setJustAchieved(achievedNow && !result.care ? node.id : null);
     setStatus(fill(copy.savedStatus, nameOf(result.node), statusWord(result.node.status)));
     if (result.care) {
       setCare({ at: node.id, care: result.care });
@@ -264,6 +340,8 @@ export function PlanMapPage({
     setMenu(null);
     setEditing(result.node.id);
     setStatus(copy.added);
+    // A new step inside a card is written in the List, where every step has its editor.
+    if (result.node.depth > 1) showAs('list');
     focusOn(`words-${result.node.id}`);
   }
 
@@ -305,65 +383,422 @@ export function PlanMapPage({
     if (done !== null) router.push('/goals');
   }
 
-  const pageTitle = map.title ?? template.name;
-  const total = outline?.children.length ?? 0;
-  const ringLike = tpl.layout === 'ring' || tpl.layout === 'cloud' || tpl.layout === 'branches';
-  // More stops than the ring has cells: the picture would hide some, so it is the list.
-  const shown = ringLike && total > RING_MAX ? 'list' : view;
-  const ring = ringLike && total <= RING_MAX;
+  function showAs(v: 'picture' | 'list') {
+    setView(v);
+    try {
+      window.localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      // Not remembered: fine.
+    }
+  }
+
+  // ── Where each card sits (RT-07, RT-08) ─────────────────────────────────────────────────────
+
+  const picture = view === 'picture';
+  const layout = tpl.layout;
+  const stops = outline?.children ?? [];
+  const centre = outline?.node;
+  const centreWords = centre ? slot(centre) : null;
+  const total = stops.length;
+  const counts = planCounts(map.nodes.filter((n) => n.depth <= 1));
+  const words = map.words ?? [];
+  const hintOf = (n: PlanNode) => {
+    const parent = map.nodes.find((p) => p.id === n.parentId);
+    return slot(n)?.hint ?? (parent ? (slot(parent)?.childHint ?? null) : null);
+  };
+  /** What a card holds, for its fixed footprint (map-layout.ts `cardHeight`). */
+  const shapeOf = (o: OutlineNode): CardShape => ({
+    note: Boolean(o.node.text || hintOf(o.node)),
+    whyNot: Boolean(o.node.whyNot),
+    differently: Boolean(o.node.differently),
+    target: Boolean(o.node.targetMonth),
+    link: Boolean(slot(o.node)?.link),
+    steps: o.children.length,
+  });
+  const hubShape = {
+    note: Boolean(centre?.text || centreWords?.hint),
+    goal: map.goal !== null,
+    words: words.length,
+    progress: total > 0,
+    actions: map.wordsAllowed,
+  };
+  const hubSize = hubOuter(layout, { width: HUB_WIDTH[layout], height: hubBodyHeight(hubShape) });
+  const cardSizes = stops.map((o) => ({
+    width: CARD_WIDTH[layout],
+    height: cardHeight(shapeOf(o)),
+  }));
+  const placeOf = (n: PlanNode): Point | null =>
+    moving?.id === n.id ? moving.at : (n.place ?? null);
+  const laid: MapLayout = placeCards(
+    defaultLayout(layout, hubSize, cardSizes),
+    { hub: null, cards: stops.map((o) => placeOf(o.node)) },
+    hubSize,
+  );
+  const indexOf = (id: string) => stops.findIndex((o) => o.node.id === id);
+  const boxOf = (id: string): Box | undefined => laid.cards[indexOf(id)];
+  /** Everything a card must keep clear of: the middle and the other cards. */
+  const othersOf = (id: string): Box[] => [
+    laid.hub,
+    ...laid.cards.filter((_, k) => stops[k]?.node.id !== id),
+  ];
+  const parts: MapPart[] = centre
+    ? [
+        { id: centre.id, box: laid.hub, status: '', centre: true },
+        ...stops.map((o, k) => ({
+          id: o.node.id,
+          box: laid.cards[k] as Box,
+          status: o.node.status,
+          centre: false,
+        })),
+      ]
+    : [];
+  const canReset = map.nodes.some((n) => n.place);
+  /** The first stop of a climb not yet achieved: "You are here" (the staircase and the road). */
+  const here = tpl.ordered ? stops.find((o) => o.node.status !== 'achieved')?.node.id : undefined;
+
+  /**
+   * Redraws what follows one card, straight into the SVG (no React, once a frame while it is
+   * dragged, MAPS-04): its branch (and, on the staircase, the one arriving at it), and on the
+   * road the road itself with the card's marker and the start sign.
+   */
+  function redraw(id: string, at: Point) {
+    const root = section.current;
+    const i = indexOf(id);
+    if (!root || i < 0) return;
+    const cards = laid.cards.map((b, k) => (k === i ? { ...b, x: at.x, y: at.y } : b));
+    const lines = connectors(layout, laid.hub, cards).filter(
+      (c) => c.index === i || (layout === 'stairs' && c.index === i - 1),
+    );
+    for (const c of lines) {
+      const g = root.querySelector(`[data-link="${c.index}"]`);
+      if (!g) continue;
+      g.querySelector('[data-part="line"]')?.setAttribute('d', c.d);
+      const head = g.querySelector('[data-part="head"]');
+      if (head && c.head) head.setAttribute('d', c.head);
+      const dot = g.querySelector('[data-part="dot"]');
+      dot?.setAttribute('cx', String(c.to.x));
+      dot?.setAttribute('cy', String(c.to.y));
+    }
+    if (layout === 'road') {
+      const road = roadOf(laid.hub, cards);
+      for (const p of root.querySelectorAll('[data-road-path]')) p.setAttribute('d', road.d);
+      root
+        .querySelector('[data-road-sign]')
+        ?.setAttribute('transform', `translate(${road.start.x} ${road.start.y})`);
+      const m = road.markers[i];
+      const marker = root.querySelector(`[data-marker="${i}"]`);
+      if (m && marker) {
+        marker.querySelector('circle')?.setAttribute('cx', String(m.x));
+        marker.querySelector('circle')?.setAttribute('cy', String(m.y));
+        marker.querySelector('path')?.setAttribute('d', markerPath(m));
+      }
+    }
+  }
+
+  /** Saves where cards were put, the latest place per card, one request at a time (MAPS-08). */
+  async function flushPlaces() {
+    if (saving.current || pending.current.size === 0) return;
+    const batch = new Map(pending.current);
+    pending.current.clear();
+    saving.current = true;
+    try {
+      await api(`/api/me/plan-maps/${map.id}/layout`, {
+        method: 'PUT',
+        json: { places: [...batch].map(([nodeId, p]) => ({ nodeId, x: p.to.x, y: p.to.y })) },
+      });
+    } catch (e) {
+      // Back where they were, unless moved again since.
+      setMap((m) => ({
+        ...m,
+        nodes: m.nodes.map((n) =>
+          batch.has(n.id) && !pending.current.has(n.id)
+            ? { ...n, place: batch.get(n.id)?.was ?? null }
+            : n,
+        ),
+      }));
+      setError(planError(e));
+    } finally {
+      saving.current = false;
+      void flushPlaces();
+    }
+  }
+
+  /** Puts a card down at `to` (on the grid, in a free spot), saves it, and says so; where it went. */
+  function putDown(node: PlanNode, to: Point): Point | null {
+    const box = boxOf(node.id);
+    if (!box) return null;
+    const snapped = toPlace(to);
+    const free = freePlace({ ...box, x: snapped.x, y: snapped.y }, othersOf(node.id));
+    if (!free) {
+      setStatus(copy.arrange.noRoom);
+      return null;
+    }
+    const was = node.place ?? null;
+    const queued = pending.current.get(node.id);
+    pending.current.set(node.id, { to: free, was: queued ? queued.was : was });
+    setMap((m) => ({
+      ...m,
+      nodes: m.nodes.map((n) => (n.id === node.id ? { ...n, place: free } : n)),
+    }));
+    setStatus(fill(copy.arrange.placed, nameOf(node)));
+    void flushPlaces();
+    return free;
+  }
+
+  const byId = (id: string) => map.nodes.find((n) => n.id === id);
+  /** Where a card sits now (before any drag), in map coordinates. */
+  const originOf = (id: string): Point | null => {
+    const b = boxOf(id);
+    return b ? { x: b.x, y: b.y } : null;
+  };
+  const drag: CardDrag = {
+    start: (id) => (moving ? null : originOf(id)),
+    frame: (id, at) => redraw(id, at),
+    drop: (id, at) => {
+      const node = byId(id);
+      const from = originOf(id);
+      // The new place is in the DOM before this returns (MAPS-12: the canvas then lets go of the
+      // card's lift, so it never shows at its start in between).
+      let placed: Point | null = null;
+      flushSync(() => {
+        placed = node ? putDown(node, at) : null;
+      });
+      // Its branches where the card now is: the new place, or back where it was when there was
+      // no room or it came back to the same spot (MAPS-13: React keeps a value it already had).
+      const to = placed ?? from;
+      if (to) redraw(id, to);
+    },
+    cancel: (id) => {
+      const node = byId(id);
+      const from = originOf(id);
+      if (from) redraw(id, from);
+      if (node) setStatus(fill(copy.arrange.putBack, nameOf(node)));
+    },
+  };
+
+  async function resetLayout() {
+    // Where the learner had put each card, for the Undo (MAPS-22).
+    const had = map.nodes.flatMap((n) => (n.place ? [{ nodeId: n.id, ...n.place }] : []));
+    const result = await run(() =>
+      api<{ map: PlanMapView }>(`/api/me/plan-maps/${map.id}/layout`, { method: 'DELETE' }),
+    );
+    if (!result) return;
+    measure();
+    setMap(result.map);
+    setStatus(copy.arrange.resetDone);
+    if (undoTimer.current !== null) clearTimeout(undoTimer.current);
+    setUndo(had.length > 0 ? had : null);
+    undoTimer.current = window.setTimeout(() => {
+      undoTimer.current = null;
+      setUndo(null);
+    }, UNDO_MS);
+  }
+
+  /** Undo reset: every card back where the learner had put it, with one request. */
+  async function undoReset() {
+    const places = undo;
+    if (!places) return;
+    const done = await run(() =>
+      api(`/api/me/plan-maps/${map.id}/layout`, { method: 'PUT', json: { places } }),
+    );
+    if (done === null) return;
+    if (undoTimer.current !== null) clearTimeout(undoTimer.current);
+    undoTimer.current = null;
+    setUndo(null);
+    const at = new Map(places.map((p) => [p.nodeId, { x: p.x, y: p.y }]));
+    measure();
+    setMap((m) => ({
+      ...m,
+      nodes: m.nodes.map((n) => (at.has(n.id) ? { ...n, place: at.get(n.id) ?? null } : n)),
+    }));
+    setStatus(copy.arrange.undoneReset);
+  }
+
+  // Move mode (WCAG 2.5.7): after each arrow press the card asks the canvas to keep it in view
+  // (MAPS-03), and a little later its place is said in words (MAPS-06).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on each move only.
+  useEffect(() => {
+    if (!moving) return;
+    const button = document.getElementById(`move-${moving.id}`);
+    button?.dispatchEvent(new CustomEvent(REVEAL_EVENT, { bubbles: true }));
+    const node = byId(moving.id);
+    const box = boxOf(moving.id);
+    if (!node || !box) return;
+    if (sayTimer.current !== null) clearTimeout(sayTimer.current);
+    sayTimer.current = window.setTimeout(() => {
+      sayTimer.current = null;
+      const { sector, far } = whereIs(box, laid.hub);
+      setStatus(
+        fill(
+          copy.arrange.at,
+          nameOf(node),
+          `${copy.arrange.sectors[sector]}, ${far ? copy.arrange.far : copy.arrange.near}`,
+        ),
+      );
+    }, SAY_AFTER_MS);
+    return () => {
+      if (sayTimer.current !== null) clearTimeout(sayTimer.current);
+    };
+  }, [moving?.at.x, moving?.at.y, moving?.id]);
+
+  /** Ends Move mode: put down where it is now (saved), or back where it was (nothing saved). */
+  function finishMove(how: 'down' | 'back') {
+    if (!moving) return;
+    const node = byId(moving.id);
+    const at = moving.at;
+    setMoving(null);
+    if (!node) return;
+    if (how === 'down') putDown(node, at);
+    else setStatus(fill(copy.arrange.putBack, nameOf(node)));
+  }
+
+  /** One dot of the grid in Move mode, from an arrow key or the pad. */
+  function nudgeMove(key: string, shift = false): boolean {
+    if (!moving) return false;
+    const next = nudge(moving.at, key, shift);
+    if (!next) return false;
+    setMoving({ ...moving, at: next });
+    return true;
+  }
+
+  /** Focus went somewhere other than the card's Move button or its pad: the card goes back. */
+  const leftMove = (to: EventTarget | null) =>
+    !(to instanceof Element && (to.closest('[data-move-pad]') || to.id === `move-${moving?.id}`));
+
+  /** Move mode: the Move button, then the arrow keys; Enter puts it down, Escape puts it back. */
+  function moveButton(n: PlanNode, name: string) {
+    const on = moving?.id === n.id;
+    return (
+      <button
+        type="button"
+        id={`move-${n.id}`}
+        className="uf-map-move"
+        aria-label={fill(copy.arrange.move, name)}
+        title={fill(copy.arrange.move, name)}
+        aria-pressed={on}
+        onClick={(e) => {
+          // Safari doesn't focus a pressed button (MAPS-25): the arrow keys need it focused.
+          e.currentTarget.focus();
+          if (on) {
+            finishMove('down');
+            return;
+          }
+          const from = originOf(n.id);
+          if (!from) return;
+          setMoving({ id: n.id, from, at: from });
+          setStatus(fill(copy.arrange.moving, name));
+        }}
+        onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+          if (!on || !moving) return;
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            finishMove('back');
+            return;
+          }
+          if (nudgeMove(e.key, e.shiftKey)) e.preventDefault();
+        }}
+        onBlur={(e) => {
+          // Focus left without a choice: the card goes back, never a silent save (MAPS-06). A
+          // press on the pad is a choice still being made (MAPS-11).
+          if (on && leftMove(e.relatedTarget)) finishMove('back');
+        }}
+      >
+        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20">
+          <path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3" />
+        </svg>
+      </button>
+    );
+  }
+
+  /** A step inside a card, as the picture shows it: compact, its editing in the List. */
+  const renderStepRow = (o: OutlineNode): ReactNode => {
+    const n = o.node;
+    const name = nameOf(n);
+    return (
+      <li key={n.id} data-node-id={n.id} data-status={n.status} className="uf-map-step-row">
+        <h4 id={`heading-${n.id}`} className="uf-map-step-name">
+          {name}
+        </h4>
+        <span className="uf-map-step-status">
+          <StatusIcon status={n.status} />
+          <span className="sr-only">{statusWord(n.status)}</span>
+        </span>
+      </li>
+    );
+  };
 
   const renderNode = (o: OutlineNode, index: number): ReactNode => {
     const n = o.node;
     const words = slot(n);
     const tone = (index % 6) + 1;
-    const cell = ring ? ringCells(total)[index] : undefined;
+    const box = n.depth === 1 && picture ? laid.cards[index] : undefined;
     const style =
       n.depth === 1
         ? ({
             '--i': index,
             '--uf-map-tone': `var(--uf-color-map-tone${tone})`,
             '--uf-map-soft': `var(--uf-color-map-tone${tone}-soft)`,
-            // Only a grid item takes it: in the outline it does nothing.
-            ...(cell ? { gridArea: `${cell[0]} / ${cell[1]}` } : {}),
+            ...(box
+              ? {
+                  left: rem(box.x),
+                  top: rem(box.y),
+                  width: rem(box.width),
+                  height: rem(box.height),
+                }
+              : {}),
           } as CSSProperties)
         : undefined;
     const name = nameOf(n);
-    const parent = map.nodes.find((p) => p.id === n.parentId);
-    const hint = words?.hint ?? (parent ? (slot(parent)?.childHint ?? null) : null);
+    const hint = hintOf(n);
     const Heading = n.depth === 1 ? 'h3' : 'h4';
     const steps = subtreeIds(map.nodes, n.id).length - 1;
     const isOpen = menu === n.id;
     const can = (kind: PlanMoveKind) => planMove(map.nodes, n.id, kind) !== null;
+    const icon = slotIcon(map.templateId, n.slotId);
+    const shownSteps = box ? o.children.slice(0, CARD_STEPS) : o.children;
+    const moreSteps = o.children.length - shownSteps.length;
     return (
       <li
         key={n.id}
         data-node-id={n.id}
         data-status={n.status}
         data-just={justAchieved === n.id ? 'achieved' : undefined}
+        data-drag-id={box ? n.id : undefined}
+        data-moving={box && moving?.id === n.id ? '' : undefined}
+        data-active={editing === n.id || menu === n.id || confirming === n.id ? '' : undefined}
         className={n.depth === 1 ? 'uf-map-branch' : 'uf-map-step'}
         style={style}
       >
         <div className="uf-map-card">
-          <Heading id={`heading-${n.id}`} className="uf-map-heading">
+          <div className="uf-map-head">
             {n.depth === 1 ? (
               <span aria-hidden="true" className="uf-map-number">
                 {index + 1}
               </span>
             ) : null}
-            {tpl.ordered && n.depth === 1 ? (
-              <span className="sr-only">{`${fill(copy.stepOf, index + 1, total)}: `}</span>
-            ) : null}
-            <span>{name}</span>
-            {words?.subtitle ? <span className="uf-map-subtitle"> ({words.subtitle})</span> : null}
-          </Heading>
-          <p className="uf-map-status">
-            <StatusIcon status={n.status} />
-            <span>{statusWord(n.status)}</span>
-          </p>
-          {words && n.text ? <p className="uf-map-words">{n.text}</p> : null}
-          {!n.text && hint ? <p className="uf-map-hint">{hint}</p> : null}
+            {n.depth === 1 && icon ? <Icon name={icon} className="uf-map-slot-icon" /> : null}
+            <Heading id={`heading-${n.id}`} className="uf-map-heading">
+              {tpl.ordered && n.depth === 1 ? (
+                <span className="sr-only">{`${fill(copy.stepOf, index + 1, total)}: `}</span>
+              ) : null}
+              <span className="uf-map-name">{name}</span>
+              {words?.subtitle ? (
+                <span className="uf-map-subtitle"> ({words.subtitle})</span>
+              ) : null}
+            </Heading>
+          </div>
+          <div className="uf-map-meta">
+            <p className="uf-map-status" data-status={n.status}>
+              <StatusIcon status={n.status} />
+              <span>{statusWord(n.status)}</span>
+            </p>
+            {here === n.id ? <p className="uf-map-here">{copy.arrange.youAreHere}</p> : null}
+          </div>
+          {n.text ? <p className="uf-map-words uf-map-note">{n.text}</p> : null}
+          {!n.text && hint ? <p className="uf-map-hint uf-map-note">{hint}</p> : null}
           {n.whyNot ? (
-            <p className="text-sm">
+            <p className="uf-map-reflect-line text-sm">
               <span className="font-medium">
                 {n.status === 'achieved' ? copy.learnedLastTime : copy.whyNotShown}:
               </span>{' '}
@@ -371,19 +806,36 @@ export function PlanMapPage({
             </p>
           ) : null}
           {n.differently ? (
-            <p className="text-sm">
+            <p className="uf-map-reflect-line text-sm">
               <span className="font-medium">{copy.differentlyShown}:</span> {n.differently}
             </p>
           ) : null}
           {n.targetMonth ? (
-            <p className="text-sm text-muted">{fill(copy.targetShown, monthName(n.targetMonth))}</p>
+            <p className="uf-map-target text-sm text-muted">
+              {fill(copy.targetShown, monthName(n.targetMonth))}
+            </p>
           ) : null}
           {words?.link ? (
-            <p className="text-sm">
+            <p className="uf-map-link text-sm">
               <ButtonLink href={words.link.href} variant="quiet" className="px-0">
                 {words.link.label}
               </ButtonLink>
             </p>
+          ) : null}
+
+          {o.children.length > 0 ? (
+            <ul className="uf-map-steps">
+              {box
+                ? shownSteps.map((c) => renderStepRow(c))
+                : o.children.map((c, i) => renderNode(c, i))}
+              {moreSteps > 0 ? (
+                <li className="uf-map-steps-more">
+                  <button type="button" className="uf-map-more-btn" onClick={() => showAs('list')}>
+                    {fill(copy.arrange.stepsMore, moreSteps)}
+                  </button>
+                </li>
+              ) : null}
+            </ul>
           ) : null}
 
           {editing === n.id ? (
@@ -400,10 +852,10 @@ export function PlanMapPage({
               }}
             />
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="uf-map-actions">
               <Button
                 id={`edit-${n.id}`}
-                variant="secondary"
+                variant={n.depth === 1 ? 'secondary' : 'quiet'}
                 aria-label={fill(copy.editing, name)}
                 onClick={() => {
                   setEditing(n.id);
@@ -414,7 +866,7 @@ export function PlanMapPage({
               </Button>
               <Button
                 id={`more-${n.id}`}
-                variant="secondary"
+                variant={n.depth === 1 ? 'secondary' : 'quiet'}
                 aria-label={fill(copy.moreFor, name)}
                 aria-expanded={isOpen}
                 aria-controls={`menu-${n.id}`}
@@ -422,11 +874,12 @@ export function PlanMapPage({
               >
                 {copy.more}
               </Button>
+              {box ? moveButton(n, name) : null}
             </div>
           )}
 
           {isOpen && confirming !== n.id ? (
-            <div id={`menu-${n.id}`} className="flex flex-wrap gap-2">
+            <div id={`menu-${n.id}`} className="uf-map-menu flex flex-wrap gap-2">
               {map.wordsAllowed ? (
                 <Button
                   variant="quiet"
@@ -461,7 +914,7 @@ export function PlanMapPage({
           ) : null}
 
           {confirming === n.id ? (
-            <div className="flex flex-col gap-2 rounded-md bg-sunk p-3">
+            <div className={`${panelLook} flex flex-col gap-2 p-3`}>
               <p id={`confirm-${n.id}`} tabIndex={-1} className="font-medium">
                 {steps === 0
                   ? fill(copy.deleteAskNone, name)
@@ -491,64 +944,108 @@ export function PlanMapPage({
             </div>
           ) : null}
 
-          {care?.at === n.id ? (
-            <WrittenCarePanel
-              care={care.care}
-              words={copy.care}
-              onSeen={() => {
-                setCare(null);
-                focusOn(`edit-${n.id}`);
-              }}
-            />
-          ) : null}
+          {care?.at === n.id && !inCanvas ? carePanel : null}
+          {justAchieved === n.id && n.depth === 1 ? <Sparks /> : null}
         </div>
-        {o.children.length > 0 ? (
-          <ul className="uf-map-steps">{o.children.map((c, i) => renderNode(c, i))}</ul>
-        ) : null}
       </li>
     );
   };
 
+  // The care a part's words need. In the list it sits under that part; in the picture it is
+  // drawn outside the canvas (A10-65): inside, it took the map's zoom (8 px at Fit to view) and the
+  // card clipped its Call links. Seen, focus goes back to the part's Edit.
+  const inCanvas = picture;
+  const carePanel =
+    care && care.at !== 'title' ? (
+      <WrittenCarePanel
+        care={care.care}
+        words={copy.care}
+        onSeen={() => {
+          const at = care.at;
+          setCare(null);
+          focusOn(`edit-${at}`);
+        }}
+      />
+    ) : null;
   const Branches = tpl.ordered ? 'ol' : 'ul';
-  const centre = outline?.node;
-  const centreWords = centre ? slot(centre) : null;
+  const achievedShare = total === 0 ? 0 : counts.achieved / total;
+  const hubStyle = picture
+    ? ({
+        left: rem(laid.hub.x),
+        top: rem(laid.hub.y),
+        width: rem(laid.hub.width),
+        height: rem(laid.hub.height),
+      } as CSSProperties)
+    : undefined;
+  const hubBodyStyle = picture
+    ? ({ width: rem(HUB_WIDTH[layout]), height: rem(hubBodyHeight(hubShape)) } as CSSProperties)
+    : undefined;
 
   // The map, drawn once: as the picture it sits on a canvas card (and, opened, in the dialog
   // instead, so there is never a second copy of its words); as the list it is the page's own.
   const mapSection = centre ? (
     <section
+      ref={section}
       aria-labelledby={`heading-${centre.id}`}
-      className={`uf-map uf-map--${tpl.layout}`}
-      data-view={shown}
+      className={`uf-map uf-map--${layout}`}
+      data-view={view}
+      style={picture ? { width: rem(laid.world.width), height: rem(laid.world.height) } : undefined}
     >
-      {ring ? <MapLines count={total} /> : null}
-      <div className="uf-map-centre" data-node-id={centre.id}>
-        <h2 id={`heading-${centre.id}`} className="text-xl">
-          {centreWords?.heading ?? copy.goalCentre}
-        </h2>
-        {centre.text ? <p className="uf-map-words">{centre.text}</p> : null}
-        {!centre.text && centreWords?.hint ? (
-          <p className="uf-map-hint">{centreWords.hint}</p>
-        ) : null}
-        {map.goal ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">{copy.goalCentre}</p>
-            <p>
-              {map.goal.kind === 'goal'
-                ? fill(copy.goalAt, map.goal.course, map.goal.university)
-                : map.goal.kind === 'none'
-                  ? copy.goalNone
-                  : copy.goalUnavailable}
+      {picture ? (
+        <MapLinks
+          layout={layout}
+          hub={laid.hub}
+          cards={laid.cards}
+          world={laid.world}
+          statuses={stops.map((o) => o.node.status)}
+          startLabel={copy.arrange.start}
+        />
+      ) : null}
+      <div
+        className="uf-map-centre"
+        data-node-id={centre.id}
+        data-active={editing === centre.id ? '' : undefined}
+        style={hubStyle}
+      >
+        {picture ? <HubArt layout={layout} size={laid.hub} done={achievedShare} /> : null}
+        <div className="uf-map-centre-body" style={hubBodyStyle}>
+          <h2 id={`heading-${centre.id}`} className="uf-map-hub-heading">
+            {centreWords?.heading ?? copy.goalCentre}
+          </h2>
+          {centre.text ? <p className="uf-map-words uf-map-note">{centre.text}</p> : null}
+          {!centre.text && centreWords?.hint ? (
+            <p className="uf-map-hint uf-map-note">{centreWords.hint}</p>
+          ) : null}
+          {map.goal ? (
+            <div className="uf-map-goal flex flex-col gap-1">
+              <p className="uf-map-goal-line">
+                <span className="sr-only">{`${copy.goalCentre}: `}</span>
+                {map.goal.kind === 'goal'
+                  ? fill(copy.goalAt, map.goal.course, map.goal.university)
+                  : map.goal.kind === 'none'
+                    ? copy.goalNone
+                    : copy.goalUnavailable}
+              </p>
+              {map.goal.kind === 'goal' ? (
+                <Link href="/goals" className="uf-map-hub-link">
+                  {copy.goalLink}
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+          {words.length > 0 ? (
+            // The learner's About me words, read live (never copied into the map): the life map's
+            // ribbon, pills on the others; one row, two for three words.
+            <p className="uf-map-hub-words" data-rows={words.length >= 3 ? '2' : '1'}>
+              <span className="sr-only">{`${copy.arrange.aboutMeWords}: `}</span>
+              {words.map((w) => (
+                <span key={w} className="uf-map-hub-word">
+                  {w}
+                </span>
+              ))}
             </p>
-            {map.goal.kind === 'goal' ? (
-              <ButtonLink href="/goals" variant="quiet" className="px-0">
-                {copy.goalLink}
-              </ButtonLink>
-            ) : null}
-          </div>
-        ) : null}
-        {map.wordsAllowed ? (
-          editing === centre.id ? (
+          ) : null}
+          {map.wordsAllowed && editing === centre.id ? (
             <NodeEditor
               node={centre}
               copy={copy}
@@ -562,46 +1059,153 @@ export function PlanMapPage({
                 focusOn(`edit-${centre.id}`);
               }}
             />
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                id={`edit-${centre.id}`}
-                variant="secondary"
-                aria-label={fill(copy.editing, centreWords?.heading ?? copy.goalCentre)}
-                onClick={() => setEditing(centre.id)}
-              >
-                {copy.edit}
-              </Button>
-              <Button
-                variant="secondary"
-                aria-disabled={busy}
-                onClick={() => !busy && void addUnder(centre)}
-              >
-                {copy.addStop}
-              </Button>
+          ) : map.wordsAllowed || total > 0 ? (
+            // The foot row: how far along, and (while writing is on) Edit and Add a stop as round
+            // icon buttons, 44px, named for readers and on hover.
+            <div className="uf-map-hub-foot" data-actions={map.wordsAllowed ? '' : undefined}>
+              {total > 0 ? (
+                <p className="uf-map-progress">
+                  <span aria-hidden="true" className="uf-map-meter">
+                    <span style={{ width: `${Math.round(achievedShare * 100)}%` }} />
+                  </span>
+                  <span>{fill(copy.arrange.progress, counts.achieved, total)}</span>
+                </p>
+              ) : null}
+              {map.wordsAllowed ? (
+                <div className="uf-map-actions">
+                  <button
+                    type="button"
+                    id={`edit-${centre.id}`}
+                    className="uf-map-hub-btn"
+                    aria-label={fill(copy.editing, centreWords?.heading ?? copy.goalCentre)}
+                    title={copy.edit}
+                    onClick={() => setEditing(centre.id)}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                      width="20"
+                      height="20"
+                    >
+                      <path d="M4 20h4L19 9l-4-4L4 16Zm10-14l4 4" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="uf-map-hub-btn"
+                    aria-label={copy.addStop}
+                    title={copy.addStop}
+                    aria-disabled={busy}
+                    onClick={() => !busy && void addUnder(centre)}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                      width="20"
+                      height="20"
+                    >
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  </button>
+                </div>
+              ) : null}
             </div>
-          )
-        ) : null}
-        {care?.at === centre.id ? (
-          <WrittenCarePanel care={care.care} words={copy.care} onSeen={() => setCare(null)} />
-        ) : null}
+          ) : null}
+          {care?.at === centre.id && !inCanvas ? carePanel : null}
+        </div>
       </div>
-      <Branches className="uf-map-branches">
-        {outline?.children.map((c, i) => renderNode(c, i))}
-      </Branches>
+      <Branches className="uf-map-branches">{stops.map((c, i) => renderNode(c, i))}</Branches>
     </section>
   ) : null;
 
+  // Move mode's on-screen pad (MAPS-11, WCAG 2.5.7: one tap at a time, no drag): under the
+  // canvas's window at full size. A press keeps focus where it is (on Move), so Move's "focus
+  // left" never fires for it; Tab into it and out again is a choice not made: the card goes back.
+  const movingNode = moving ? byId(moving.id) : undefined;
+  const movePad = movingNode ? (
+    <fieldset
+      className="uf-map-pad"
+      data-move-pad=""
+      onBlur={(e) => {
+        if (leftMove(e.relatedTarget)) finishMove('back');
+      }}
+    >
+      <legend className="sr-only">{fill(copy.arrange.pad.label, nameOf(movingNode))}</legend>
+      {PAD_KEYS.map(([dir, key, d]) => (
+        <button
+          key={dir}
+          type="button"
+          className="uf-map-pad-btn"
+          data-dir={dir}
+          aria-label={copy.arrange.pad[dir]}
+          title={copy.arrange.pad[dir]}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => nudgeMove(key)}
+        >
+          <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20">
+            <path d={d} />
+          </svg>
+        </button>
+      ))}
+      <button
+        type="button"
+        className="uf-map-pad-text"
+        data-primary=""
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          finishMove('down');
+          focusOn(`move-${movingNode.id}`);
+        }}
+      >
+        {copy.arrange.pad.putDown}
+      </button>
+      <button
+        type="button"
+        className="uf-map-pad-text"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          finishMove('back');
+          focusOn(`move-${movingNode.id}`);
+        }}
+      >
+        {copy.arrange.pad.cancel}
+      </button>
+    </fieldset>
+  ) : null;
+
+  const pageTitle = map.title ?? template.name;
+  const canvasProps = {
+    movePad,
+    copy: copy.canvas,
+    arrange: copy.arrange,
+    layout,
+    size: laid.world,
+    hub: laid.hub,
+    parts,
+    drag,
+    canReset,
+    onResetLayout: () => void resetLayout(),
+    nonce,
+  };
+
   return (
     <Page title={pageTitle} lead={copy.onlyYou} headingRef={title}>
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <ButtonLink href="/goals" variant="quiet" className="px-0">
           {copy.back}
         </ButtonLink>
+        <p className="uf-map-layout-label text-sm text-muted">
+          {fill(copy.naming.layout, template.name)}
+        </p>
       </div>
       {error ? <Notice tone="danger">{error}</Notice> : null}
       <StatusLine said={status} />
       {map.wordsAllowed ? null : <Notice tone="info">{copy.wordsWait}</Notice>}
+      {map.wordsAllowed && map.title === null ? (
+        <Notice tone="info">{copy.naming.nameThis}</Notice>
+      ) : null}
 
       {map.wordsAllowed ? (
         <TitleForm copy={copy} title={map.title} busy={busy} onSave={(v) => void saveTitle(v)} />
@@ -610,28 +1214,28 @@ export function PlanMapPage({
         <WrittenCarePanel care={care.care} words={copy.care} onSeen={() => setCare(null)} />
       ) : null}
 
-      <div className={`uf-map-toggle uf-map-toggle--from-${tpl.pictureFrom}`}>
+      <div className="uf-map-toggle">
         <span className="font-medium">{copy.showAs}</span>
         {(['picture', 'list'] as const).map((v) => (
-          <Button
-            key={v}
-            variant="secondary"
-            aria-pressed={view === v}
-            onClick={() => {
-              setView(v);
-              try {
-                window.localStorage.setItem(VIEW_KEY, v);
-              } catch {
-                // Not remembered: fine.
-              }
-            }}
-          >
+          <Button key={v} variant="secondary" aria-pressed={view === v} onClick={() => showAs(v)}>
             {copy[v]}
           </Button>
         ))}
       </div>
 
-      {shown === 'picture' && mapSection ? (
+      {undo ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            aria-disabled={busy}
+            onClick={() => !busy && void undoReset()}
+          >
+            {copy.arrange.undoReset}
+          </Button>
+        </div>
+      ) : null}
+
+      {picture && mapSection ? (
         <>
           {/* The dialog first: its effects run before the card's, so it has closed (and the page
               is no longer inert) when the card's Open takes focus back. */}
@@ -645,22 +1249,27 @@ export function PlanMapPage({
             }}
           >
             {canvasOpen ? (
-              <MapCanvas copy={copy.canvas} layout={tpl.layout} expanded>
-                {mapSection}
-              </MapCanvas>
+              <>
+                <MapCanvas {...canvasProps} expanded>
+                  {mapSection}
+                </MapCanvas>
+                {carePanel}
+              </>
             ) : null}
           </CanvasDialog>
           {canvasOpen ? (
             <p className="uf-canvas-away text-muted">{copy.canvas.openNow}</p>
           ) : (
-            <MapCanvas
-              copy={copy.canvas}
-              layout={tpl.layout}
-              returnFocus={canvasClosed}
-              onOpen={() => setCanvasOpen(true)}
-            >
-              {mapSection}
-            </MapCanvas>
+            <>
+              <MapCanvas
+                {...canvasProps}
+                returnFocus={canvasClosed}
+                onOpen={() => setCanvasOpen(true)}
+              >
+                {mapSection}
+              </MapCanvas>
+              {carePanel}
+            </>
           )}
         </>
       ) : (
@@ -698,7 +1307,7 @@ export function PlanMapPage({
       <p className="text-sm text-muted">{copy.exportNote}</p>
 
       {confirming === 'map' ? (
-        <div className="flex flex-col gap-2 rounded-md bg-sunk p-3">
+        <div className={`${panelLook} flex flex-col gap-2 p-3`}>
           <p id="confirm-map" tabIndex={-1} className="font-medium">
             {fill(copy.deleteMapAsk, pageTitle)}
           </p>
@@ -737,6 +1346,14 @@ export function PlanMapPage({
 
 const MOVE_LABEL = { up: 'moveUp', down: 'moveDown', out: 'moveOut', in: 'moveIn' } as const;
 
+/** The Move pad's arrows, in the order they read: each its key and its arrow's path. */
+const PAD_KEYS = [
+  ['up', 'ArrowUp', 'M12 19V5M5 12l7-7 7 7'],
+  ['left', 'ArrowLeft', 'M19 12H5M12 5l-7 7 7 7'],
+  ['right', 'ArrowRight', 'M5 12h14M12 5l7 7-7 7'],
+  ['down', 'ArrowDown', 'M12 5v14M5 12l7 7 7-7'],
+] as const;
+
 /** "Nov 2028", in South African English, from `2028-11`. */
 function monthName(month: string): string {
   return new Date(`${month}-15T12:00:00Z`).toLocaleDateString('en-ZA', {
@@ -774,68 +1391,43 @@ function StatusIcon({ status }: { status: PlanStatus }) {
   );
 }
 
-/** The most stops a ring, a cloud or the life map lays out around its centre; more is a list. */
-const RING_MAX = 8;
-
 /**
- * Where each stop sits around the centre of a 3 by 3 grid, as [row, column], clockwise from the
- * top (picture 2's "read clockwise"), so the picture's order is the list's: up to four on the
- * sides; five or six as picture 1's ring (top, the corners, bottom); seven or eight all round.
+ * Ten sparks from a stop just marked Achieved (a small, removable piece: the owner decides before
+ * merge; the proposal §9 said no confetti). Pure CSS, once, local to the card, from a fixed table
+ * of angles (no Math.random: tests are stable); none under reduced motion (not rendered at all,
+ * so nothing waits on an animation), never beside a care card and never on Not achieved
+ * (plan-map-view.tsx `save`). Decoration: hidden from readers; gone when the last spark ends.
  */
-function ringCells(count: number): ReadonlyArray<readonly [number, number]> {
-  if (count <= 4)
-    return [
-      [1, 2],
-      [2, 3],
-      [3, 2],
-      [2, 1],
-    ];
-  if (count <= 6)
-    return [
-      [1, 2],
-      [1, 3],
-      [3, 3],
-      [3, 2],
-      [3, 1],
-      [1, 1],
-    ];
-  return [
-    [1, 2],
-    [1, 3],
-    [2, 3],
-    [3, 3],
-    [3, 2],
-    [3, 1],
-    [2, 1],
-    [1, 1],
-  ];
-}
-
-/** The connectors behind the picture: decoration only, from the centre to each stop's cell. */
-function MapLines({ count }: { count: number }) {
-  const cells = ringCells(count)
-    .slice(0, count)
-    .map(([row, col]) => [(col - 1) * 100 + 50, (row - 1) * 100 + 50] as const);
+const SPARK_ANGLES = [12, 48, 80, 117, 150, 192, 228, 263, 300, 336];
+function Sparks() {
+  const [gone, setGone] = useState(() => reducedMotion());
+  const ended = useRef(0);
+  if (gone) return null;
   return (
-    <svg
+    <span
       aria-hidden="true"
-      className="uf-map-lines"
-      viewBox="0 0 300 300"
-      preserveAspectRatio="none"
+      className="uf-map-sparks"
+      onAnimationEnd={() => {
+        ended.current += 1;
+        if (ended.current >= SPARK_ANGLES.length) setGone(true);
+      }}
     >
-      {cells.map(([x, y], i) => (
-        <path
-          key={`${x}-${y}`}
-          className="uf-map-line"
-          pathLength={1}
-          style={{ '--i': i } as CSSProperties}
-          d={`M150 150 Q ${(150 + x) / 2 + (y - 150) / 4} ${(150 + y) / 2 - (x - 150) / 4} ${x} ${y}`}
+      {SPARK_ANGLES.map((a, i) => (
+        <span
+          key={a}
+          className="uf-map-spark"
+          data-shape={i % 2 === 0 ? 'square' : 'round'}
+          style={{ '--a': `${a}deg`, '--k': 0.75 + (i % 4) * 0.25 } as CSSProperties}
         />
       ))}
-    </svg>
+    </span>
   );
 }
 
+/**
+ * The map's own name (RT-06): the learner's words, so it is here only while writing is on. A
+ * name is needed: an empty one is not saved, and the field says why.
+ */
 function TitleForm({
   copy,
   title,
@@ -848,20 +1440,37 @@ function TitleForm({
   onSave: (value: string) => void;
 }) {
   const [value, setValue] = useState(title ?? '');
+  const [missing, setMissing] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
   return (
     <form
       className="flex flex-wrap items-end gap-3"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        if (!busy) onSave(value);
+        if (busy) return;
+        if (value.trim() === '') {
+          setMissing(true);
+          input.current?.focus();
+          return;
+        }
+        setMissing(false);
+        onSave(value);
       }}
     >
       <div className="min-w-60 flex-1">
-        <Field label={copy.mapTitle} hint={copy.mapTitleHint}>
+        <Field
+          label={copy.naming.label}
+          hint={copy.naming.hint}
+          error={missing ? copy.naming.needed : undefined}
+        >
           {({ id, describedBy }) => (
             <Input
+              ref={input}
               id={id}
               aria-describedby={describedBy}
+              aria-invalid={missing || undefined}
+              required
               value={value}
               maxLength={PLAN_LIMITS.title}
               onChange={(e) => setValue(e.target.value)}

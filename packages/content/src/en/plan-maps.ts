@@ -327,4 +327,71 @@ export const planMaps = {
     /** Where the map was on the page, while the canvas is open over it. */
     openNow: 'Your map is open on the full-screen canvas.',
   },
+
+  // ── RT-06 (2026-10-25): a map has the learner's own name; the template is only its layout ────
+  naming: {
+    label: 'Name your map',
+    hint: 'A name of your own, like “My road to engineering”. The template is only how it’s laid out.',
+    needed: 'Give your map a name to start it.',
+    /** On a map made before maps had names: it shows its template's name until it gets one. */
+    nameThis: 'This map doesn’t have a name of its own yet. Give it one below.',
+    layout: (template: string) => `Layout: ${template}`,
+  },
+
+  // ── RT-07, RT-08 (2026-10-25): cards the learner moves, and a tidier canvas ───────────────────
+  arrange: {
+    /** A card's Move button, named for the card it moves (its visible mark is an icon). */
+    move: (name: string) => `Move ${name} on the map`,
+    moving: (name: string) =>
+      `Moving ${name}. Use the arrow keys, with Shift for bigger steps. Press Enter to put it down, or Escape to put it back.`,
+    placed: (name: string) => `${name} put down.`,
+    putBack: (name: string) => `${name} put back where it was.`,
+    /** Said with the canvas's other keys: how to move a card without a mouse. */
+    keys: 'To move a card, drag it by its edge, or press its Move button and use the arrow keys.',
+    resetLayout: 'Reset layout',
+    resetDone: 'Every card is back where the template puts it.',
+    miniMap: 'Mini-map',
+    showMiniMap: 'Show the mini-map',
+    hideMiniMap: 'Hide the mini-map',
+    progress: (achieved: number, total: number) => `${achieved} of ${total} achieved`,
+    /** On a staircase or a road: the first step not yet achieved. */
+    youAreHere: 'You are here',
+    /** The road's start sign, drawn where it begins (decoration). */
+    start: 'Start',
+    /** A card dropped where another card is, with no free spot near (MAPS-04, spec §6.4). */
+    noRoom: 'There’s no room there. The card is back where it was.',
+    /** Where a card is after an arrow press, in words, relative to the middle (MAPS-06). */
+    at: (name: string, where: string) => `${name}: ${where}.`,
+    near: 'close to the middle',
+    far: 'far from the middle',
+    sectors: {
+      n: 'above the middle',
+      ne: 'above and to the right of the middle',
+      e: 'to the right of the middle',
+      se: 'below and to the right of the middle',
+      s: 'below the middle',
+      sw: 'below and to the left of the middle',
+      w: 'to the left of the middle',
+      nw: 'above and to the left of the middle',
+    },
+    /** A card shows its first few steps; the rest are in the List. */
+    stepsMore: (n: number) => `+ ${n} more`,
+    /** Before the learner's About me words in the middle, for a screen reader. */
+    aboutMeWords: 'My words from About me',
+    /** The on-screen pad while a card is in Move mode (WCAG 2.5.7: one tap at a time, no drag). */
+    pad: {
+      label: (name: string) => `Moving ${name}`,
+      left: 'Move left',
+      right: 'Move right',
+      up: 'Move up',
+      down: 'Move down',
+      putDown: 'Put down',
+      /** Ends Move mode with the card back where it was, nothing saved. */
+      cancel: 'Cancel',
+    },
+    /** For ten seconds after Reset layout: puts every moved card back where the learner had it. */
+    undoReset: 'Undo reset',
+    /** Said once the Undo has put the cards back. */
+    undoneReset: 'Your cards are back where you put them.',
+  },
 } as const;

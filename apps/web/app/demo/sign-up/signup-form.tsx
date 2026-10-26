@@ -76,7 +76,9 @@ function failureWords(error: unknown, words: SignUpWords): string | null {
 const EMAIL_KEY = 'uf-demo-signup-email';
 const PAGE = '/demo/sign-up';
 
-type Sdk = typeof import('firebase/auth');
+// The two SDK packages themselves, not the `firebase` umbrella, which brings Firestore and gRPC
+// along (A8-12). `firebase/app` and `firebase/auth` only re-export these.
+type Sdk = typeof import('@firebase/auth');
 type Auth = ReturnType<Sdk['getAuth']>;
 type Firebase = { auth: Auth; sdk: Sdk };
 
@@ -99,8 +101,8 @@ function store(email: string | null): void {
 
 async function loadFirebase(config: FirebaseWebConfig): Promise<Firebase> {
   const [{ getApps, initializeApp }, sdk] = await Promise.all([
-    import('firebase/app'),
-    import('firebase/auth'),
+    import('@firebase/app'),
+    import('@firebase/auth'),
   ]);
   const app =
     getApps()[0] ??

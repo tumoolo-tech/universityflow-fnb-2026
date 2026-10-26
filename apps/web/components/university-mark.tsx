@@ -31,16 +31,18 @@ export function UniversityMark({
   const alt = alone ? words.logoAlt(name) : '';
   if (logo) {
     // A permitted logo, served from our own origin (apps/web/public/logos). Its size is the tile's.
+    // Lazy and decoded off the main thread: a mark beside a name is never the first thing drawn.
     // biome-ignore lint/performance/noImgElement: a small static file, no optimisation needed
-    return <img className="uf-university-logo" src={logo} alt={alt} />;
+    return (
+      <img className="uf-university-logo" src={logo} alt={alt} loading="lazy" decoding="async" />
+    );
   }
   const demoLogo = demoLogos?.[name];
   if (demoLogo) {
     // The judge demo only (lib/demo-logos.ts): the university's own logo on a chip it shows on.
     return (
       <span className="uf-demo-logo" data-backing={demoLogo.backing}>
-        {/* biome-ignore lint/performance/noImgElement: a small static file, no optimisation needed */}
-        <img src={demoLogo.src} alt={alt} />
+        <DemoLogoImage logo={demoLogo} alt={alt} />
       </span>
     );
   }
@@ -48,6 +50,26 @@ export function UniversityMark({
     <span className="uf-university-mark" data-monogram={monogram} role="img" aria-label={name} />
   ) : (
     <span className="uf-university-mark" data-monogram={monogram} aria-hidden="true" />
+  );
+}
+
+/**
+ * A demo logo's picture (A4-22): lazy, decoded off the main thread and fetched at low priority,
+ * so React never preloads it and 37 logos on /results don't go ahead of the words; its file's
+ * width and height, so the chip has its shape before the file arrives (no layout shift).
+ */
+export function DemoLogoImage({ logo, alt = '' }: { logo: DemoLogo; alt?: string }) {
+  return (
+    // biome-ignore lint/performance/noImgElement: a small static file, no optimisation needed
+    <img
+      src={logo.src}
+      alt={alt}
+      width={logo.width}
+      height={logo.height}
+      loading="lazy"
+      decoding="async"
+      fetchPriority="low"
+    />
   );
 }
 

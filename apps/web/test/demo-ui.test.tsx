@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { en } from '@universityflow/content';
 import { afterEach, describe, expect, it } from 'vitest';
 import { bannerOnPath, DemoBanner } from '../components/demo-banner';
 import { DemoPicker } from '../components/demo-picker';
 import { DEMO_PERSONAS } from '../lib/server/demo/personas';
+import { rootMetadata } from '../lib/server/seo';
 
 /**
  * Judge demo mode's banner and persona picker (docs/deploy/demo.md). Both are plain HTML forms, so
@@ -88,7 +89,9 @@ describe('DemoBanner', () => {
     const layout = read('../app/layout.tsx');
     expect(layout).toMatch(/<DemoBanner demo=\{demo\}/);
     expect(layout).toMatch(/isDemo\(\)/);
-    expect(layout).toMatch(/isStaging\(\) \|\| isDemo\(\)/);
+    // The root metadata (lib/server/seo.ts, A6-02) decides noindex from the deployment.
+    expect(layout).toMatch(/generateMetadata\(\): Metadata \{\s*return rootMetadata\(\);/);
+    expect(rootMetadata({ UF_DEPLOYMENT: 'demo' }).robots).toEqual({ index: false, follow: false });
   });
 });
 
@@ -118,6 +121,41 @@ describe('DemoPicker', () => {
     });
   });
 
+  it('says at once that the copy is being made, and ignores a second press (the slow start, 2026-10-25)', () => {
+    render(<DemoPicker personas={PERSONAS} />);
+    const first = PERSONAS[0];
+    if (!first) throw new Error('no persona');
+    const button = screen.getByRole('button', { name: en.demo.tryAs(first.name) });
+    const form = button.closest('form') as HTMLFormElement;
+    // The status line is there before the press, so a screen reader hears what is put in it.
+    const status = within(form).getByRole('status');
+    expect(status.textContent).toBe('');
+    expect(fireEvent.submit(form)).toBe(true);
+    expect(button.textContent).toBe(en.demo.startingAs(first.name));
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    expect(form.getAttribute('aria-busy')).toBe('true');
+    expect(status.textContent).toBe(en.demo.startingNote);
+    // A second press would make a second copy: it goes nowhere.
+    expect(fireEvent.submit(form)).toBe(false);
+    // The other learners are as they were.
+    const others = PERSONAS.slice(1).map((p) => en.demo.tryAs(p.name));
+    for (const name of others) expect(screen.getByRole('button', { name })).toBeTruthy();
+  });
+
+  it('is as it was when the browser comes back to the picker from its page cache', () => {
+    render(<DemoPicker personas={PERSONAS} />);
+    const first = PERSONAS[0];
+    if (!first) throw new Error('no persona');
+    const button = screen.getByRole('button', { name: en.demo.tryAs(first.name) });
+    fireEvent.submit(button.closest('form') as HTMLFormElement);
+    expect(button.textContent).toBe(en.demo.startingAs(first.name));
+    act(() => {
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+    });
+    expect(button.textContent).toBe(en.demo.tryAs(first.name));
+    expect(button.getAttribute('aria-disabled')).toBeNull();
+  });
+
   it('says why when a start was refused', () => {
     render(<DemoPicker personas={PERSONAS} status="busy" />);
     expect(screen.getByRole('alert').textContent).toBe(en.demo.busy);
@@ -131,7 +169,9 @@ describe('DemoPicker', () => {
     const previous = process.env['UF_DEPLOYMENT'];
     try {
       process.env['UF_DEPLOYMENT'] = 'demo';
-      expect(generateMetadata().title).toBe(en.demo.signInTitle);
+      // Its own title, beside the picker's (A6-04): the ways into the demo.
+      expect(generateMetadata().title).toBe(en.demo.signInPageTitle);
+      expect(generateMetadata().title).not.toBe(en.auth.title);
       process.env['UF_DEPLOYMENT'] = '';
       expect(generateMetadata().title).toBe(en.auth.title);
     } finally {

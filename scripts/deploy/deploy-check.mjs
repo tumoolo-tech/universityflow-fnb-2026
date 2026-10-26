@@ -44,9 +44,10 @@ function vercelRegion() {
  * The environment the app sees on the target's host. Production and a demo run on Vercel
  * (Production environment, functions in vercel.json's region); staging on Render. What the host
  * sets replaces whatever the file says (`vercel env pull` writes VERCEL_ENV=development), and the
- * local-build escape is dropped: a host ignores it (A5-12).
+ * local-build escape is dropped: a host ignores it (A5-12). `region` replaces vercel.json's, for
+ * tests about something else while hackathon exception J puts it in London (hackathon-undo-pr.md).
  */
-export function simulateHost(target, input) {
+export function simulateHost(target, input, region = vercelRegion()) {
   const env = { ...input };
   for (const name of [...HOST_SET, 'UF_LOCAL_PRODUCTION_BUILD']) delete env[name];
   env.NODE_ENV = 'production';
@@ -55,7 +56,7 @@ export function simulateHost(target, input) {
   } else {
     env.VERCEL = '1';
     env.VERCEL_ENV = 'production';
-    env.VERCEL_REGION = vercelRegion();
+    env.VERCEL_REGION = region;
   }
   return env;
 }
@@ -217,10 +218,10 @@ function adapterSummary(app) {
  * The check. `input` is the deployment's variables (a pulled env file, or this process's own).
  * `app` is what load-app-config.mjs loads.
  */
-export function deployCheck(app, target, input, { now = new Date() } = {}) {
+export function deployCheck(app, target, input, { now = new Date(), region } = {}) {
   if (!TARGETS.includes(target)) throw new Error(`Unknown target ${target}`);
   const clean = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined));
-  const env = simulateHost(target, clean);
+  const env = simulateHost(target, clean, region);
 
   // 1. Exactly what the deployed app does with these variables on that host.
   const error = tryRead(app, env, null, now);

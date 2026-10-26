@@ -15,10 +15,6 @@ export const colleges = {
     ncv: 'NC(V)',
     'n4-n6': 'N4–N6',
   },
-  programmeTypeLead: {
-    ncv: 'Starts after Grade 9',
-    'n4-n6': 'Starts after matric or N3',
-  },
   verdicts: {
     'meets-minimum': 'You meet the minimum the college prints',
     'check-rule': 'Check the entry rule',
@@ -43,10 +39,6 @@ export const colleges = {
       ? `1 more college course isn’t shown: DHET’s circular ${circular} says it takes no new first-year students from next year.`
       : `${count} more college courses aren’t shown: DHET’s circular ${circular} says they take no new first-year students from next year.`,
   closedSource: 'Read the circular',
-  /** On Grade 10 and Grade 11 June/September marks: NC(V) only. */
-  group: 'College courses after Grade 9',
-  groupLead:
-    'NC(V) courses at public TVET colleges start after Grade 9. These are the ones your report doesn’t rule out.',
   /** At the end of the college cards: the check, for any college a learner hears of. */
   checkLink: 'Is a college registered? Check its name',
   filters: {
@@ -84,5 +76,25 @@ export const colleges = {
     dhetTitle: 'Check with DHET yourself',
     dhetTvet: 'DHET: TVET colleges',
     dhetRegisters: 'DHET: registers of private colleges and private higher education institutions',
+    /** The page's search and share description, shorter than `lead` (A6-05, wave 10). Owed review. */
+    description:
+      'Before you pay a college any fee, check its name against DHET’s list of public TVET colleges. Free and open to anyone, with no sign-in.',
   },
+  /**
+   * A1-84 / A10-67: where a programme type starts, worded from the catalogue's sourced record
+   * (packages/catalogue `ProgrammeTypeEntry`), never written here (hard rule 2). Grade 12 is matric.
+   * These replace `programmeTypeLead`, `group` and `groupLead`, which held the facts themselves.
+   */
+  programmeTypeEntry: (afterGrade: number, orAfter: string | null) => {
+    const grade = afterGrade === 12 ? 'matric' : `Grade ${afterGrade}`;
+    return orAfter ? `Starts after ${grade} or ${orAfter}` : `Starts after ${grade}`;
+  },
+  /** On Grade 10 and Grade 11 June/September marks: NC(V) only, from its record. */
+  groupAfter: (afterGrade: number) => `College courses after Grade ${afterGrade}`,
+  groupLeadAfter: (afterGrade: number) =>
+    `NC(V) courses at public TVET colleges start after Grade ${afterGrade}. These are the ones your report doesn’t rule out.`,
+  /** The same group when no NC(V) record may be shown: no grade at all, never a usual one. */
+  groupNoEntry: 'College courses',
+  groupLeadNoEntry:
+    'NC(V) courses at public TVET colleges. These are the ones your report doesn’t rule out.',
 } as const;

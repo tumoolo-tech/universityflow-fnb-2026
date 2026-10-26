@@ -11,6 +11,7 @@ import { type CvEngine, MemoryCvEngine } from '@universityflow/cv';
 import {
   type CvAccess,
   type Database,
+  fileDeletionHandler,
   type MessagingStore,
   migrate,
   openDatabase,
@@ -172,7 +173,8 @@ export interface Services {
    * Every job handler the app runs: `reminder.send`, `receipt.check` (push delivery reports) and
    * `reminder.sweep` (closes a reminder whose runner died after claiming it, A12-14) and
    * `guardian.consent-sms` (a consent SMS held for the morning, A12-04) and `session.sweep` (the
-   * daily sweep of expired sessions and their push tokens, A11-03; seeded at start). The hosted
+   * daily sweep of expired sessions and their push tokens, A11-03; seeded at start) and
+   * `file.delete` (an outline's file storage couldn't delete at once, A1-88). The hosted
    * scheduler, when the owner connects one, registers these.
    */
   readonly jobHandlers: ReadonlyArray<JobHandler>;
@@ -500,6 +502,8 @@ export async function createServices(
       ...live,
       jobHandlers: [
         ...live.jobHandlers,
+        // A1-88: an outline's file storage couldn't delete at once.
+        fileDeletionHandler({ store, files: s3 }),
         ...(cv
           ? cvJobHandlers({
               store,
@@ -603,7 +607,9 @@ export async function createServices(
   inline?.use(cvHandlers(inline));
   const cvScheduler: JobScheduler = inline ?? jobs;
   await seedCvDeletions(store, cvScheduler);
-  const localHandlers = [...parts.jobHandlers, ...cvHandlers(jobs)];
+  // A1-88: an outline's file storage couldn't delete at once.
+  const fileDeletions = fileDeletionHandler({ store, files });
+  const localHandlers = [...parts.jobHandlers, fileDeletions, ...cvHandlers(jobs)];
   // The dev runner can pretend it is another time, so a reminder can be seen arriving at 10:00
   // whatever the hour on this machine (quiet hours would otherwise hold it until morning).
   const devRunDue = (at?: Date): Promise<RunReport> => {
@@ -625,6 +631,7 @@ export async function createServices(
       guardianSmsHandler({ ...guardian, scheduler: runner, clock }),
       // The store keeps the real time: a pretend `at` never sweeps a live session.
       sessionSweepHandler({ store, scheduler: runner, clock }),
+      fileDeletions,
       ...cvHandlers(runner, clock),
     ]);
   };

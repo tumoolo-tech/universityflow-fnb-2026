@@ -3,7 +3,7 @@ import { dialable } from '@universityflow/catalogue/client';
 import { crisis, crisisWords } from '@universityflow/content';
 import { useId } from 'react';
 import { CallLink, CrisisWalk } from '@/components/place-links';
-import { ButtonLink, Notice } from '@/components/ui';
+import { ButtonLink, Notice, panelLook } from '@/components/ui';
 
 /**
  * The crisis card (planning.md §4.3): the chat shows it as an artifact, Get help as its page. No
@@ -29,7 +29,7 @@ export function CrisisCard({ artifact }: { artifact: Extract<Artifact, { kind: '
       ) : null}
       <ul className="flex flex-col gap-3">
         {artifact.helplines.map((line) => (
-          <li key={line.id} className="flex flex-col gap-2 rounded-md bg-sunk p-3">
+          <li key={line.id} className={`${panelLook} flex flex-col gap-2 p-3`}>
             <p className="font-bold">{line.name}</p>
             <p className="text-sm">
               {line.purpose} {line.hours}.
@@ -72,7 +72,7 @@ function CrisisCampus({ campus }: { campus: CrisisCampusLines }) {
       <p className="text-sm text-muted">{crisis.campusLead}</p>
       <ul className="flex flex-col gap-3">
         {campus.lines.map((line) => (
-          <li key={line.id} className="flex flex-col gap-2 rounded-md bg-sunk p-3">
+          <li key={line.id} className={`${panelLook} flex flex-col gap-2 p-3`}>
             <p className="font-bold">{line.name}</p>
             <p className="text-sm">
               {line.campusName}

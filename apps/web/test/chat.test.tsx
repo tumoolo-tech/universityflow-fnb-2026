@@ -264,6 +264,12 @@ describe('keyboard focus stays in the conversation (A3-25, WCAG 2.4.3)', () => {
     expect(screen.getByText(/^Preview: no AI is connected/)).toBeTruthy();
     expect(screen.queryByText(t.disclaimer)).toBeNull();
   });
+
+  it('names Google’s Gemini in that line while Gemini answers (a demo only, AI-01)', () => {
+    render(empty({ disclaimer: en.geminiNotice.chat.first }));
+    expect(screen.getByText(en.geminiNotice.chat.first).className).toContain('text-muted');
+    expect(screen.queryByText(t.disclaimer)).toBeNull();
+  });
 });
 
 describe('the conversation', () => {

@@ -65,6 +65,7 @@ export function ModuleCard({
         <Body pair="cardMuted" small>
           {how.lead}
         </Body>
+        {how.outlineNotUsed ? <Notice tone="warning">{how.outlineNotUsed}</Notice> : null}
         {how.rows.map((row) => (
           <View key={row.id} style={styles.row} testID={`card-how-${row.id}`}>
             <Body pair="card" strong>

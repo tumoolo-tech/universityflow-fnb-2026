@@ -101,15 +101,28 @@ export async function readModuleOutlines(tx: Tx): Promise<ModuleOutlineRecord[]>
   return rows.map(record);
 }
 
+/** What a save hands back: the outline's id and, when it was read from a document, its file. */
+export interface SavedModuleOutline {
+  readonly id: string;
+  /** The storage key of the document's file, for the caller to delete now. */
+  readonly fileKey: string | null;
+  /**
+   * The id under which that file is queued for deletion (migration 0042, A1-88): the caller
+   * forgets it once the file is gone, or schedules the `file.delete` job with it (file-deletions.ts).
+   */
+  readonly fileDeletionId: string | null;
+}
+
 /**
  * Records an outline the learner confirmed: one per module and year, so confirming again replaces
  * it. Read from a document, the document must be one of theirs and an outline, and their consent
- * must name outlines; the document is then deleted (D10) and its storage key returned.
+ * must name outlines; the document is then deleted (D10) and its file queued for deletion, in the
+ * same transaction (A1-88), with its storage key returned.
  */
 export async function saveModuleOutline(
   ctx: OutlineContext,
   input: ConfirmedModuleOutline,
-): Promise<{ readonly id: string; readonly fileKey: string | null }> {
+): Promise<SavedModuleOutline> {
   const { moduleCode, academicYear, documentId, ...outline } = checkModuleOutline(input);
   const { tx, now } = ctx;
   let fileKey: string | null = null;
@@ -144,10 +157,52 @@ export async function saveModuleOutline(
     if (!row) throw new Error('Could not save the module outline');
     id = row.id;
   }
-  // D10: the outline's file goes once it is confirmed; the confirmed fields stay.
-  if (documentId) await tx.delete(documents).where(eq(documents.id, documentId));
+  // D10: the outline's file goes once it is confirmed; the confirmed fields stay. The document's
+  // row goes and its file is queued (0042), so a failed storage delete is retried, never lost.
+  let fileDeletionId: string | null = null;
+  if (documentId) {
+    const [queued] = rowsOf<{ id: string }>(
+      await tx.execute(sql`select uf_queue_outline_file_deletion(${documentId}::uuid) as id`),
+    );
+    fileDeletionId = queued?.id ?? null;
+  }
   await ctx.audit('module-outline.confirmed', documentId ? 'outline' : 'learner');
-  return { id, fileKey };
+  return { id, fileKey, fileDeletionId };
+}
+
+/** D10: deletes every learner's outlines past the academic year plus one. The owner's, for the sweep. */
+export async function deleteExpiredModuleOutlines(db: Db, today: string): Promise<number> {
+  const [row] = rowsOf<{ n: number }>(
+    await db.execute(sql`select uf_delete_expired_module_outlines(${today}::date) as n`),
+  );
+  return Number(row?.n ?? 0);
+}
+
+/** The storage key queued under `id` (migration 0042), or null once it is forgotten. The owner's. */
+export async function queuedFileDeletion(db: Db, id: string): Promise<string | null> {
+  const [row] = rowsOf<{ key: string }>(
+    await db.execute(sql`select storage_key as key from file_deletions where id = ${id}::uuid`),
+  );
+  return row?.key ?? null;
+}
+
+/** Forgets a queued file once storage has deleted it. The owner's. */
+export async function forgetFileDeletion(db: Db, id: string): Promise<void> {
+  await db.execute(sql`delete from file_deletions where id = ${id}::uuid`);
+}
+
+/**
+ * The ids of the files still queued, oldest first, at most `limit` (A11-61: a judge demo has no
+ * job runner, so its scheduled sweep reads the queue itself and deletes each as the job would).
+ * Ids only: a queue row's id names a storage key and nothing else. The owner's.
+ */
+export async function listQueuedFileDeletions(db: Db, limit: number): Promise<string[]> {
+  if (!Number.isInteger(limit) || limit < 1) throw new Error('A queue page is at least one row');
+  return rowsOf<{ id: string }>(
+    await db.execute(
+      sql`select id from file_deletions order by created_at asc, id asc limit ${limit}`,
+    ),
+  ).map((row) => row.id);
 }
 
 export async function deleteModuleOutline(ctx: OutlineContext, id: string): Promise<void> {

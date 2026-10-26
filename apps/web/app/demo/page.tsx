@@ -9,9 +9,14 @@ import { demoSignupOrNull } from '@/lib/demo-signup';
 import { demoConfigRefusal } from '@/lib/server/demo/entry';
 import { DEMO_PERSONAS } from '@/lib/server/demo/personas';
 import { isDemo } from '@/lib/server/deployment';
+import { pageMetadata } from '@/lib/server/seo';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: demoCopy.signInTitle };
+export const metadata: Metadata = pageMetadata({
+  path: '/demo',
+  title: demoCopy.signInTitle,
+  description: demoCopy.description,
+});
 
 /**
  * The judge demo's picker (docs/deploy/demo.md): "Try UniversityFlow as…" and the six made-up

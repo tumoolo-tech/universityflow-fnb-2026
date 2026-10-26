@@ -123,6 +123,21 @@ export const theme = {
     },
   },
   pairs,
+  /**
+   * RT-04: a card and a panel inside it, from `tokens.card.levels`: a card on the screen is the
+   * card fill with the card edge (3:1 on the screen, CARD_PAIRS); a card or a tile inside it is
+   * the next level's fill with the same edge (3:1 on its parent), never its parent's fill.
+   */
+  card: {
+    backgroundColor: tokens.color[tokens.card.levels[0].fill],
+    borderColor: tokens.color[tokens.card.levels[0].edge],
+    borderWidth: border.thin,
+  },
+  panel: {
+    backgroundColor: tokens.color[tokens.card.levels[1].fill],
+    borderColor: tokens.color[tokens.card.levels[1].edge],
+    borderWidth: border.thin,
+  },
   /** Text colour and background for a pair. */
   on(pair: Pair) {
     const [fg, bg] = pairs[pair];

@@ -2,6 +2,7 @@ import type { Artifact } from '@universityflow/agent';
 import { en } from '@universityflow/content';
 import { chatWelcome } from '@universityflow/ui';
 import type { Metadata } from 'next';
+import { geminiRole } from '@/lib/server/chat-model';
 import { learnerPlace } from '@/lib/server/learner-place';
 import { getServices } from '@/lib/server/services';
 import { readyStudent } from '@/lib/server/session';
@@ -23,6 +24,8 @@ export default async function ChatPage() {
     learnerPlace(student, catalogue()),
   ]);
   const isReported = new Set(reported);
+  // While Google's Gemini answers (a demo only), the line under the composer names it (AI-01).
+  const gemini = geminiRole(model);
   const messages: ChatMessage[] = history.map((m) => ({
     id: m.id,
     role: m.role,
@@ -36,6 +39,7 @@ export default async function ChatPage() {
       name={profile?.displayName?.trim() || null}
       hasReport={report !== null}
       sample={model.isSample}
+      {...(gemini ? { disclaimer: en.geminiNotice.chat[gemini] } : {})}
       welcome={chatWelcome(place.stage, place.universityYear?.group ?? null)}
     />
   );

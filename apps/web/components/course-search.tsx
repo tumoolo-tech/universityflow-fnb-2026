@@ -2,7 +2,7 @@
 
 import { common } from '@universityflow/content';
 import { useId, useState } from 'react';
-import { Input, Select } from '@/components/ui';
+import { Input, panelLook, Select } from '@/components/ui';
 
 /**
  * The search above every course dropdown (owner's requests, 2026-10-21): about 86 courses at six
@@ -169,7 +169,7 @@ export function CourseSearch(props: { search: CourseSearchState; total: number }
   }
   const facultyUniversities = [...new Set(search.faculties.map((c) => c.universityName))];
   return (
-    <fieldset className="flex flex-col gap-2 rounded-md bg-sunk p-3">
+    <fieldset className={`${panelLook} flex flex-col gap-2 p-3`}>
       <legend className="sr-only">{common.courseFilters}</legend>
       <div className="grid gap-3 md:grid-cols-3">
         <div className="flex flex-col gap-1">

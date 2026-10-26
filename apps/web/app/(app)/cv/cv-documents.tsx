@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useRef, useState } from 'react';
-import { Button, Card, Field, Input, Select } from '@/components/ui';
+import { Button, Card, Field, Input, panelLook, Select } from '@/components/ui';
 import { api, formatDate } from '@/lib/client/api';
 import { fill } from '@/lib/client/fill';
 import type { CvCopy } from '@/lib/server/cv-copy';
@@ -105,7 +105,7 @@ export function CvDocuments({
               return (
                 <li
                   key={d.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-sunk p-3"
+                  className={`${panelLook} flex flex-wrap items-center justify-between gap-3 p-3`}
                 >
                   <div className="flex min-w-0 flex-col">
                     <p className="font-bold">{name}</p>

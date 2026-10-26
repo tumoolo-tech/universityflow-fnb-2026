@@ -41,13 +41,11 @@
   "pnpm": {
     "auditConfig": {
       "ignoreGhsas": [
-        "GHSA-86w9-cpqp-85rv",
-        "GHSA-vfj7-8cjw-p6xm"
+        "GHSA-86w9-cpqp-85rv"
       ]
     },
     "overrides": {
       "@expo/cli>zod": "^4.6.7",
-      "@firebase/firestore>@grpc/grpc-js": "^1.13.6",
       "shell-quote": "^1.11.0",
       "source-map-js": "^1.2.2"
     }

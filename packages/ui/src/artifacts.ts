@@ -12,6 +12,7 @@ import type {
 } from '@universityflow/admissions';
 import type {
   ApplicationWindow,
+  BursaryWithStatus,
   Helpline,
   ModuleTerm,
   Nsfas,
@@ -129,6 +130,11 @@ export interface FundingArtifact {
   readonly kind: 'funding';
   readonly nsfas: Nsfas | null;
   readonly checklist: ReadonlyArray<{ item: string; done: boolean }>;
+  /**
+   * Bursaries beside NSFAS, each with whether its window is open (decided by packages/catalogue's
+   * `bursariesFor`). Optional: a funding card saved before bursaries were added has none.
+   */
+  readonly bursaries?: ReadonlyArray<BursaryWithStatus>;
 }
 
 /**

@@ -34,6 +34,12 @@ export const DEMO_LOGO_DIR = 'apps/web/public/demo-logos';
  */
 export const DEMO_COLLEGE_LOGO_DIR = 'apps/web/public/demo-logos/colleges';
 
+/**
+ * The same exception for the bursary funders (the owner, 2026-10-25): files named
+ * `<bursaryId>.svg|png|webp`, each a bursary the catalogue holds. Remove with the folder above.
+ */
+export const DEMO_FUNDER_LOGO_DIR = 'apps/web/public/demo-logos/funders';
+
 export const logoPermissionSchema = z.object({
   /** Who agreed: the office (and, if they signed, the person's role), as the letter gives it. */
   grantedBy: z.string().trim().min(2),
@@ -92,6 +98,8 @@ export function logoFindings(
   universities: ReadonlyArray<LogoHolder>,
   /** The public TVET colleges' ids (`RAW_COLLEGES`): a file named by one is a college logo. */
   collegeIds: ReadonlyArray<string> = [],
+  /** The bursaries' ids (`RAW_CATALOGUE.bursaries`): a funder's demo logo is named by one. */
+  funderIds: ReadonlyArray<string> = [],
 ): LogoFinding[] {
   const findings: LogoFinding[] = [];
   const byId = new Map(universities.map((u) => [u.id as string, u]));
@@ -102,6 +110,16 @@ export function logoFindings(
     const slash = file.lastIndexOf('/');
     const base = file.slice(slash + 1);
     const stem = base.replace(/\.[^.]*$/, '');
+    if (file.slice(0, slash) === DEMO_FUNDER_LOGO_DIR) {
+      const id = /^([a-z0-9-]+)\.(svg|png|webp)$/.exec(base)?.[1];
+      if (id === undefined || !funderIds.includes(id)) {
+        findings.push({
+          file,
+          message: 'a demo funder logo must be named <bursaryId>.svg, .png or .webp',
+        });
+      }
+      continue;
+    }
     if (file.slice(0, slash) === DEMO_COLLEGE_LOGO_DIR) {
       const id = /^([a-z0-9-]+)\.(svg|png|webp)$/.exec(base)?.[1];
       if (id === undefined || !collegeIds.includes(id)) {

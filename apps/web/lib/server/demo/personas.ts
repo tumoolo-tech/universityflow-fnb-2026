@@ -423,6 +423,19 @@ async function consent(store: Store, studentId: string, seed: PersonaSeed, today
   }
 }
 
+/**
+ * Runs independent seed writes at the same time and waits for every one of them to end, then
+ * raises the first failure, if any. The demo's database is a continent away from its functions
+ * (docs/deploy/demo.md), so a learner's thirty-odd writes one after another took 20 to 40 seconds;
+ * at the same time, over the pool's connections, they take a fraction of that. Waiting for all
+ * before raising means nothing is still writing when a failed clone is deleted.
+ */
+export async function together(tasks: ReadonlyArray<Promise<unknown>>): Promise<void> {
+  const settled = await Promise.allSettled(tasks);
+  const failed = settled.find((s): s is PromiseRejectedResult => s.status === 'rejected');
+  if (failed) throw failed.reason;
+}
+
 async function planMap(student: StudentStore, seed: PersonaSeed['planMap'], today: string) {
   const map = await student.createPlanMap({
     templateId: seed.templateId,
@@ -435,16 +448,66 @@ async function planMap(student: StudentStore, seed: PersonaSeed['planMap'], toda
     return found.id;
   };
   const words = { words: false };
-  for (const key of seed.achieved) {
-    await student.savePlanNode(map.id, node(key), { status: 'achieved' }, words);
-  }
-  if (seed.byDecember) {
-    const targetMonth = `${today.slice(0, 4)}-12`;
-    await student.savePlanNode(map.id, node(seed.byDecember), { targetMonth }, words);
-  }
+  // Each save locks the map first (plan-maps.ts), so the database takes them one at a time.
+  await together([
+    ...seed.achieved.map((key) =>
+      student.savePlanNode(map.id, node(key), { status: 'achieved' }, words),
+    ),
+    ...(seed.byDecember
+      ? [
+          student.savePlanNode(
+            map.id,
+            node(seed.byDecember),
+            { targetMonth: `${today.slice(0, 4)}-12` },
+            words,
+          ),
+        ]
+      : []),
+  ]);
 }
 
 async function university(student: StudentStore, seed: PersonaSeed, now: Date, today: string) {
+  // Offers, the registration, its module's card and the first-week ticks are rows of their own.
+  const tasks: Array<Promise<unknown>> = [offers(student, seed)];
+  if (seed.universityId) {
+    const universityId = seed.universityId;
+    for (const step of seed.firstWeek ?? []) {
+      tasks.push(student.setFirstWeekStep(universityId, step, true));
+    }
+  }
+  const registration = seed.registration;
+  if (registration) {
+    const { universityId } = programme(registration.programmeId);
+    const academicYear =
+      registration.year === 'arriving' ? likelyAcademicYear(now) : Number(today.slice(0, 4));
+    const modules = sampleModules(registration.yearOfStudy, registration.sampleModules);
+    tasks.push(
+      student.saveRegistration({
+        universityId,
+        programmeId: registration.programmeId,
+        academicYear,
+        yearOfStudy: registration.yearOfStudy,
+        modules,
+      }),
+    );
+    // Phase 6c: the first module's card from the SAMPLE outline, with made-up marks.
+    const first = modules[0];
+    if (first) {
+      tasks.push(
+        seedDemoModuleCard(student, {
+          academicYear,
+          yearOfStudy: registration.yearOfStudy,
+          code: first.code,
+        }),
+      );
+    }
+  }
+  await together(tasks);
+}
+
+/** Offers one after another (the list keeps their order), then each one's answer together. */
+async function offers(student: StudentStore, seed: PersonaSeed) {
+  const made: Array<{ id: string; status: 'held' | 'accepted' | 'declined' }> = [];
   for (const offer of seed.offers ?? []) {
     const { universityId } = programme(offer.programmeId);
     const id = await student.addOffer({
@@ -454,61 +517,50 @@ async function university(student: StudentStore, seed: PersonaSeed, now: Date, t
       replyBy: null,
       conditions: [],
     });
-    if (offer.status === 'accepted') await student.acceptOffer(id);
-    if (offer.status === 'declined') await student.declineOffer(id);
+    made.push({ id, status: offer.status });
   }
-  const registration = seed.registration;
-  if (registration) {
-    const { universityId } = programme(registration.programmeId);
-    const academicYear =
-      registration.year === 'arriving' ? likelyAcademicYear(now) : Number(today.slice(0, 4));
-    const modules = sampleModules(registration.yearOfStudy, registration.sampleModules);
-    await student.saveRegistration({
-      universityId,
-      programmeId: registration.programmeId,
-      academicYear,
-      yearOfStudy: registration.yearOfStudy,
-      modules,
-    });
-    // Phase 6c: the first module's card from the SAMPLE outline, with made-up marks.
-    const first = modules[0];
-    if (first) {
-      await seedDemoModuleCard(student, {
-        academicYear,
-        yearOfStudy: registration.yearOfStudy,
-        code: first.code,
-      });
-    }
-  }
-  if (seed.universityId) {
-    for (const step of seed.firstWeek ?? []) {
-      await student.setFirstWeekStep(seed.universityId, step, true);
-    }
-  }
+  await together(
+    made.map(({ id, status }) =>
+      status === 'accepted'
+        ? student.acceptOffer(id)
+        : status === 'declined'
+          ? student.declineOffer(id)
+          : Promise.resolve(),
+    ),
+  );
 }
 
 async function school(student: StudentStore, seed: PersonaSeed) {
-  for (const [period, kind] of seed.sample?.reports ?? []) {
-    const examNumber = seed.sample?.examNumber ?? '';
-    await student.saveConfirmedReport({ kind, marks: sampleMarks(examNumber, period) });
-  }
-  if (seed.goal) await student.setGoal(programme(seed.goal).id);
-  for (const id of seed.shortlist ?? []) await student.addToShortlist(programme(id).id);
-  // A goal is on the shortlist, as /api/me/goal and the agent keep it, so the goal card's
-  // application-pack link opens a pack (A2-61).
-  if (seed.goal && !seed.shortlist?.includes(seed.goal)) {
-    await student.addToShortlist(programme(seed.goal).id);
-  }
-  for (const application of seed.applications ?? []) {
-    await student.updateApplication(application.universityId, { status: application.status });
-    for (const item of application.done) {
-      await student.setChecklistItem(`application:${application.universityId}`, item, true);
+  // Reports one after another: "the latest report" is the last confirmed. The shortlist likewise:
+  // each one's rank is the next after the last. Applications and ticks are rows of their own.
+  const reports = async () => {
+    for (const [period, kind] of seed.sample?.reports ?? []) {
+      const examNumber = seed.sample?.examNumber ?? '';
+      await student.saveConfirmedReport({ kind, marks: sampleMarks(examNumber, period) });
     }
-  }
+  };
+  const goalAndShortlist = async () => {
+    if (seed.goal) await student.setGoal(programme(seed.goal).id);
+    for (const id of seed.shortlist ?? []) await student.addToShortlist(programme(id).id);
+    // A goal is on the shortlist, as /api/me/goal and the agent keep it, so the goal card's
+    // application-pack link opens a pack (A2-61).
+    if (seed.goal && !seed.shortlist?.includes(seed.goal)) {
+      await student.addToShortlist(programme(seed.goal).id);
+    }
+  };
+  const applications = (seed.applications ?? []).map(async (application) => {
+    await student.updateApplication(application.universityId, { status: application.status });
+    await together(
+      application.done.map((item) =>
+        student.setChecklistItem(`application:${application.universityId}`, item, true),
+      ),
+    );
+  });
   const documents = RAW_CATALOGUE.nsfas?.documents.length ?? 0;
-  for (let i = 0; i < Math.min(seed.nsfasReady ?? 0, documents); i++) {
-    await student.setChecklistItem('funding:nsfas', `document-${i}`, true);
-  }
+  const nsfas = Array.from({ length: Math.min(seed.nsfasReady ?? 0, documents) }, (_, i) =>
+    student.setChecklistItem('funding:nsfas', `document-${i}`, true),
+  );
+  await together([reports(), goalAndShortlist(), ...applications, ...nsfas]);
 }
 
 /**
@@ -530,19 +582,23 @@ export async function cloneDemoPersona(
   try {
     // Consent first: until it is recorded the database refuses every other write (hard rule 5).
     await consent(store, studentId, seed, today);
-    await student.updateProfile({
-      displayName: persona.name,
-      // A made-up school, so My CV has an education line (a hackathon exception, 2026-10-24).
-      schoolName: demoPersonas.schoolName,
-      ...(seed.grade === null ? {} : { grade: seed.grade }),
-      theme: seed.look.theme,
-      avatar: seed.look.avatar,
-      taglineId: seed.look.taglineId,
-      badgeIds: [...seed.look.badgeIds],
-    });
-    await school(student, seed);
-    await university(student, seed, now, today);
-    await planMap(student, seed.planMap, today);
+    // The profile, school, university and the plan map touch different rows: at the same time
+    // (`together`), once consent is recorded.
+    await together([
+      student.updateProfile({
+        displayName: persona.name,
+        // A made-up school, so My CV has an education line (a hackathon exception, 2026-10-24).
+        schoolName: demoPersonas.schoolName,
+        ...(seed.grade === null ? {} : { grade: seed.grade }),
+        theme: seed.look.theme,
+        avatar: seed.look.avatar,
+        taglineId: seed.look.taglineId,
+        badgeIds: [...seed.look.badgeIds],
+      }),
+      school(student, seed),
+      university(student, seed, now, today),
+      planMap(student, seed.planMap, today),
+    ]);
     return studentId;
   } catch (error) {
     await student.deleteAccount().catch(() => undefined);

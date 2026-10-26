@@ -39,6 +39,7 @@ export const SOURCE_FILES = {
   tut: 'packages/catalogue/src/data/tut.ts',
   ukzn: 'packages/catalogue/src/data/ukzn.ts',
   support: 'packages/catalogue/src/data/support.ts',
+  bursaries: 'packages/catalogue/src/data/bursaries.ts',
   exams: 'packages/catalogue/src/data/nsc-exams-2026.ts',
   practice: 'packages/catalogue/src/data/siyavula.ts',
   methods: 'packages/admissions/src/universities/methods.ts',

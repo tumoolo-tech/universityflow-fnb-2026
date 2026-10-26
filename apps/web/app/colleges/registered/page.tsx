@@ -2,12 +2,15 @@ import { registrationCheck } from '@universityflow/catalogue';
 import { colleges as words } from '@universityflow/content';
 import type { Metadata } from 'next';
 import { colleges } from '@/lib/server/colleges';
+import { pageMetadata } from '@/lib/server/seo';
 import { CollegeRegistered, MAX_QUERY } from './college-registered';
 
-export const metadata: Metadata = {
+/** The bare path is the canonical, so every typed `?name=` is the same page to search (A6-02). */
+export const metadata: Metadata = pageMetadata({
+  path: '/colleges/registered',
   title: words.check.title,
-  description: words.check.lead,
-};
+  description: words.check.description,
+});
 
 /**
  * "Is this college registered?" (planning.md §19.1): open to anyone, no sign-in, and it keeps

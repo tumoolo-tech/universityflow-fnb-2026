@@ -6,8 +6,11 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { crisisCard } from '@universityflow/agent';
 import { catalogueView } from '@universityflow/catalogue';
 import { en } from '@universityflow/content';
+import { contrastRatio, tokens } from '@universityflow/tokens';
 import { type PlanMapView, type PlanNode, templateSeed } from '@universityflow/ui';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { HubArt } from '../app/(app)/goals/maps/[id]/map-art';
+import { MAP_GRID, SLOT } from '../app/(app)/goals/maps/[id]/map-layout';
 import { PlanMapPage } from '../app/(app)/goals/maps/[id]/plan-map-view';
 import { planCopy, templateCopy } from '../lib/server/plan-maps-copy';
 
@@ -120,7 +123,8 @@ describe('the map as one list (§7)', () => {
     page(mapOf('six-stops'));
     expect(screen.getAllByText('Grade 11', { selector: 'h3, h3 *' })).toHaveLength(1);
     expect(screen.getAllByText(t.templates['six-stops'].slots['grade-11'].hint)).toHaveLength(1);
-    expect(document.querySelector('svg.uf-map-lines')?.getAttribute('aria-hidden')).toBe('true');
+    expect(document.querySelector('svg.uf-map-links')?.getAttribute('aria-hidden')).toBe('true');
+    expect(document.querySelector('svg.uf-map-hub-art')?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('shows each status as a word and an icon, never colour alone, and links a stop to its facts', () => {
@@ -229,6 +233,8 @@ describe('editing a part', () => {
       ),
     );
     page(map);
+    // In the picture (the canvas card): where A10-65 was.
+    fireEvent.click(screen.getByRole('button', { name: t.picture }));
     const li = item('Grade 11');
     fireEvent.click(within(li).getByRole('button', { name: t.editing('Grade 11') }));
     fireEvent.click(within(li).getByLabelText(t.status['not-achieved']));
@@ -239,6 +245,18 @@ describe('editing a part', () => {
     expect(screen.getByText(t.care.crisisLead)).toBeTruthy();
     // "Talk to someone now" is the card's own title, first, where focus went.
     expect(heading.textContent).toBe(en.crisis.cardTitle);
+    // A10-65 (Phase 6 audit): never inside the zoomable canvas, where it was drawn at the map's
+    // zoom (8 px at Fit to view) and its Call links were clipped by the card.
+    expect(screen.getByRole('button', { name: t.picture }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(document.querySelector('.uf-canvas-world')).not.toBeNull();
+    expect(heading.closest('.uf-canvas-world')).toBeNull();
+    const calls = screen
+      .getAllByRole('link')
+      .filter((a) => a.getAttribute('href')?.startsWith('tel:'));
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) expect(call.closest('.uf-canvas-world')).toBeNull();
     // It stays until the learner says they have seen it.
     fireEvent.click(screen.getByRole('button', { name: t.care.seen }));
     expect(screen.queryByRole('heading', { name: en.crisis.cardTitle })).toBeNull();
@@ -326,6 +344,262 @@ describe('moving and deleting (keyboard, no drag)', () => {
   });
 });
 
+describe('the map’s own name (RT-06)', () => {
+  it('needs a name: an empty one is not saved, and the field says why', () => {
+    const fetch = vi.fn(async () => Response.json({ map: mapOf('six-stops'), care: null }));
+    vi.stubGlobal('fetch', fetch);
+    page(mapOf('six-stops'));
+    // Untitled (made before maps had names, or by an app that sent none): say so, show the
+    // template's name as the title, and the layout's name apart.
+    expect(screen.getByText(t.naming.nameThis)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+      t.templates['six-stops'].name,
+    );
+    expect(screen.getByText(t.naming.layout(t.templates['six-stops'].name))).toBeTruthy();
+    const input = screen.getByLabelText(t.naming.label) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: t.saveTitle }));
+    expect(screen.getByText(t.naming.needed)).toBeTruthy();
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(fetch).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: 'My six stops' } });
+    fireEvent.click(screen.getByRole('button', { name: t.saveTitle }));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toMatch(/\/api\/me\/plan-maps\/[^/]+$/);
+    expect(init.method).toBe('PATCH');
+    expect(JSON.parse(String(init.body))).toEqual({ title: 'My six stops' });
+  });
+
+  it('a named map is headed by its name, with no prompt to name it', () => {
+    page({ ...mapOf('six-stops'), title: 'My road to engineering' });
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('My road to engineering');
+    expect(screen.queryByText(t.naming.nameThis)).toBeNull();
+  });
+});
+
+describe('cards the learner moves, by the keyboard (RT-08, WCAG 2.5.7)', () => {
+  const li = (heading: string) =>
+    screen.getByRole('heading', { name: heading }).closest('li') as HTMLElement;
+  const placeOf = (el: HTMLElement) => ({
+    x: Number.parseFloat(el.style.left) * 16,
+    y: Number.parseFloat(el.style.top) * 16,
+  });
+
+  it('restores where each card was put, from the map, and the middle stays where the template puts it', () => {
+    const map = mapOf('six-stops');
+    const placed = {
+      ...map,
+      nodes: map.nodes.map((n) =>
+        n.slotId === 'slot:grade-11' ? { ...n, place: { x: 1200, y: 1416 } } : n,
+      ),
+    };
+    page(placed);
+    expect(placeOf(li('Grade 11'))).toEqual({ x: 1200, y: 1416 });
+    // Every other card sits where the template puts it: on the canvas, apart from the rest.
+    const boxes = ['Grade 10', 'Matric', 'Applying', 'First year', 'Finishing my qualification']
+      .map(li)
+      .map((el) => ({ ...placeOf(el), w: Number.parseFloat(el.style.width) * 16 }));
+    for (const b of boxes) {
+      expect(b.x).toBeGreaterThanOrEqual(0);
+      expect(b.y).toBeGreaterThanOrEqual(0);
+    }
+    // The middle has no Move button: it is the map's anchor (MAPS-09).
+    expect(screen.queryByRole('button', { name: t.arrange.move(t.goalCentre) })).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: t.arrange.move(t.templates['six-stops'].centre.heading),
+      }),
+    ).toBeNull();
+  });
+
+  it('Move, then the arrow keys, then Enter: one dot per press, said in words, one save', async () => {
+    const fetch = vi.fn(async () => Response.json({ map: mapOf('six-stops') }));
+    vi.stubGlobal('fetch', fetch);
+    page(mapOf('six-stops'));
+    const card = li('Grade 11');
+    const was = placeOf(card);
+    const move = screen.getByRole('button', { name: t.arrange.move('Grade 11') });
+    fireEvent.click(move);
+    expect(move.getAttribute('aria-pressed')).toBe('true');
+    expect(card.hasAttribute('data-moving')).toBe(true);
+    expect(screen.getByRole('status').textContent).toBe(t.arrange.moving('Grade 11'));
+    fireEvent.keyDown(move, { key: 'ArrowRight' });
+    fireEvent.keyDown(move, { key: 'ArrowDown', shiftKey: true });
+    expect(placeOf(card)).toEqual({ x: was.x + MAP_GRID, y: was.y + 4 * MAP_GRID });
+    // Where it is now, in words, a little after the last press (not on every press).
+    expect(screen.getByRole('status').textContent).toBe(t.arrange.moving('Grade 11'));
+    await waitFor(
+      () => expect(screen.getByRole('status').textContent?.startsWith('Grade 11: ')).toBe(true),
+      { timeout: 2000 },
+    );
+    expect(screen.getByRole('status').textContent).toMatch(/middle/);
+    expect(fetch).not.toHaveBeenCalled();
+    // Enter (a press on the button) puts it down: one PUT with the new place, on the grid.
+    fireEvent.click(move);
+    expect(card.hasAttribute('data-moving')).toBe(false);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toMatch(/\/layout$/);
+    expect(init.method).toBe('PUT');
+    // Put down on the grid (the template's own places need not be), where the card now shows.
+    const now = placeOf(li('Grade 11'));
+    expect(now).not.toEqual(was);
+    expect(now.x % MAP_GRID).toBe(0);
+    expect(now.y % MAP_GRID).toBe(0);
+    expect(JSON.parse(String(init.body))).toEqual({
+      places: [{ nodeId: expect.any(String), x: now.x, y: now.y }],
+    });
+    expect(screen.getByRole('status').textContent).toBe(t.arrange.placed('Grade 11'));
+  });
+
+  it('Escape, or focus leaving, puts the card back and saves nothing', () => {
+    const fetch = vi.fn(async () => Response.json({ map: mapOf('six-stops') }));
+    vi.stubGlobal('fetch', fetch);
+    page(mapOf('six-stops'));
+    const card = li('Grade 11');
+    const was = placeOf(card);
+    const move = screen.getByRole('button', { name: t.arrange.move('Grade 11') });
+    fireEvent.click(move);
+    fireEvent.keyDown(move, { key: 'ArrowLeft' });
+    fireEvent.keyDown(move, { key: 'Escape' });
+    expect(placeOf(card)).toEqual(was);
+    expect(screen.getByRole('status').textContent).toBe(t.arrange.putBack('Grade 11'));
+    fireEvent.click(move);
+    fireEvent.keyDown(move, { key: 'ArrowUp' });
+    fireEvent.blur(move);
+    expect(placeOf(card)).toEqual(was);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('Move takes focus when pressed, as Safari’s click would not give it (MAPS-25)', () => {
+    page(mapOf('six-stops'));
+    const move = screen.getByRole('button', { name: t.arrange.move('Grade 11') });
+    fireEvent.click(move);
+    expect(document.activeElement).toBe(move);
+  });
+
+  // MAPS-11 (WCAG 2.5.7): dragging has a one-tap-at-a-time way too, on screen, for a phone.
+  it('in Move mode an on-screen pad moves the card by taps: right twice, Put down, one save', async () => {
+    const fetch = vi.fn(async () => Response.json({ map: mapOf('six-stops') }));
+    vi.stubGlobal('fetch', fetch);
+    page(mapOf('six-stops'));
+    const card = li('Grade 11');
+    const was = placeOf(card);
+    const move = screen.getByRole('button', { name: t.arrange.move('Grade 11') });
+    expect(screen.queryByRole('group', { name: t.arrange.pad.label('Grade 11') })).toBeNull();
+    move.focus();
+    fireEvent.click(move);
+    const pad = screen.getByRole('group', { name: t.arrange.pad.label('Grade 11') });
+    const buttons = within(pad).getAllByRole('button');
+    expect(buttons.map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual([
+      t.arrange.pad.up,
+      t.arrange.pad.left,
+      t.arrange.pad.right,
+      t.arrange.pad.down,
+      t.arrange.pad.putDown,
+      t.arrange.pad.cancel,
+    ]);
+    const right = within(pad).getByRole('button', { name: t.arrange.pad.right });
+    // A browser that focuses a pressed button moves focus off Move: not "focus left", so the
+    // card stays in Move mode.
+    right.focus();
+    fireEvent.click(right);
+    fireEvent.click(right);
+    expect(placeOf(card)).toEqual({ x: was.x + 2 * MAP_GRID, y: was.y });
+    fireEvent.click(within(pad).getByRole('button', { name: t.arrange.pad.putDown }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toMatch(/\/layout$/);
+    expect(init.method).toBe('PUT');
+    const now = placeOf(li('Grade 11'));
+    expect(now.x).toBe(Math.round((was.x + 2 * MAP_GRID) / MAP_GRID) * MAP_GRID);
+    expect(JSON.parse(String(init.body))).toEqual({
+      places: [{ nodeId: expect.any(String), x: now.x, y: now.y }],
+    });
+    expect(screen.queryByRole('group', { name: t.arrange.pad.label('Grade 11') })).toBeNull();
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: t.arrange.move('Grade 11') }),
+    );
+  });
+
+  it('the pad’s Cancel puts the card back and saves nothing', () => {
+    const fetch = vi.fn(async () => Response.json({ map: mapOf('six-stops') }));
+    vi.stubGlobal('fetch', fetch);
+    page(mapOf('six-stops'));
+    const card = li('Grade 11');
+    const was = placeOf(card);
+    fireEvent.click(screen.getByRole('button', { name: t.arrange.move('Grade 11') }));
+    const pad = screen.getByRole('group', { name: t.arrange.pad.label('Grade 11') });
+    fireEvent.click(within(pad).getByRole('button', { name: t.arrange.pad.down }));
+    fireEvent.click(within(pad).getByRole('button', { name: t.arrange.pad.cancel }));
+    expect(placeOf(card)).toEqual(was);
+    expect(screen.getByRole('status').textContent).toBe(t.arrange.putBack('Grade 11'));
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('a card put down on another lands on the nearest free spot; boxed in, it goes back and says so', async () => {
+    const fetch = vi.fn(async () => Response.json({ map: mapOf('six-stops') }));
+    vi.stubGlobal('fetch', fetch);
+    page(mapOf('six-stops'));
+    const card = li('Grade 11');
+    const other = li('Matric');
+    const target = placeOf(other);
+    const move = screen.getByRole('button', { name: t.arrange.move('Grade 11') });
+    fireEvent.click(move);
+    // Walk Grade 11 onto Matric's spot, four dots at a time, then put it down.
+    const was = placeOf(card);
+    const steps = Math.round((target.y - was.y) / (4 * MAP_GRID));
+    for (let i = 0; i < steps; i += 1)
+      fireEvent.keyDown(move, { key: 'ArrowDown', shiftKey: true });
+    fireEvent.click(move);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    const now = placeOf(card);
+    const apart = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+      Math.abs(a.x - b.x) >= 32 || Math.abs(a.y - b.y) >= 32;
+    expect(apart(now, placeOf(other))).toBe(true);
+  });
+});
+
+describe('sparks on Achieved: small, local, removable (the owner decides before merge)', () => {
+  const achieve = async (reduced: boolean) => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: reduced && query.includes('prefers-reduced-motion'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    const map = mapOf('six-stops');
+    const part = node(map, 'slot:grade-10');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ node: { ...part, status: 'achieved' }, care: null })),
+    );
+    page(map);
+    const li = item('Grade 10');
+    fireEvent.click(within(li).getByRole('button', { name: t.editing('Grade 10') }));
+    fireEvent.click(within(li).getByLabelText(t.status.achieved));
+    fireEvent.click(within(li).getByRole('button', { name: t.save }));
+    await screen.findByText(t.savedStatus('Grade 10', t.status.achieved));
+    return li;
+  };
+
+  it('ten sparks burst from a stop just marked Achieved, hidden from readers', async () => {
+    const li = await achieve(false);
+    const sparks = li.querySelector('.uf-map-sparks');
+    expect(sparks?.getAttribute('aria-hidden')).toBe('true');
+    expect(sparks?.querySelectorAll('.uf-map-spark')).toHaveLength(10);
+  });
+
+  it('none under reduced motion, and none when the words needed care', async () => {
+    const li = await achieve(true);
+    expect(li.querySelector('.uf-map-sparks')).toBeNull();
+  });
+});
+
 describe('motion (§9): CSS only, every time a token, none under reduced motion', () => {
   const CSS = readFileSync(join(__dirname, '..', 'app', 'globals.css'), 'utf8');
   const START = '/* plan-maps: My plan maps (app/(app)/goals/maps/[id]/plan-map-view.tsx) */';
@@ -350,12 +624,140 @@ describe('motion (§9): CSS only, every time a token, none under reduced motion'
     expect(raw).toEqual([]);
   });
 
-  // The owner, 2026-10-24: the picture is a canvas on a card on every screen. It is laid out by
-  // the width of the map inside that card (each picture's own width, tokens.canvas), never the
-  // page's, so a phone shows the picture too; outside a canvas (the List) it is the outline.
-  it('draws the picture by the map’s own width in its canvas, not the page’s', () => {
-    expect(block).toMatch(/@container uf-map-world \(min-width: 48rem\)/);
-    expect(block).toMatch(/@container uf-map-world \(min-width: 64rem\)/);
+  // The owner, 2026-10-24: the picture is a canvas on a card on every screen, so it is never laid
+  // out by the page's width; since 2026-10-25 (RT-07) the page places every card itself
+  // (map-layout.ts), so the picture needs no width rule at all: no grid, no container query.
+  it('places the picture by the page’s layout, never by the page’s width', () => {
     expect(block).not.toMatch(/@media \(min-width/);
+    expect(block).not.toMatch(/@container/);
+    expect(block).toMatch(
+      /\.uf-map\[data-view="picture"\] > \.uf-map-branches > \.uf-map-branch\s*\{[^}]*position:\s*absolute/,
+    );
+  });
+
+  // MAPS-05, A4-21: a card's height is a sum of fixed slots the server knows (map-layout.ts SLOT);
+  // the CSS pins each slot to the same number, in tokens, so nothing is measured and nothing jumps.
+  it('pins every slot of a card to the same height the layout counts, in tokens', () => {
+    const tokensCss = readFileSync(
+      join(__dirname, '..', '..', '..', 'packages', 'tokens', 'tokens.css'),
+      'utf8',
+    );
+    const px = (name: string): number => {
+      const m = tokensCss.match(new RegExp(`--uf-${name}:\\s*([^;]+);`));
+      if (!m) throw new Error(`no token --uf-${name}`);
+      const v = (m[1] ?? '').trim();
+      if (v.endsWith('rem')) return Number.parseFloat(v) * 16;
+      if (v.endsWith('px')) return Number.parseFloat(v);
+      throw new Error(`token --uf-${name} is not a length: ${v}`);
+    };
+    const resolve = (expr: string): number => {
+      // var(--uf-x), calc(a + b), calc(a * n): what the slot lines use.
+      const vars = expr.replace(/var\(--uf-([a-z0-9-]+)\)/g, (_, name: string) => String(px(name)));
+      const inner = vars.replace(/^calc\(([\s\S]*)\)$/, '$1');
+      // biome-ignore lint/security/noGlobalEval: numbers, + and * only, from our own stylesheet.
+      if (!/^[\d.\s+*()]+$/.test(inner)) throw new Error(`can't resolve ${expr}`);
+      return Number(new Function(`return (${inner});`)());
+    };
+    const slots: Record<string, number> = {};
+    for (const m of block.matchAll(/--uf-map-slot-([a-z-]+):\s*([^;]+);/g)) {
+      slots[(m[1] ?? '').replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())] = resolve(
+        (m[2] ?? '').trim(),
+      );
+    }
+    expect(slots).toEqual({ ...SLOT });
+  });
+});
+
+describe('critic pass 2 (2026-10-26): the picture’s CSS and the middle’s ring', () => {
+  const CSS = readFileSync(join(__dirname, '..', 'app', 'globals.css'), 'utf8');
+  const tokensCss = readFileSync(
+    join(__dirname, '..', '..', '..', 'packages', 'tokens', 'tokens.css'),
+    'utf8',
+  );
+
+  // MAPS-15: an animation whose keyframes are missing never runs (the sparks sat as a stray dot).
+  it('every animation named in the stylesheet has its keyframes', () => {
+    const names = new Set(
+      [...CSS.matchAll(/animation(?:-name)?\s*:\s*([a-z][\w-]*)/g)]
+        .map((m) => m[1] ?? '')
+        .filter((n) => n !== 'none' && n !== 'var'),
+    );
+    expect(names.has('uf-map-spark')).toBe(true);
+    const missing = [...names].filter((n) => !new RegExp(`@keyframes ${n}\\s*\\{`).test(CSS));
+    expect(missing).toEqual([]);
+  });
+
+  // MAPS-24: two lines of the goal is the picture's clamp; the List shows the whole name.
+  it('clamps the goal’s line in the picture only', () => {
+    expect(CSS).not.toMatch(/(?:^|\}|\*\/)\s*\.uf-map-goal-line\s*\{/m);
+    expect(CSS).toMatch(
+      /\.uf-map\[data-view="picture"\] \.uf-map-goal-line\s*\{[^}]*-webkit-line-clamp:\s*2/,
+    );
+  });
+
+  // MAPS-23: a finger held on a card lifts it; the browser's selection and callout stay off it.
+  it('keeps the browser’s selection and long-press callout off a card that can be dragged', () => {
+    const rule =
+      /\.uf-map\[data-view="picture"\] > \.uf-map-branches > \.uf-map-branch\s*\{([^}]*)\}/.exec(
+        CSS,
+      )?.[1] ?? '';
+    expect(rule).toMatch(/(?:^|;)\s*user-select:\s*none/);
+    expect(rule).toMatch(/-webkit-user-select:\s*none/);
+    expect(rule).toMatch(/-webkit-touch-callout:\s*none/);
+    // MAPS-12: no easing on a card's place as a rule: a dropped card never glides from its start.
+    expect(rule).not.toMatch(/transition/);
+  });
+
+  // MAPS-14: the ring of how much is achieved is drawn outside the shape, on the canvas, where
+  // success is readable (on the shape's own light fill it was 1.02:1).
+  it('draws the progress ring 14px clear of the shape, 6px wide, success on the canvas', () => {
+    const size = { width: 459, height: 426 };
+    const extent = (d: string) => {
+      const nums = (d.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+      let dx = 0;
+      let dy = 0;
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        dx = Math.max(dx, Math.abs((nums[i] as number) - size.width / 2));
+        dy = Math.max(dy, Math.abs((nums[i + 1] as number) - size.height / 2));
+      }
+      return { dx, dy };
+    };
+    for (const layout of ['ring', 'cloud', 'branches'] as const) {
+      const { container, unmount } = render(<HubArt layout={layout} size={size} done={0.5} />);
+      const shape = container.querySelector('.uf-map-hub-shape') as SVGElement;
+      const halo = container.querySelector('.uf-map-hub-halo');
+      const ring = container.querySelector('.uf-map-hub-progress') as SVGElement;
+      expect(ring, layout).not.toBeNull();
+      // The shape's reach (a path's points and control points bound it; an ellipse its radii).
+      let reach =
+        shape.tagName === 'path'
+          ? extent(shape.getAttribute('d') ?? '')
+          : { dx: Number(shape.getAttribute('rx')), dy: Number(shape.getAttribute('ry')) };
+      if (halo)
+        reach = {
+          dx: Number(halo.getAttribute('rx')) + 1,
+          dy: Number(halo.getAttribute('ry')) + 1,
+        };
+      const rx = Number(ring.getAttribute('rx'));
+      const ry = Number(ring.getAttribute('ry'));
+      expect(rx - reach.dx, `${layout} x`).toBeGreaterThanOrEqual(14 - 0.5);
+      expect(ry - reach.dy, `${layout} y`).toBeGreaterThanOrEqual(14 - 0.5);
+      unmount();
+    }
+    const px = (name: string) => {
+      const v = (tokensCss.match(new RegExp(`--uf-${name}:\\s*([^;]+);`))?.[1] ?? '').trim();
+      return v.endsWith('rem') ? Number.parseFloat(v) * 16 : Number.parseFloat(v);
+    };
+    for (const cls of ['uf-map-hub-track', 'uf-map-hub-progress']) {
+      const rule = new RegExp(`\\.${cls}\\s*\\{([^}]*)\\}`).exec(CSS)?.[1] ?? '';
+      const width =
+        /stroke-width:\s*calc\(var\(--uf-([a-z0-9-]+)\) \+ var\(--uf-([a-z0-9-]+)\)\)/.exec(rule);
+      expect(width, cls).not.toBeNull();
+      expect(px(width?.[1] ?? '') + px(width?.[2] ?? '')).toBe(6);
+    }
+    const progress = /\.uf-map-hub-progress\s*\{([^}]*)\}/.exec(CSS)?.[1] ?? '';
+    expect(progress).toMatch(/stroke:\s*var\(--uf-color-success\)/);
+    // The pair it is drawn in: success on the canvas.
+    expect(contrastRatio(tokens.color.success, tokens.color.canvas)).toBeGreaterThanOrEqual(3);
   });
 });

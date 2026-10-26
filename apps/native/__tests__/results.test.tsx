@@ -113,8 +113,10 @@ describe('My results', () => {
     serve({ 'GET /api/results': { json: results() } });
     const screen = await render(<ResultsScreen />);
     const card = within(await screen.findByTestId('programme-p-close'));
-    expect(card.getByText(en.results.yourScore('APS', 38, 56))).toBeTruthy();
-    expect(card.getByText(en.results.needed('APS', 42))).toBeTruthy();
+    // Whose scale, its most, and the course's minimum (RT-03): never "38 of 56 · Needs APS 42".
+    expect(card.getByText(en.results.scoreOn('Wits', 'APS', 38, 56))).toBeTruthy();
+    expect(card.getByText(en.results.asksAtLeast(42))).toBeTruthy();
+    expect(card.queryByText(en.results.yourScore('APS', 38, 56))).toBeNull();
     expect(card.getByText(`• ${en.results.pointsShort(4, 'APS')}`)).toBeTruthy();
     expect(card.getByText(`• ${en.results.improve('Mathematics', 64, 70)}`)).toBeTruthy();
     expect(card.getByText(`• ${en.results.improveOthers(2, 50)}`)).toBeTruthy();

@@ -24,6 +24,8 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/lib/server/services', () => ({
   getServices: async () => ({
+    // The stand-in: /privacy names Google only while Gemini answers (gemini-notice.test.tsx).
+    model: { isSample: true, writer: { provider: 'local', model: 'sample-chat-model' } },
     catalogue: () => ({ helplines: [] }),
     store: {
       consentRequest: async () => {

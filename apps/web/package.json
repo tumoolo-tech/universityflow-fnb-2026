@@ -18,6 +18,8 @@
     "test:e2e:production": "playwright test -c e2e/playwright.production.config.ts"
   },
   "dependencies": {
+    "@firebase/app": "0.16.2",
+    "@firebase/auth": "1.13.6",
     "@universityflow/admissions": "workspace:*",
     "@universityflow/agent": "workspace:*",
     "@universityflow/catalogue": "workspace:*",
@@ -29,7 +31,6 @@
     "@universityflow/messaging": "workspace:*",
     "@universityflow/tokens": "workspace:*",
     "@universityflow/ui": "workspace:*",
-    "firebase": "12.19.0",
     "next": "^16.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",

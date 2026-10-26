@@ -358,7 +358,8 @@ const styles = StyleSheet.create({
   sunk: {
     padding: theme.space['3'],
     borderRadius: theme.radius.sm,
-    backgroundColor: theme.color.surfaceSunk,
+    // A panel in its card: the sunk fill and the card edge (RT-04).
+    ...theme.panel,
   },
   link: { minHeight: theme.target, justifyContent: 'center', alignSelf: 'flex-start' },
   linkText: { textDecorationLine: 'underline' },

@@ -1638,7 +1638,8 @@ const styles = StyleSheet.create({
   },
   cvText: {
     color: theme.color.ink,
-    backgroundColor: theme.color.surfaceSunk,
+    // A panel in its card: the sunk fill and the card edge (RT-04).
+    ...theme.panel,
     padding: theme.space['3'],
     borderRadius: theme.radius.sm,
   },

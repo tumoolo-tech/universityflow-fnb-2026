@@ -1,6 +1,8 @@
 import { en } from '@universityflow/content';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { NONCE_HEADER } from '@/lib/csp';
 import { HttpError } from '@/lib/server/http';
 import { ownMap, planMapView, planWordsAllowed } from '@/lib/server/plan-maps';
 import { planCopy, templateCopy } from '@/lib/server/plan-maps-copy';
@@ -34,12 +36,15 @@ export default async function PlanMapRoute({
     throw error;
   }
   const map = await planMapView(signed.student, catalogue(), record, await planWordsAllowed());
+  // The canvas's first-view script carries this request's CSP nonce (A4-21).
+  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined;
   return (
     <PlanMapPage
       map={map}
       copy={planCopy()}
       template={templateCopy(map.templateId)}
       justCreated={(await searchParams)['new'] === '1'}
+      nonce={nonce}
     />
   );
 }

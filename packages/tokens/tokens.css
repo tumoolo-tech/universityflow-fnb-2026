@@ -6,6 +6,7 @@
   --uf-color-ink: #F4F2F5;
   --uf-color-ink-muted: #B9B4BC;
   --uf-color-line: #2E2C32;
+  --uf-color-card-edge: #726A78;
   --uf-color-line-strong: #78727D;
   --uf-color-brand: #C99BB8;
   --uf-color-brand-hover: #DDB5CE;
@@ -116,14 +117,13 @@
   --uf-course-art-scrim-text: rgba(23, 22, 26, 0.92);
   --uf-course-art-band: 4rem;
   --uf-course-art-height: 13rem;
-  --uf-canvas-height: clamp(22rem, 68dvh, 44rem);
+  --uf-canvas-height: clamp(22rem, 75dvh, 44rem);
   --uf-canvas-grid: 1.5rem;
   --uf-canvas-dot: 1.5px;
-  --uf-canvas-world-ring: 60rem;
-  --uf-canvas-world-wide: 64rem;
-  --uf-canvas-world-road: 54rem;
   --uf-canvas-minimap: 8rem;
   --uf-canvas-road: 2.75rem;
+  --uf-shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.6), 0 8px 24px -8px rgba(0, 0, 0, 0.7);
+  --uf-card-gap: 1.5rem;
   --uf-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
   --uf-target: 2.75rem;
   --uf-target-pointer: 2rem;

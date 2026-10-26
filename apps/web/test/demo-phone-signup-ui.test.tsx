@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
  * - a way in for judges beside the made-up learners (the landing page, the picker, /sign-in),
  *   only with `UF_DEMO_PHONE_SIGNUP=onscreen`; off, the demo's pages are as before;
  * - the sign-up page: the notice first (made-up details, an 080 number, nothing sent, deleted
- *   within 24 hours), then the real phone form, whose PIN is shown where it is typed;
+ *   after 24 hours), then the real phone form, whose PIN is shown where it is typed;
  * - onboarding: the notice, the guardian's 080 hint, and the guardian's link on screen;
  * - production's sign-in form unchanged.
  */

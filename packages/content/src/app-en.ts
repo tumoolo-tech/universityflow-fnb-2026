@@ -21,6 +21,7 @@ import { crisis } from './en/crisis';
 import { cv } from './en/cv';
 import { dashboard } from './en/dashboard';
 import { deadlines } from './en/deadlines';
+import { demoPhoneSignup } from './en/demo-phone-signup';
 import { documents } from './en/documents';
 import { errors } from './en/errors';
 import { firstWeek } from './en/first-week';
@@ -36,6 +37,7 @@ import { onboarding } from './en/onboarding';
 import { passTypes } from './en/pass-types';
 import { permissions } from './en/permissions';
 import { planMaps } from './en/plan-maps';
+import { planMapsApp } from './en/plan-maps-app';
 import { practice } from './en/practice';
 import { privacyConsent } from './en/privacy-consent';
 import { profileLook } from './en/profile-look';
@@ -97,6 +99,14 @@ export const en = {
   cv,
   /** Phase 6c: the module card screen. */
   moduleCard,
+  /**
+   * The judges' demo's on-screen sign-up (a hackathon exception, docs/deploy/demo.md §4b): shown
+   * only when the demo's server returns a PIN or a guardian's link for the screen, or on a
+   * judges' build (EXPO_PUBLIC_UF_DEMO). Plain strings; undone with the rest of the exception.
+   */
+  demoPhoneSignup,
+  // The phone app's own plan-map words: naming a map, the hub's summary (RT-06, 2026-10-25).
+  planMapsApp,
   // Not `freeBooks`: packages/ui's module card imports it by name (app.ts). Every web page that
   // reaches this `en` (ui's speech) would otherwise ship the free-book providers to the browser,
   // and the client-chunk budget refuses catalogue words there.

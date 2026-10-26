@@ -168,6 +168,62 @@ describe('what the marks mean', () => {
     expect(after.summary).toContain(c.needed(56));
   });
 
+  // A1-82: "whatever your exam mark" only where nothing about the exam is unknown or unmet.
+  it('already secured: says an unpublished exam subminimum may still apply, and never beside a DP not met', () => {
+    const sixtyForty = (extra: Partial<ResolvedScheme> = {}) => {
+      const { examSubminimum: _s, ...rest } = scheme({
+        weighting: {
+          value: {
+            components: [
+              { name: 'Coursework', kind: 'test', weight: 60 },
+              { name: 'Exam', kind: 'exam', weight: 40 },
+            ],
+          },
+          source: outline,
+        },
+        ...extra,
+      });
+      return rest as ResolvedScheme;
+    };
+    // 90% of 60 is 54: past the pass mark of 50 on coursework alone.
+    const unpublished = typed(sixtyForty(), { Coursework: '90' });
+    if (unpublished.kind !== 'result') throw new Error('no result');
+    expect(unpublished.pass.readings[0]?.lines).toEqual([c.securedSubminimumNotPublished]);
+    expect(JSON.stringify(unpublished)).not.toContain(c.secured);
+
+    const dpNotMet = typed(
+      sixtyForty({
+        examAdmission: {
+          value: { term: 'DP', minimumYearMark: 95, conditions: [] },
+          source: outline,
+        },
+      }),
+      { Coursework: '90' },
+    );
+    if (dpNotMet.kind !== 'result') throw new Error('no result');
+    expect(dpNotMet.dp.status).toBe('not-met');
+    expect(dpNotMet.pass.readings[0]?.lines).toEqual([c.securedDpNotMet]);
+    expect(JSON.stringify(dpNotMet)).not.toContain(c.secured);
+
+    // A module with no exam: nothing about an exam to doubt, so "secured" stands.
+    const continuous = typed(
+      scheme({
+        weighting: {
+          value: {
+            components: [
+              { name: 'Essay 1', kind: 'assignment', weight: 50 },
+              { name: 'Essay 2', kind: 'assignment', weight: 50 },
+            ],
+          },
+          source: outline,
+        },
+      }),
+      { 'Essay 1': '100', 'Essay 2': '60' },
+    );
+    if (continuous.kind !== 'result') throw new Error('no result');
+    expect(continuous.pass.readings[0]?.lines).toEqual([c.secured]);
+  });
+
   it('a scheme with no pass mark shows no "needed to pass" number at all (gotcha 40)', () => {
     const { passMark: _p, ...rest } = scheme();
     const view = typed(rest as ResolvedScheme, {

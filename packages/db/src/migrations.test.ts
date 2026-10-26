@@ -285,6 +285,163 @@ describe('migration 0041: the learner’s own module marks (Phase 6c)', () => {
   });
 });
 
+describe('migration 0042: one weighting rule, keep-until for outlines, file deletions (A1-81, A11-63, A1-88)', () => {
+  const none = { status: 'not-in-outline' };
+  const outline = (items: Array<{ name: string; kind: string; weight: number }>) => ({
+    moduleName: null,
+    term: null,
+    components: {
+      status: 'confirmed',
+      items: items.map((i) => ({ ...i, subminimum: null })),
+      dpRequirement: { percent: null, quote: null },
+      examSubminimum: null,
+      supplementaryQuote: null,
+    },
+    dates: none,
+    books: none,
+    people: none,
+  });
+  const twoNamedTest = outline([
+    { name: 'Test', kind: 'test', weight: 20 },
+    { name: 'test', kind: 'test', weight: 20 },
+    { name: 'Exam', kind: 'exam', weight: 60 },
+  ]);
+  const thirds = outline([
+    { name: 'Test 1', kind: 'test', weight: 33.333 },
+    { name: 'Test 2', kind: 'test', weight: 33.333 },
+    { name: 'Exam', kind: 'exam', weight: 33.333 },
+  ]);
+  const insert = (db: Database, sid: string, year: number, body: object) =>
+    db.exec(
+      `insert into module_outlines (student_id, module_code, academic_year, outline, from_document, confirmed_at, updated_at)
+       values ('${sid}', 'RAW1001', ${year}, '${JSON.stringify(body)}'::jsonb, false, now(), now())`,
+    );
+
+  it('keeps outlines written before it that the new rule refuses (no learner data lost), dates them by D10, and refuses new ones', async () => {
+    const db = await at('0041_module_marks');
+    const sid = await learner(db, syntheticPhone(), { display_name: `'Synthetic'` });
+    // Both were accepted by 0040: two parts of one name, and 99.999 rounding to 100.00.
+    await insert(db, sid, 2027, twoNamedTest);
+    await insert(db, sid, 2028, thirds);
+    await migrate(db);
+    const rows = rowsOf<{ year: number; keep: string }>(
+      await db.db.execute(
+        sql`select academic_year as year, keep_until::text as keep from module_outlines
+            where student_id = ${sid}::uuid order by academic_year`,
+      ),
+    );
+    expect(rows).toEqual([
+      { year: 2027, keep: '2029-01-01' },
+      { year: 2028, keep: '2030-01-01' },
+    ]);
+    // From now on the database holds every write to the rule resolveScheme applies.
+    await expect(insert(db, sid, 2029, twoNamedTest)).rejects.toThrow(
+      /module_outlines_outline_check/,
+    );
+    await expect(insert(db, sid, 2030, thirds)).rejects.toThrow(/module_outlines_outline_check/);
+    await insert(
+      db,
+      sid,
+      2031,
+      outline([
+        { name: 'Test 1', kind: 'test', weight: 33.3 },
+        { name: 'Test 2', kind: 'test', weight: 33.3 },
+        { name: 'Exam', kind: 'exam', weight: 33.4 },
+      ]),
+    );
+    const [check] = rowsOf<{ validated: boolean }>(
+      await db.db.execute(
+        sql`select convalidated as validated from pg_constraint where conname = 'module_outlines_outline_check'`,
+      ),
+    );
+    expect(check?.validated).toBe(false);
+  });
+
+  it('leaves the outline sweep and the queue of files to delete to the owner', async () => {
+    const db = await at('0041_module_marks');
+    await migrate(db);
+    const [row] = rowsOf<{ sweep: boolean; queue: boolean; rls: boolean }>(
+      await db.db.execute(
+        sql`select has_function_privilege('uf_app', 'uf_delete_expired_module_outlines(date)', 'execute') as sweep,
+                   has_table_privilege('uf_app', 'file_deletions', 'select') as queue,
+                   (select relrowsecurity from pg_class where relname = 'file_deletions') as rls`,
+      ),
+    );
+    expect(row).toEqual({ sweep: false, queue: false, rls: true });
+  });
+});
+
+describe('migration 0043: where each card sits on a plan map’s canvas (RT-08)', () => {
+  async function oldMap(db: Database) {
+    const sid = await learner(db, syntheticPhone(), { display_name: `'Synthetic'` });
+    const [map] = rowsOf<{ id: string }>(
+      await db.db.execute(
+        sql.raw(
+          `insert into plan_maps (student_id, template_id) values ('${sid}', 'staircase') returning id`,
+        ),
+      ),
+    );
+    const [centre] = rowsOf<{ id: string }>(
+      await db.db.execute(
+        sql.raw(
+          `insert into plan_map_nodes (map_id, student_id, depth, position, slot_id)
+           values ('${map?.id}', '${sid}', 0, 0, 'slot:centre') returning id`,
+        ),
+      ),
+    );
+    const [stop] = rowsOf<{ id: string }>(
+      await db.db.execute(
+        sql.raw(
+          `insert into plan_map_nodes (map_id, student_id, parent_id, depth, position, slot_id)
+           values ('${map?.id}', '${sid}', '${centre?.id}', 1, 0, 'slot:graduate') returning id`,
+        ),
+      ),
+    );
+    const [step] = rowsOf<{ id: string }>(
+      await db.db.execute(
+        sql.raw(
+          `insert into plan_map_nodes (map_id, student_id, parent_id, depth, position)
+           values ('${map?.id}', '${sid}', '${stop?.id}', 2, 0) returning id`,
+        ),
+      ),
+    );
+    return { map: map?.id as string, stop: stop?.id as string, step: step?.id as string };
+  }
+
+  it('leaves every map written before it untitled and every card where its template puts it', async () => {
+    const db = await at('0042_outline_rules_and_retention');
+    const { map } = await oldMap(db);
+    await migrate(db);
+    const rows = rowsOf<{ title: string | null; x: number | null; y: number | null }>(
+      await db.db.execute(
+        sql`select m.title, n.place_x as x, n.place_y as y
+            from plan_map_nodes n join plan_maps m on m.id = n.map_id where m.id = ${map}::uuid`,
+      ),
+    );
+    expect(rows).toHaveLength(3);
+    expect(rows.every((r) => r.title === null && r.x === null && r.y === null)).toBe(true);
+  });
+
+  it('holds a place to the canvas, both numbers or neither, and only for the centre or a stop', async () => {
+    const db = await at('0042_outline_rules_and_retention');
+    const { stop, step } = await oldMap(db);
+    await migrate(db);
+    await db.exec(`update plan_map_nodes set place_x = 0, place_y = 4000 where id = '${stop}'`);
+    for (const bad of [
+      `place_x = -1, place_y = 0`,
+      `place_x = 4001, place_y = 0`,
+      `place_x = 10, place_y = null`,
+    ]) {
+      await expect(
+        db.exec(`update plan_map_nodes set ${bad} where id = '${stop}'`),
+      ).rejects.toThrow(/plan_map_nodes_canvas_place/);
+    }
+    await expect(
+      db.exec(`update plan_map_nodes set place_x = 0, place_y = 0 where id = '${step}'`),
+    ).rejects.toThrow(/plan_map_nodes_canvas_place/);
+  });
+});
+
 describe('migration 0036: which provider wrote a reply (A10-49)', () => {
   it('leaves every reply and report written before it as not recorded, never a guess', async () => {
     const db = await at('0035_cv');

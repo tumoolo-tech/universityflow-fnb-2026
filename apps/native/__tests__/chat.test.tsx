@@ -334,7 +334,136 @@ describe('the chat', () => {
     const screen = await render(<ChatScreen />);
     expect(await screen.findByRole('header', { name: `${en.chat.heroHi} Lerato!` })).toBeTruthy();
   });
+});
 
+/**
+ * RT-02: the model writes a small Markdown subset (packages/ui `replyTextBlocks`); the learner
+ * sees paragraphs, lists and bold words, never "* **Howard College**". Never HTML.
+ */
+describe('an AI reply’s lists and bold words (RT-02)', () => {
+  const MARKDOWN = [
+    'UKZN has **five** campuses:',
+    '',
+    '* **Howard College**',
+    '* *Westville*',
+    '',
+    '1. Apply online',
+    '2. Pay the fee',
+    '',
+    '### Next',
+    'Ask me <b>anything</b>.',
+  ].join('\n');
+
+  const history = (content: string, extra: Record<string, unknown> = {}) => ({
+    'GET /api/chat': {
+      json: {
+        sample: false,
+        messages: [
+          { id: 'a1', role: 'assistant', content, artifacts: [], crisis: false, ...extra },
+        ],
+      },
+    },
+  });
+
+  /** Every piece of text on screen, joined. */
+  const allText = (screen: Awaited<ReturnType<typeof render>>) =>
+    screen.getAllByText(/./).map((n) => String(n.props.children));
+
+  it('shows paragraphs, bullets, numbered steps and bold words, with no asterisks', async () => {
+    serve(history(MARKDOWN));
+    const screen = await render(<ChatScreen />);
+    expect(await screen.findByText('Howard College')).toBeTruthy();
+    expect(screen.getByText('Westville')).toBeTruthy();
+    expect(screen.getByText('five')).toHaveStyle({ fontWeight: expect.anything() });
+    expect(screen.getByText('Howard College')).toHaveStyle({ fontWeight: expect.anything() });
+    expect(screen.getByText('Westville')).toHaveStyle({ fontStyle: 'italic' });
+    expect(screen.getByText('Apply online')).toBeTruthy();
+    expect(screen.getByText('Pay the fee')).toBeTruthy();
+    // The marks are hidden from screen readers (the label reads them once), so ask for hidden ones.
+    expect(screen.getByText('1.', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByText('2.', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByText('Next')).toBeTruthy();
+    // HTML stays text, never markup.
+    expect(screen.getByText('Ask me <b>anything</b>.')).toBeTruthy();
+    expect(screen.queryByText(/\*\*|^\* |^#/)).toBeNull();
+  });
+
+  it('is read aloud as the companion’s words, without the marks', async () => {
+    serve(history(MARKDOWN));
+    const screen = await render(<ChatScreen />);
+    await screen.findByText('Howard College');
+    const label = [
+      `${en.chat.assistant}: UKZN has five campuses:`,
+      'Howard College',
+      'Westville',
+      '1. Apply online',
+      '2. Pay the fee',
+      'Next',
+      'Ask me <b>anything</b>.',
+    ].join('\n');
+    expect(screen.getByLabelText(label)).toBeTruthy();
+    // The bullet and number marks are drawn, not read twice.
+    const hidden = { includeHiddenElements: true };
+    for (const mark of [screen.getAllByText('•', hidden)[0], screen.getByText('1.', hidden)]) {
+      expect(mark?.props.importantForAccessibility).toBe('no');
+      expect(mark?.props.accessibilityElementsHidden).toBe(true);
+    }
+  });
+
+  it('a reply streaming in is shown as structure too', async () => {
+    serve({
+      'GET /api/chat': { json: { sample: false, messages: [] } },
+      'POST /api/chat': {
+        chunks: [
+          ndjson(
+            { type: 'text', delta: 'Try:\n\n* **Wits' },
+            { type: 'text', delta: '**\n* UJ' },
+            { type: 'done', crisis: false },
+          ),
+        ],
+      },
+    });
+    const screen = await render(<ChatScreen />);
+    await send(screen, 'Where can I study?');
+    expect(await screen.findByText('Wits')).toBeTruthy();
+    expect(screen.getByText('UJ')).toBeTruthy();
+    expect(screen.queryByText(/\*/)).toBeNull();
+  });
+
+  it('the learner’s own message stays exactly as typed', async () => {
+    serve({
+      'GET /api/chat': {
+        json: {
+          sample: false,
+          messages: [
+            {
+              id: 's1',
+              role: 'student',
+              content: 'I like **maths**',
+              artifacts: [],
+              crisis: false,
+            },
+          ],
+        },
+      },
+    });
+    const screen = await render(<ChatScreen />);
+    expect(await screen.findByText('I like **maths**')).toBeTruthy();
+    expect(screen.getByLabelText(`${en.chat.you}: I like **maths**`)).toBeTruthy();
+  });
+
+  it('a crisis reply keeps its own treatment, its words untouched', async () => {
+    const words = `${en.crisis.reply}\n\n* synthetic line`;
+    serve(history(words, { crisis: true }));
+    const screen = await render(<ChatScreen />);
+    const reply = within(await screen.findByTestId('crisis-reply'));
+    expect(reply.getByText(words)).toBeTruthy();
+    expect(reply.getByRole('header', { name: en.crisis.cardTitle })).toBeTruthy();
+    expect(allText(screen)).not.toContain('synthetic line');
+  });
+});
+
+describe('the chat’s composer', () => {
   it('puts the send button inside the field’s box', async () => {
     serve({ 'GET /api/chat': { json: { sample: false, messages: [] } } });
     const screen = await render(<ChatScreen />);

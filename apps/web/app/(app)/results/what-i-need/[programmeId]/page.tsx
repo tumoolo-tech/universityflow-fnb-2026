@@ -1,8 +1,9 @@
-import { whatINeedFor } from '@universityflow/admissions';
+import { assessOne, whatINeedFor } from '@universityflow/admissions';
 import { en } from '@universityflow/content';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ScoreBreakdown } from '@/components/score-breakdown';
 import { EmptyState, Page } from '@/components/ui';
 import { WhatINeedCard } from '@/components/what-i-need';
 import { formatDate } from '@/lib/client/api';
@@ -34,8 +35,11 @@ export default async function WhatINeedPage({
     );
   }
   const { catalogue } = await getServices();
-  const result = whatINeedFor(catalogue(), programmeId, scored(report));
+  const view = catalogue();
+  const result = whatINeedFor(view, programmeId, scored(report));
   if (!result) notFound();
+  // Where a results card's "Why this score?" lands (RT-03).
+  const detail = assessOne(view, programmeId, scored(report));
   return (
     <Page title={en.whatINeed.title} lead={en.whatINeed.lead}>
       <p className="text-sm text-muted">
@@ -45,6 +49,7 @@ export default async function WhatINeedPage({
         )}
       </p>
       <WhatINeedCard result={result} />
+      {detail ? <ScoreBreakdown breakdown={detail.breakdown} anchor /> : null}
       <Link href="/results" className="inline-flex min-h-11 items-center">
         {en.whatINeed.back}
       </Link>

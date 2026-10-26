@@ -97,10 +97,12 @@ export {
 export {
   type NewPlanNode,
   PLAN_MAP_LIMITS,
+  PLAN_POSITION_MAX,
   type PlanMapRecord,
   type PlanNodePatch,
   type PlanNodeRecord,
   type PlanPartInput,
+  type PlanPlaceInput,
   type PlanWords,
 } from './plan-maps';
 export {
@@ -145,6 +147,7 @@ export {
   DEMO_OTP_PER_IP_PER_HOUR,
   DEMO_SIGNUP_TTL_MS,
   DEMO_STUDENT_TTL_MS,
+  DEMO_SWEEP_BATCH,
   type DemoSignupIdentity,
   type ExamSubjectChoice,
   type Goal,
@@ -190,3 +193,14 @@ export {
 
 /** The one variable this package reads. */
 export const DATABASE_URL_ENV = 'DATABASE_URL';
+
+// A1-88: an outline's file deleted after its save, by a job carrying one id when storage fails.
+export {
+  deleteQueuedFile,
+  FILE_DELETION,
+  FILE_DELETION_ATTEMPTS,
+  type FileDeletionParts,
+  fileDeletionHandler,
+  scheduleFileDeletion,
+} from './file-deletions';
+export type { SavedModuleOutline } from './module-outlines';

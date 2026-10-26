@@ -4,7 +4,7 @@ import { confirm, demo as demoCopy, documents as documentsCopy } from '@universi
 import type { ReportDraft } from '@universityflow/documents';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button, Card, EmptyState, FileButton, Notice, Page } from '@/components/ui';
+import { Button, Card, cardListGap, EmptyState, FileButton, Notice, Page } from '@/components/ui';
 import { ApiError, api, errorMessage, formatDate } from '@/lib/client/api';
 import { ConfirmMarks } from './confirm-marks';
 
@@ -153,7 +153,7 @@ export function DocumentsView({
         <EmptyState>{documentsCopy.empty}</EmptyState>
       ) : (
         // Each document is a card, as every list on a page is (it was a borderless strip).
-        <ul className="flex flex-col gap-3">
+        <ul className={`flex flex-col ${cardListGap}`}>
           {documents.map((d) => (
             <Card as="li" key={d.id} className="flex flex-wrap items-center justify-between gap-3">
               <span>

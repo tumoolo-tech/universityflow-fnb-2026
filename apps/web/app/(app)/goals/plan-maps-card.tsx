@@ -1,19 +1,22 @@
 'use client';
 
 import type { PlanMapsResponse, PlanTemplateId } from '@universityflow/ui';
+import { PLAN_LIMITS } from '@universityflow/ui';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
-import { Button, Card, Checkbox, Notice } from '@/components/ui';
+import { Button, Card, Checkbox, Field, Input, Notice, panelLook } from '@/components/ui';
 import { api, errorMessage } from '@/lib/client/api';
 import { fill } from '@/lib/client/fill';
 import type { PlanCopy, TemplateChoices } from '@/lib/server/plan-maps-copy';
 
 /**
  * My plan maps on My goal (docs/design/plan-maps-proposal.md §4, §8.4; D10: after "Change my
- * goal"): the learner's maps, and "Start a new map" with the five templates as one radio group.
- * Its words come as props (the launch standard), so this page carries no other copy for it.
- * One press, one request; focus never drops to the page (A3-01).
+ * goal"): the learner's maps, and "Start a new map" with the five templates as one radio group
+ * and, while writing is on, the map's own name (RT-06: the learner names it; the template is only
+ * its layout; a name is needed here, and the field says why). Its words come as props (the
+ * launch standard), so this page carries no other copy for it. One press, one request; focus
+ * never drops to the page (A3-01).
  */
 export function PlanMapsCard({
   initial,
@@ -33,10 +36,13 @@ export function PlanMapsCard({
   const [picking, setPicking] = useState(false);
   const [templateId, setTemplateId] = useState<PlanTemplateId>(templates[0]?.id ?? 'six-stops');
   const [linksGoal, setLinksGoal] = useState(hasGoal);
+  const [name, setName] = useState('');
+  const [nameMissing, setNameMissing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inFlight = useRef(false);
   const firstRadio = useRef<HTMLInputElement>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
   const startButton = useRef<HTMLButtonElement>(null);
   const [focusStart, setFocusStart] = useState(0);
 
@@ -52,13 +58,21 @@ export function PlanMapsCard({
 
   async function start() {
     if (inFlight.current) return;
+    if (initial.wordsAllowed && name.trim() === '') {
+      setNameMissing(true);
+      nameInput.current?.focus();
+      return;
+    }
+    setNameMissing(false);
     inFlight.current = true;
     setBusy(true);
     setError(null);
     try {
       const { map } = await api<{ map: { id: string } }>('/api/me/plan-maps', {
         method: 'POST',
-        json: { templateId, linksGoal },
+        json: initial.wordsAllowed
+          ? { templateId, linksGoal, title: name.trim() }
+          : { templateId, linksGoal },
       });
       // The map page puts focus on its title (`new`).
       router.push(`/goals/maps/${map.id}?new=1`);
@@ -80,11 +94,11 @@ export function PlanMapsCard({
       {initial.maps.length === 0 ? (
         <p className="text-muted">{copy.empty}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {initial.maps.map((m) => {
             const name = m.title ?? names.get(m.templateId) ?? '';
             return (
-              <li key={m.id} className="rounded-md bg-sunk p-3">
+              <li key={m.id} className={`${panelLook} p-3`}>
                 <Link
                   href={`/goals/maps/${m.id}`}
                   className="inline-flex min-h-11 items-center font-bold"
@@ -106,11 +120,32 @@ export function PlanMapsCard({
       ) : picking ? (
         <form
           className="flex flex-col gap-3"
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
             if (!busy) void start();
           }}
         >
+          {initial.wordsAllowed ? (
+            <Field
+              label={copy.naming.label}
+              hint={copy.naming.hint}
+              error={nameMissing ? copy.naming.needed : undefined}
+            >
+              {({ id, describedBy }) => (
+                <Input
+                  ref={nameInput}
+                  id={id}
+                  aria-describedby={describedBy}
+                  aria-invalid={nameMissing || undefined}
+                  required
+                  value={name}
+                  maxLength={PLAN_LIMITS.title}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              )}
+            </Field>
+          ) : null}
           <fieldset className="flex flex-col gap-2" aria-describedby={undefined}>
             <legend id={groupId} className="mb-2 font-medium">
               {copy.chooseTemplate}

@@ -54,3 +54,16 @@ export function chatModelFor(
   }
   return second ? new FallbackChatModel(first, second) : first;
 }
+
+/**
+ * Whether Google's Gemini answers the chat: asked first (or alone), only when the other provider
+ * can't, or never. The chat's line and the privacy page name Google from this (finding AI-01), so
+ * it reads the model the services built, never the switches again.
+ */
+export function geminiRole(model: ChatModel): 'first' | 'fallback' | null {
+  if (model.writer.provider === 'gemini') return 'first';
+  if (model instanceof FallbackChatModel && model.fallback.writer.provider === 'gemini') {
+    return 'fallback';
+  }
+  return null;
+}

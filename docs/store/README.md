@@ -6,6 +6,7 @@ The code side is done and tested; what is left needs the owner's accounts (D8, Q
 | Document | What it is for |
 |---|---|
 | [android-dev-build.md](android-dev-build.md) | **Start here:** the app on your own Android phone, a development build step by step on Windows (EAS project, variables, build, install, the sign-in PIN, what to test first, reporting a crash) |
+| [judges-app.md](judges-app.md) | **The FNB hackathon (26 Oct 2026):** an Android APK pointed at the live judges' demo, shared as a link and QR code, step by step; what iPhone judges do |
 | [release-checklist.md](release-checklist.md) | Step by step, from accounts to "Submit for review", for each release |
 | [privacy-and-data-safety.md](privacy-and-data-safety.md) | The answers for Apple's App Privacy ("nutrition label") and Google Play's Data safety form, derived from what the app and its server actually collect |
 | [review-notes.md](review-notes.md) | What to tell the reviewers, and how they sign in without a real SMS (an owner decision) |

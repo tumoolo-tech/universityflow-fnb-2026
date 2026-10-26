@@ -5,7 +5,6 @@ import type { Artifact } from '@universityflow/agent';
 import { type SubjectId, subject } from '@universityflow/catalogue/client';
 import {
   applications,
-  breakdown as breakdownCopy,
   chat,
   common,
   confirm,
@@ -16,7 +15,7 @@ import {
   results as resultsCopy,
 } from '@universityflow/content';
 import Link from 'next/link';
-import { Badge, Card, cx, Notice, SourceLink } from '@/components/ui';
+import { Badge, Card, cx, Notice, panelLook, SourceLink } from '@/components/ui';
 import { formatDate } from '@/lib/client/api';
 import { CampusTour, FirstWeekCard } from './campus';
 import { CrisisCard } from './crisis-card';
@@ -25,6 +24,7 @@ import { MyModulesCard } from './modules';
 import { OfferCard } from './offers';
 import { PracticeCard } from './practice';
 import { ProgrammeCard } from './programme-card';
+import { ScoreBreakdown } from './score-breakdown';
 import { UniversityName } from './university-mark';
 import { WhatINeedCard } from './what-i-need';
 
@@ -133,7 +133,7 @@ function CourseSummary({ artifact }: { artifact: Extract<Artifact, { kind: 'cour
       <h2 className="mb-3 text-lg">{resultsCopy.title}</h2>
       <dl className={cx('grid gap-3 text-center', grade10 ? 'grid-cols-2' : 'grid-cols-3')}>
         {groups.map(([label, list]) => (
-          <div key={label} className="rounded-md bg-sunk p-3">
+          <div key={label} className={`${panelLook} p-3`}>
             <dt className="text-sm">{label}</dt>
             <dd className="text-2xl font-bold">{list.length}</dd>
           </div>
@@ -165,56 +165,7 @@ export function ScoreBreakdownCard({
       <ul className="flex flex-col gap-3">
         <ProgrammeCard result={result} />
       </ul>
-      <Card>
-        <h2 className="mb-2 text-lg">{breakdownCopy.title}</h2>
-        <table className="w-full text-left">
-          <caption className="sr-only">{breakdownCopy.title}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{confirm.subject}</th>
-              <th scope="col">%</th>
-              <th scope="col" className="text-right">
-                {breakdown.label}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {breakdown.lines.map((line) => (
-              <tr
-                key={line.subject}
-                className={`border-t border-line ${line.counted ? '' : 'text-muted'}`}
-              >
-                <td className="py-1">
-                  {name(line.subject)}
-                  <span className="block text-sm">{breakdownCopy.reasons[line.reason]}</span>
-                </td>
-                <td className="py-1">{line.percent}</td>
-                <td className="py-1 text-right">{line.counted ? line.points : '–'}</td>
-              </tr>
-            ))}
-            {breakdown.bonuses.map((b) => (
-              <tr key={b.rule} className="border-t border-line">
-                <td className="py-1">{name(b.subject)}</td>
-                <td />
-                <td className="py-1 text-right">{breakdownCopy.bonus(b.points)}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t-thick border-line-strong font-bold">
-              <td className="py-1">{breakdownCopy.total}</td>
-              <td />
-              <td className="py-1 text-right">
-                {breakdown.total} / {breakdown.maximum}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-        {breakdown.incomplete ? <p className="mt-2 text-sm">{breakdownCopy.incomplete}</p> : null}
-        <p className="mt-2">
-          <SourceLink href={breakdown.methodSourceUrl}>{breakdownCopy.method}</SourceLink>
-        </p>
-      </Card>
+      <ScoreBreakdown breakdown={breakdown} />
     </div>
   );
 }
@@ -284,6 +235,10 @@ function FundingSummary({ artifact }: { artifact: Extract<Artifact, { kind: 'fun
           <p>{funding.threshold(common.rand(artifact.nsfas.incomeThresholdZar))}</p>
           {artifact.nsfas.academicYear ? <Badge>{artifact.nsfas.academicYear}</Badge> : null}
         </>
+      ) : null}
+      {/* feat/bursaries: one line for the bursaries beside NSFAS; the page lists them. */}
+      {artifact.bursaries?.length ? (
+        <p className="mt-2">{funding.bursariesCount(artifact.bursaries.length)}</p>
       ) : null}
       <Link href="/funding" className="mt-2 inline-flex min-h-11 items-center">
         {chat.artifactOpen}: {funding.title}

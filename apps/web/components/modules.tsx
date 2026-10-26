@@ -5,7 +5,7 @@ import { dialable } from '@universityflow/catalogue/client';
 import { chat, common, moduleCard, modules, nav } from '@universityflow/content';
 import Link from 'next/link';
 import { type ReactNode, type Ref, useId, useState } from 'react';
-import { Badge, Button, Card, Notice, SourceLink } from '@/components/ui';
+import { Badge, Button, Card, Notice, panelLook, SourceLink } from '@/components/ui';
 import { formatDate } from '@/lib/client/api';
 import { UniversityName } from './university-mark';
 
@@ -56,7 +56,7 @@ function CopyMessage({ message }: { message: string }) {
   return (
     <div className="flex flex-col gap-2">
       <pre
-        className="whitespace-pre-wrap rounded-md bg-sunk p-3 font-sans text-sm"
+        className={`${panelLook} whitespace-pre-wrap p-3 font-sans text-sm`}
         data-testid="modules-message"
       >
         {message}

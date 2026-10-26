@@ -223,7 +223,12 @@ export function StageBar({
   actions,
 }: {
   label: string;
-  items: ReadonlyArray<{ readonly icon: IconName; readonly text: string }>;
+  /** `detail`: a smaller second line under the item's text. */
+  items: ReadonlyArray<{
+    readonly icon: IconName;
+    readonly text: string;
+    readonly detail?: string;
+  }>;
   actions?: ReactNode;
 }) {
   return (
@@ -242,7 +247,14 @@ export function StageBar({
             )}
           >
             <Icon name={item.icon} className="size-6 shrink-0 text-brand" />
-            <span className="font-medium">{item.text}</span>
+            {item.detail ? (
+              <span className="flex flex-col">
+                <span className="font-medium">{item.text}</span>
+                <span className="text-sm">{item.detail}</span>
+              </span>
+            ) : (
+              <span className="font-medium">{item.text}</span>
+            )}
           </li>
         ))}
       </ul>

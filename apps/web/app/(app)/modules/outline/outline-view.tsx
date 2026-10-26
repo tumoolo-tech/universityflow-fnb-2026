@@ -1,6 +1,11 @@
 'use client';
 
-import { MODULE_TERMS, type ModuleTerm } from '@universityflow/catalogue/client';
+import {
+  duplicateComponentNames,
+  MODULE_TERMS,
+  type ModuleTerm,
+  weightsAddUpTo100,
+} from '@universityflow/catalogue/client';
 import { common, demo as demoCopy, moduleOutline, modules } from '@universityflow/content';
 import type { ModuleOutlineRecord } from '@universityflow/db';
 import type { ConfirmedModuleOutline, ModuleOutlineDraft } from '@universityflow/documents';
@@ -68,6 +73,7 @@ function outlineError(e: unknown): string {
     if (e.code === 'invalid' && e.detail === 'weights-dont-add-up') {
       return o.warnings['weights-dont-add-up'];
     }
+    if (e.code === 'invalid' && e.detail === 'duplicate-component-names') return o.duplicateNames;
     if (e.code === 'state' && e.detail === 'personal-number') return o.refused;
     if (e.code === 'upload' && e.detail === 'demo-sample-only') return demoCopy.sampleOnly;
   }
@@ -507,6 +513,14 @@ function percent(value: string): number | null {
   return Number.isFinite(n) && n >= 0 && n <= 100 ? n : Number.NaN;
 }
 
+/**
+ * The parts' total as shown: exact to four decimals, so 33.333 × 3 reads 99.999%, never a rounded
+ * 100% the server would refuse (A1-81).
+ */
+function shownTotal(weights: ReadonlyArray<number>): number {
+  return Number(weights.reduce((t, w) => t + w, 0).toFixed(4));
+}
+
 /** An ISBN-10 or ISBN-13 with its check digit right, digits only; null when it isn't one. */
 function isbn(value: string): string | null {
   const v = value.replace(/[\s-]/g, '').toUpperCase();
@@ -619,10 +633,13 @@ function ConfirmOutline(props: {
     if (section === 'components' && bad.length === 0) {
       const extras = [extra.dpPercent, extra.examSubminimum].map(percent);
       if (extras.some((v) => Number.isNaN(v))) summary = o.components.percentInvalid;
-      const total =
-        Math.round(list.reduce((t, r) => t + (percent(r['weight'] ?? '') ?? 0), 0) * 100) / 100;
-      // Refused, never rescaled (hard rule 6).
-      if (total !== 100) summary = o.components.notHundred(total);
+      const weights = list.map((r) => percent(r['weight'] ?? '') ?? 0);
+      // Refused, never rescaled (hard rule 6), by the rule the server and the module card apply
+      // (A1-81): an exact sum, and one name per part.
+      if (!weightsAddUpTo100(weights)) summary = o.components.notHundred(shownTotal(weights));
+      else if (duplicateComponentNames(list.map((r) => r['name'] ?? '')).length > 0) {
+        summary = o.duplicateNames;
+      }
     }
     return { problems: found, summary };
   }
@@ -724,10 +741,10 @@ function ConfirmOutline(props: {
   }
 
   const list = rows[section];
-  const total =
-    section === 'components'
-      ? Math.round(list.reduce((t, r) => t + (percent(r['weight'] ?? '') || 0), 0) * 100) / 100
-      : null;
+  const weights =
+    section === 'components' ? list.map((r) => percent(r['weight'] ?? '') || 0) : null;
+  const total = weights ? shownTotal(weights) : null;
+  const adds = weights ? weightsAddUpTo100(weights) : false;
 
   return (
     <form
@@ -851,8 +868,8 @@ function ConfirmOutline(props: {
         {section === 'components' ? (
           <>
             {total !== null && list.length > 0 ? (
-              <p className={total === 100 ? 'text-muted' : 'font-medium text-danger'}>
-                {total === 100 ? o.components.total(total) : o.components.notHundred(total)}
+              <p className={adds ? 'text-muted' : 'font-medium text-danger'}>
+                {adds ? o.components.total(total) : o.components.notHundred(total)}
               </p>
             ) : null}
             <Field

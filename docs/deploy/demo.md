@@ -101,7 +101,8 @@ off otherwise, and Read aloud is reported on or off, like the AI line.
   deletes the copy and goes back to the picker. **"Back to UniversityFlow"** beside it goes to the
   main site's landing page (`NEXT_PUBLIC_UF_MAIN_URL`) or, unset, the demo's own `/`, and keeps
   the copy for its 24 hours (the landing page then offers "Back to your learner"). Every copy is deleted **24 hours** after it was
-  made (a lazy sweep on each new start).
+  made (a lazy sweep on each new start, and the scheduled sweep below, which runs whether or not
+  anyone visits).
 - The banner on every page: "Demo: made-up learners. Don't type real personal details."
 - **No phone, no PIN, no SMS.** `request-pin`, `verify-pin`, `/dev/outbox`, the dev job runner and
   the guardian SMS all answer 404. The minors' guardian consent is a recorded synthetic one.
@@ -215,8 +216,8 @@ gated suites: packages/db `postgres.test.ts`, apps/web `api-demo-postgres.test.t
   and node-postgres treats `sslmode=require` as "verify against Node's", so the copied string alone
   fails with `SELF_SIGNED_CERT_IN_CHAIN`. Give the app the certificate in `DATABASE_CA_CERT`. A demo
   refuses a Postgres across the internet without TLS.
-- **A small pool per instance**: 5 connections, let go after 5 s idle, and a 15 s limit to connect
-  (`DEMO_DATABASE_POOL` in config.ts).
+- **A small pool per instance**: 10 connections, let go after 30 s idle, and a 15 s limit to connect
+  (`DEMO_DATABASE_POOL` in config.ts). Ten and 30 s since the slow start of 2026-10-25 (below).
 - **The learner role and Supabase's API roles: migration 0038, nothing to run by hand.** On
   Postgres 16 and later, Supabase's `postgres` user creates the role the app drops to for every
   learner request (`uf_app`) without the right to switch to it; 0038 gives it that right. 0038
@@ -230,6 +231,20 @@ gated suites: packages/db `postgres.test.ts`, apps/web `api-demo-postgres.test.t
   sample photo is about 33 KB (measured: 30 copies, 60 files, 0.4 MB of files). The free plan's
   500 MB holds about 15,000 copies at once. Copies go after 24 hours (the lazy sweep, which
   deletes their rows and files), and 120 starts an hour per address bounds the growth.
+- **Speed: where the time goes (measured 2026-10-25).** The functions run in Cape Town (`cpt1`,
+  vercel.json) and the database is in London, about **160 ms per round trip**, and the app talks
+  to the database one statement at a time. Live, before the fix: pages without the database
+  (landing, picker, guide, health) 0.2–0.8 s; **a learner's start 18–40 s** (116–279 round trips,
+  one after another); the first home 4–9 s. Fixed in code: acting as a learner costs one round trip
+  fewer per request (`actAsLearner`), a copy's independent writes go at the same time, the sweep
+  runs while the copy is made, the home reads each university's checklist at once, and the pool
+  is 10 connections kept 30 s. With 160 ms simulated per round trip on a local Postgres 17: starts
+  17.5 / 45.5 / 41.5 s → **11.0 / 12.1 / 13.7 s** (Grade 10 / Grade 12 / first year), the home
+  2.2–5.4 s → 1.1–4.0 s. The press now says at once that the copy is being made. What is left is
+  about 60 round trips that must follow each other (the account, then consent, then the rest).
+  **The rest is the distance:** with the functions beside the database (simulated at 2 ms), a start
+  takes about 1.2 s and the home under 0.4 s. That needs the demo's functions in London (`lhr1`),
+  the owner's decision (see status.md, owner steps): `cpt1` is a locked decision for production.
 
 Steps (the owner, on the day):
 
@@ -239,7 +254,7 @@ Steps (the owner, on the day):
      digits only, so it can go into a URL as it is.
    - **Region: the nearest to Cape Town. Supabase has none in Africa, so choose West EU (London),
      `eu-west-2`** (Central EU, Frankfurt, is the alternative). Every query crosses that distance:
-     expect each page to take a second or two longer than local. Not measured; check after deploy.
+     about 160 ms a round trip from `cpt1`, measured on 2026-10-25 (see "Speed" above).
    - Plan: Free.
    - If the form offers **Security options → "Only connection string"** (no Data API), choose it.
 2. **Turn the Data API off.** Project Settings → **Data API** (on some dashboards Integrations →
@@ -323,6 +338,7 @@ The earlier choice, Neon or any other Postgres, works the same way: its pooled s
    | `NEXT_PUBLIC_UF_DEMO_LOGOS` | `1` to show the universities' logos (below); read at build time, so redeploy after changing it |
    | `UF_DEMO_REAL_PHOTOS` | `1` to let a visitor upload their own profile photo beside the samples (a hackathon exception, below); read when the server starts |
    | `UF_DEMO_PHONE_SIGNUP` | `onscreen` to let judges sign up as a new learner on made-up 080 numbers, the PIN shown on screen (a hackathon exception, §4b); read when the server starts |
+   | `CRON_SECRET` | 32+ random characters, marked **Sensitive**: the scheduled sweep's secret (§7 below). Unset, only the lazy sweep runs and the cron's calls answer 503 |
 
    Set nothing else (but the extra features below, if you want them). In particular no
    `UF_S3_*`, no AWS keys, no SMS/WhatsApp/push/jobs provider, no `UF_CV_PROVIDER` or
@@ -376,7 +392,7 @@ What a judge gets, and what keeps real people out:
 
 - **The page says first** that this is the judges' demo: made-up details only, a made-up number
   starting with 080 (never a cellphone), nothing is sent (the PIN, and an under-18's guardian link,
-  are shown on screen), and the account is deleted within 24 hours. Onboarding repeats it in one line.
+  are shown on screen), and the account is deleted after 24 hours. Onboarding repeats it in one line.
 - **080 numbers only.** South African toll-free numbers are never anyone's cellphone, so no real
   person can be messaged or signed up by their number. Any other number, the learner's or the
   guardian's, is refused with "use a made-up number that starts with 080". Only a store built for a
@@ -399,10 +415,11 @@ What a judge gets, and what keeps real people out:
   `DEMO_OTP_PER_IP_PER_HOUR`, a demo store built with `demoPhoneSignup` only). Everywhere else,
   and on a demo with the switch off, it stays 10 (`OTP_PER_IP_PER_HOUR`). Unchanged: 3 a
   quarter-hour and one a minute per number, five wrong PINs, 3 guardian requests a day per learner.
-- **Deleted after 24 hours.** Each account is an ordinary demo learner: the same lazy sweep that
+- **Deleted after 24 hours.** Each account is an ordinary demo learner: the same sweep that
   deletes the made-up learners' copies 24 hours after they were made deletes it, with everything
-  in it (run on every demo start, every PIN request and every judge's own sign-in), and its
-  sessions end at 24 hours even before the sweep runs. "Switch learner" deletes it at once.
+  in it (the lazy one on every demo start, every PIN request and every judge's own sign-in, and
+  the scheduled one of §7, daily, whether or not anyone visits), and its sessions end at 24 hours
+  even before the sweep runs. "Switch learner" deletes it at once.
   No new table or marker: on a demo, every learner but a judge's own (Firebase) account is swept.
 - **Off restores the demo exactly**: unset, the PIN routes and the guardian request answer 404,
   and no page links to the sign-up (`demo:smoke` checks the 404; the demo E2E runs both ways).
@@ -443,12 +460,87 @@ Redeploy after setting either.
   there, "Continue" on the waiting step reaches the profile and the home. The same 080 number in
   another browser is refused as taken.
 
+### 7. The scheduled sweep (A11-61; the owner's decision of 2026-10-25)
+
+The demo's words promise that a made-up learner's copy (and an on-screen sign-up account) is
+"deleted within 24 hours" and a judge's own sign-up account "after 30 days". Until 2026-10-25 only
+a **lazy** sweep kept them: it ran when someone started a learner, asked for a PIN or signed in, so
+once visits stopped nothing was deleted. The owner chose to keep the words and make them true
+when visits stop. So `apps/web/vercel.json` carries a **Vercel cron** that calls
+`GET /api/demo/sweep` on the demo, which runs, bounded and idempotent, with counts only in its
+answer and its log line (never an id, a number or an email):
+
+- the copies made more than 24 hours ago, with their files (the lazy sweep's own
+  `sweepDemoStudents`, batches of 50, at most 10 batches a run);
+- the judges' sign-up accounts made more than 30 days ago (`sweepDemoSignups`, the same bounds);
+- the files whose storage delete failed in their request (A1-88's queue: a demo has no job runner
+  to retry them);
+- D10's module marks and outlines past their keep-until date (A11-60; none on a demo before 2028,
+  run so that the schedule exists), and the expired sessions (A11-03's daily sweep, which on a demo
+  nothing else runs).
+
+**What holds it in.** The route exists only on a demo (`requireDemo`: 404 anywhere else, before
+the secret is looked at). It takes Vercel's own `Authorization: Bearer <CRON_SECRET>`, compared in
+constant time over fixed-length digests (apps/web/lib/server/demo/sweep.ts); anything else is 401.
+`CRON_SECRET` is a demo switch like every `UF_DEMO_*`: **production and staging refuse to start
+with it set**, a demo refuses one shorter than 32 characters, and a demo without it starts as
+before (the cron's calls then answer 503 and the log names the variable). A run keeps to a 40 s
+budget inside the route's 60 s; a backlog is finished by the next runs. Vercel may call a cron
+twice or miss one: both are safe. The lazy sweep stays as it was. The cron entry is shared with
+production's `vercel.json`, where the route answers 404 (and production refuses the secret): the
+undo PR removes both (hackathon-undo-pr.md M).
+
+**The owner's console steps (once):**
+
+1. Make a secret: 32 or more random letters and digits from a password generator, kept nowhere
+   else.
+2. **Vercel → the demo project (`universityflow`, team `tumo-mogames-projects`) → Settings →
+   Environment Variables → Add:** name `CRON_SECRET`, the value, **Production** (the cron runs on
+   production deployments only; add Preview if you use it), tick **Sensitive**. Or answer the
+   `CRON_SECRET (hidden)` prompt of `pnpm demo:setup`, which checks the length and sets it the same
+   way.
+3. **Redeploy** (Deployments → the latest → Redeploy), so the function reads it.
+4. **Check:** Vercel → the demo project → Settings → **Cron Jobs** lists `/api/demo/sweep` with its
+   schedule; press **Run** (or wait for the next run) and open **View Logs**: a 200 with a line
+   `demo sweep: copies=… signups=… files=… queuedFiles=… moduleMarks=… moduleOutlines=…
+   sessions=… rounds=… truncated=false`. A 401 there means the value in Vercel is not the one the
+   function has (redeploy); a 503 with `request failed: ConfigError: … CRON_SECRET …` in the log
+   means it is unset or short. From a browser, `/api/demo/sweep` answers 401 (and 404 on any
+   other deployment).
+
+**The schedule and what it guarantees.** Vercel's cron limits (vercel.com/docs/cron-jobs/usage-and-pricing,
+read 2026-10-25): on **Hobby** a cron may run **once a day at most**, anywhere inside the hour
+named (an hourly or `*/n` expression **fails the deploy**: "Hobby accounts are limited to daily
+cron jobs"); on **Pro** and Enterprise down to **once a minute**, within the minute named. Which
+plan the demo's team is on is **not written anywhere in this repository** (production.md asks for
+Pro, hosting-account.md says why Hobby is unfit; neither records what was bought), so the entry
+committed is **daily, `0 2 * * *`** (02:00 UTC, 04:00 SAST, the demo's quiet hour), which deploys
+on every plan. With it:
+
+- a copy's **sessions still end at 24 hours** exactly (the store's own rule), so nobody can use a
+  copy past its day;
+- its rows and files go at the **first run after it turns 24 hours old**: within **48 hours** of
+  being made (49 on Hobby, with the hour's slack), even when nobody visits; sooner whenever
+  anyone visits (the lazy sweep);
+- a judge's sign-up account, usable for 30 days, goes within **31 days** of being made.
+
+**The words (2026-10-26, the owner's call).** Because of that slack, the demo's words say
+"deleted **after** 24 hours" (and "after 30 days"), never "within": true on every plan, with the
+lazy sweep making it prompt whenever anyone visits. `packages/content/src/demo-phone-signup.test.ts`
+refuses "within 24 hours" and "within 30 days" in the demo's sections.
+
+**If the team is on Pro**, change the schedule to `*/10 * * * *` (every ten minutes): then rows
+and files go within **24 hours and 10 minutes**, which is the words' "within 24 hours" to the
+letter, at about 144 short function runs a day. Do not do that on Hobby: the next deploy fails.
+Check the plan first (Vercel → the team → Settings → Billing).
+
 ## The universities' logos (the hackathon only)
 
 The owner decided on 2026-10-23 to show the universities' own logos in the judge demo, for the FNB
 hackathon only, setting aside option A (docs/brand/logo-permissions.md) for this one deployment.
-With `NEXT_PUBLIC_UF_DEMO_LOGOS=1`, all six universities show their logo, unaltered, on a small
-chip beside their name, and the banner adds "University logos are shown for this demo only.
+With `NEXT_PUBLIC_UF_DEMO_LOGOS=1`, all six universities show their logo, unaltered (UKZN's
+resized from a 1,683 px, 110 KB PNG to a 96 px WebP for the chip on 2026-10-25, audit A4-22), on
+a small chip beside their name, and the banner adds "University logos are shown for this demo only.
 UniversityFlow is not affiliated with or endorsed by these universities." UJ and UP were added on
 2026-10-24: www.uj.ac.za and www.up.ac.za refuse automated visitors (Cloudflare), so each came from
 another of the university's own sites: UJ's from the header of UJ News
@@ -511,6 +603,32 @@ lend; Sekhukhune's file shows another college's logo (Gert Sibande's); Northern 
 generic globe not confirmed as the college's; Lovedale, Orbit, Taletso, Umgungundlovu, Lephalale and
 Ehlanzeni have no logo file on a site of their own. **After the hackathon:** the colleges' folder and
 `DEMO_COLLEGE_LOGOS` go with the universities' (docs/deploy/hackathon-undo-pr.md, B).
+
+## The bursary funders' logos (the hackathon only)
+
+The same exception covers the bursaries listed beside NSFAS on /funding (the owner, 2026-10-25):
+with `NEXT_PUBLIC_UF_DEMO_LOGOS=1`, a bursary's card shows its funder's own logo, and the banner
+adds "Funder logos are shown for this demo only. UniversityFlow is not affiliated with or endorsed
+by these funders." (`en.funding.demoLogosNotice`). Each file is the funder's own, downloaded on
+2026-10-25 from the URL below on its own website, a raster one only resized (at most 256 px and
+30 KB, WebP), an SVG as it is. Listed in `apps/web/lib/demo-logos.ts` (`DEMO_FUNDER_LOGOS`); the
+logo scan (packages/catalogue logo-permission.ts, `DEMO_FUNDER_LOGO_DIR`) allows only files named
+by a bursary id the catalogue holds. No funder has granted permission.
+
+| File | Bytes | Source (the funder's own site) |
+|---|---|---|
+| `apps/web/public/demo-logos/funders/isfap.webp` | 9164 | https://www.isfap.org.za/assets/isfap-logo-BunfIPxh.png |
+| `apps/web/public/demo-logos/funders/thuthuka.webp` | 5342 | https://saicawebprstorage.blob.core.windows.net/uploads/Logos/Thuthuka-logo-orange.jpg (SAICA's Thuthuka page) |
+| `apps/web/public/demo-logos/funders/sasol.webp` | 3900 | https://www.sasol.com/sites/default/files/sasol-new-logo_0.png |
+| `apps/web/public/demo-logos/funders/allan-gray-orbis.svg` | 7118 | https://allangrayorbis.org/wp-content/uploads/2023/09/Agof-Logo.svg |
+| `apps/web/public/demo-logos/funders/moshal.svg` | 5924 | the inline SVG logo in the header of https://www.moshalprogram.org.za/ |
+| `apps/web/public/demo-logos/funders/nedbank.svg` | 3809 | https://group.nedbank.co.za/content/dam/nedbank/logo/NEDBANK.svg |
+
+**Not shown:** Funza Lushaka (its site's header is one banner with the Department of Basic
+Education's coat of arms and photographs, not the bursary's logo alone); the FirstRand Empowerment
+Foundation, Investec and the Old Mutual Imfundo Trust (no logo of their own on their own sites
+could be read; their bursary pages are StudyTrust's). **After the hackathon:** the funders' folder
+and `DEMO_FUNDER_LOGOS` go with the universities' (docs/deploy/hackathon-undo-pr.md, B).
 
 ## The demo's extra features: My CV, plan-map words, Read aloud (hackathon exceptions)
 
@@ -583,7 +701,10 @@ the owner knowingly; none applies to the real service.
    What holds it in: adults only (a date of birth under 18 is refused in the data layer, and the
    account deleted at once); only the uid and the email are kept from Google; every account is
    deleted with everything in it **30 days after it was made** (a lazy sweep on each demo start
-   and sign-in; its sessions end at 30 days even before the sweep runs); the CSP admits Firebase
+   and sign-in, and since 2026-10-25 the scheduled sweep of §7, daily; its sessions end at 30 days
+   even before the sweep runs). **The Firebase user itself is not deleted by either sweep**: the
+   server holds no service-account key, so the judge's identity stays in the Firebase project
+   until the owner deletes the users or the project (undo step 3); the CSP admits Firebase
    only on the sign-up page, only with the switch on; the Firebase SDK loads on that page only.
 2. **University logos** on the demo (another item of the same wave): see
    docs/brand/logo-permissions.md for what was permitted and for how long.
@@ -663,7 +784,13 @@ the owner knowingly; none applies to the real service.
   redeploy (the sign-up page, its route and the CSP widening all switch off with them).
 - Delete the accounts: delete the demo's database (below), or run
   `delete from students where id in (select student_id from demo_signups);` against it; then
-  delete the Firebase project (its users go with it). The sweep alone needs visits to run.
+  delete the Firebase project (its users go with it). The scheduled sweep (§7) deletes each
+  account 30 days after it was made without visits, but never the Firebase user, and the promise
+  is kept sooner by deleting them now.
+- The scheduled sweep (§7, a hackathon exception: hackathon-undo-pr.md M): delete `CRON_SECRET`
+  in the demo project, remove the `crons` entry from `apps/web/vercel.json` and the route, and
+  redeploy; or keep both for as long as the demo is up (it deletes only what the demo's words
+  promise).
 - Remove the code: the sign-up page and route, `lib/demo-signup.ts`, the identity verifier, the
   `firebase` dependency, and a migration that drops `demo_signups`.
 - Revert the university logos as their own item says.
@@ -674,6 +801,13 @@ the owner knowingly; none applies to the real service.
   within 24 hours by the sweep, or at once with the demo's database (hackathon-undo-pr.md, H).
 - Put the university learners back on the live adult wording (hackathon-undo-pr.md, I): code only,
   no variable.
+- Put `apps/web/vercel.json` back to `"regions": ["cpt1"]` (hackathon-undo-pr.md, J: the demo's
+  functions in London beside its database, the owner's choice of 2026-10-25 for a fast start).
+  Production refuses to start outside `cpt1` meanwhile, so it cannot launch until this is undone.
+  Because the demo is in London, its front door never says "Your information stays in South
+  Africa": it says real learners' information will, and that this demo runs in London
+  (`en.home.barHereDemo`, `barHereDemoWhere`; production unchanged). Review that wording when J is
+  undone: it stays true while the demo's database is in London.
 
 The whole undo, as a ready-to-open PR with the console steps, the file list, the tests to add and
 a test plan: [hackathon-undo-pr.md](hackathon-undo-pr.md).

@@ -177,6 +177,37 @@ describe('POST /api/demo/start', () => {
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
   });
+
+  it('sweeps while the copy is made, so a judge never waits for the sweep (the slow start, 2026-10-25)', async () => {
+    const { store } = await getServices();
+    let copyStarted: () => void = () => undefined;
+    const started = new Promise<void>((resolve) => {
+      copyStarted = resolve;
+    });
+    const requestOtp = store.requestOtp.bind(store);
+    const otp = vi.spyOn(store, 'requestOtp').mockImplementation((...args) => {
+      copyStarted();
+      return requestOtp(...args);
+    });
+    // The sweep holds on until the copy has begun: done one after the other, it never would.
+    const overlapped: boolean[] = [];
+    const sweep = vi.spyOn(store, 'sweepDemoStudents').mockImplementation(async () => {
+      overlapped.push(
+        await Promise.race([
+          started.then(() => true),
+          new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 3_000)),
+        ]),
+      );
+      return { students: 0, fileKeys: [] };
+    });
+    try {
+      expect((await start(new Browser())).status).toBe(200);
+    } finally {
+      otp.mockRestore();
+      sweep.mockRestore();
+    }
+    expect(overlapped).toEqual([true]);
+  });
 });
 
 describe('POST /api/demo/switch', () => {

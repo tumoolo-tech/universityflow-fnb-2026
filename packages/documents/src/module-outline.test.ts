@@ -317,6 +317,57 @@ describe('confirmedModuleOutlineSchema (hard rule 6)', () => {
     expect(result.error?.issues[0]?.message).toBe('weights-dont-add-up');
   });
 
+  // A1-81: the same rule as admissions' resolveScheme (catalogue weightingProblems), so an
+  // outline confirmed here is never one the module card has to leave out.
+  it('refuses weights that only round to 100 (33.333 × 3), as resolveScheme does', () => {
+    const third = (name: string, kind: 'test' | 'exam') => ({
+      name,
+      kind,
+      weight: 33.333,
+      subminimum: null,
+    });
+    const result = confirmedModuleOutlineSchema.safeParse({
+      ...CONFIRMED,
+      components: {
+        ...CONFIRMED.components,
+        items: [third('Test 1', 'test'), third('Test 2', 'test'), third('Exam', 'exam')],
+      },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe('weights-dont-add-up');
+  });
+
+  it('takes weights whose sum is 100 but for float noise (33.3 + 33.3 + 33.4)', () => {
+    const result = confirmedModuleOutlineSchema.safeParse({
+      ...CONFIRMED,
+      components: {
+        ...CONFIRMED.components,
+        items: [
+          { name: 'Test 1', kind: 'test', weight: 33.3, subminimum: null },
+          { name: 'Test 2', kind: 'test', weight: 33.3, subminimum: null },
+          { name: 'Exam', kind: 'exam', weight: 33.4, subminimum: null },
+        ],
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('refuses two components with one name (case and spacing aside), as resolveScheme does', () => {
+    const result = confirmedModuleOutlineSchema.safeParse({
+      ...CONFIRMED,
+      components: {
+        ...CONFIRMED.components,
+        items: [
+          { name: 'Test', kind: 'test', weight: 20, subminimum: null },
+          { name: ' test ', kind: 'test', weight: 20, subminimum: null },
+          { name: 'Exam', kind: 'exam', weight: 60, subminimum: null },
+        ],
+      },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((i) => i.message)).toContain('duplicate-component-names');
+  });
+
   it('refuses a percentage outside 0–100 and a component with no weight', () => {
     const bad = (item: unknown) =>
       confirmedModuleOutlineSchema.safeParse({

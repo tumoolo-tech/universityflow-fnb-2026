@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  CARD_PAIRS,
   COURSE_ART_PAIRS,
   colorDistance,
   composite,
@@ -334,6 +335,9 @@ describe('tokens', () => {
         ['focus', soft, 'nonText'],
         ['lineStrong', soft, 'nonText'],
         [accent, 'canvas', 'nonText'],
+        // RT-07: the card's tone band with its dark words, and its tone edge on its soft fill.
+        ['onAccent', accent, 'text'],
+        [accent, soft, 'nonText'],
       ]) {
         expect(MAP_TONE_PAIRS).toContainEqual(pair);
       }
@@ -427,18 +431,14 @@ describe('tokens', () => {
   describe('plan map canvas', () => {
     const canvas: Readonly<Record<string, string>> = tokens.canvas;
 
-    it('gives the web the card’s height, the dotted grid, the map widths and the mini-map', () => {
+    it('gives the web the card’s height, the dotted grid, the mini-map and the road', () => {
       const css = toCss();
-      for (const key of [
-        'height',
-        'grid',
-        'dot',
-        'worldRing',
-        'worldWide',
-        'worldRoad',
-        'minimap',
-      ]) {
+      for (const key of ['height', 'grid', 'dot', 'minimap', 'road']) {
         expect(canvas).toHaveProperty(key);
+      }
+      // The picture's size comes from its layout now (2026-10-25), not from fixed widths.
+      for (const key of ['worldRing', 'worldWide', 'worldRoad']) {
+        expect(canvas).not.toHaveProperty(key);
       }
       for (const [key, value] of Object.entries(canvas)) {
         const name = key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
@@ -446,13 +446,9 @@ describe('tokens', () => {
       }
     });
 
-    it('is wide enough inside the card for each picture to lay out', () => {
-      // globals.css lays the picture out from 48rem (64rem for the life map) of the map's own
-      // width, so each map width must be at least that.
-      for (const width of [canvas['worldRing'], canvas['worldRoad']]) {
-        expect(Number.parseFloat(width ?? '0')).toBeGreaterThanOrEqual(48);
-      }
-      expect(Number.parseFloat(canvas['worldWide'] ?? '0')).toBeGreaterThanOrEqual(64);
+    it('the dotted grid is the snap grid: a whole number of pixels, so a moved card lands on a dot', () => {
+      // apps/web map-layout.ts MAP_GRID is 24: 1.5rem at the 16px root.
+      expect(canvas['grid']).toBe('1.5rem');
     });
 
     it('draws a path in over its own duration, stilled for reduced motion', () => {
@@ -461,6 +457,63 @@ describe('tokens', () => {
       expect(css).toContain(`--uf-duration-journey: ${journey};`);
       const reduced = css.slice(css.indexOf('prefers-reduced-motion'));
       expect(reduced).toContain('--uf-duration-journey: 0ms;');
+    });
+  });
+
+  /**
+   * RT-04 (the owner's run-through, 2026-10-25): "I cannot clearly see the separation of the
+   * cards." Every card's edge is a boundary a learner needs to see (WCAG 1.4.11, 3:1 against what
+   * is behind it: the page for a card, the parent card for a card inside it), and a card inside a
+   * card is a different level: another fill, never its parent's, with its own edge.
+   */
+  describe('card levels (RT-04)', () => {
+    const levels = tokens.card.levels;
+
+    it('draws three levels: a card on the page, a card in a card, and a card in that', () => {
+      expect(levels).toHaveLength(3);
+      expect(levels[0]?.behind).toBe('canvas');
+      // Each level sits on the fill of the one before it.
+      for (let i = 1; i < levels.length; i++) {
+        expect(levels[i]?.behind).toBe(levels[i - 1]?.fill);
+      }
+    });
+
+    it.each(CARD_PAIRS)('the card edge %s on %s meets 3:1 (WCAG 1.4.11)', (edge, behind) => {
+      expect(contrastRatio(tokens.color[edge], tokens.color[behind])).toBeGreaterThanOrEqual(
+        tokens.contrast.nonText,
+      );
+    });
+
+    it('holds every level’s edge against what is behind it', () => {
+      for (const { edge, behind } of levels) expect(CARD_PAIRS).toContainEqual([edge, behind]);
+    });
+
+    it.each(levels)('a $fill card on $behind has a fill of its own, a visible step', (level) => {
+      expect(level.fill).not.toBe(level.behind);
+      // ΔE 3: a step anyone sees beside its parent (about 2 is just noticeable).
+      expect(
+        colorDistance(tokens.color[level.fill], tokens.color[level.behind]),
+      ).toBeGreaterThanOrEqual(3);
+    });
+
+    it('is a card edge, not a hairline: the old `line` edge failed against the page', () => {
+      expect(contrastRatio(tokens.color.line, tokens.color.canvas)).toBeLessThan(3);
+      for (const { edge } of levels) expect(edge).not.toBe('line');
+    });
+
+    it('keeps text readable on every level’s fill', () => {
+      for (const { fill } of levels) {
+        expect(TEXT_PAIRS).toContainEqual(['ink', fill]);
+        expect(TEXT_PAIRS).toContainEqual(['inkMuted', fill]);
+        expect(TEXT_PAIRS).toContainEqual(['brand', fill]);
+      }
+    });
+
+    it('gives the web the edge and the card’s shadow as custom properties', () => {
+      const css = toCss();
+      expect(css).toContain(`--uf-color-card-edge: ${tokens.color.cardEdge};`);
+      expect(css).toContain(`--uf-shadow-card: ${tokens.card.shadow};`);
+      expect(css).toContain(`--uf-card-gap: ${tokens.card.gap};`);
     });
   });
 });

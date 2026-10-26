@@ -28,8 +28,14 @@ export const tokens = {
     ink: '#F4F2F5',
     /** Secondary text: light grey (the poster's body grey, lightened for AA). */
     inkMuted: '#B9B4BC',
-    /** Hairlines: white at about 10% on a card. */
+    /** Hairlines: white at about 10% on a card. Decorative only: a divider, never a card's edge. */
     line: '#2E2C32',
+    /**
+     * A card's edge (RT-04, 2026-10-25): a mauve-grey 1px boundary at 3:1 against everything a
+     * card can sit on (the page, a parent card, a tile), so every card reads as its own unit.
+     * Lighter than `line`, a step under `lineStrong` (a control's thicker outline).
+     */
+    cardEdge: '#726A78',
     /** Control borders and outlined pills: 3:1 on every dark ground. */
     lineStrong: '#78727D',
     /** The one accent: dusty mauve. Buttons, the current nav pill, links. */
@@ -158,6 +164,24 @@ export const tokens = {
     band: '4rem',
     height: '13rem',
   },
+  /**
+   * Cards (RT-04): how each level of card is drawn, outermost first. A card on the page, a card in
+   * a card (a step lighter, its own edge), and a card in that (back to the card's fill): never
+   * its parent's fill. `CARD_PAIRS` holds every edge to 3:1 against what is behind it (WCAG
+   * 1.4.11). `shadow`: a soft lift under a card on the page (a lit top edge and a dark fall-off),
+   * decoration only (the edge carries the boundary). `gap`: the space between sibling cards in
+   * a list or a grid, the page's own gap (24px), wider than the space between a card's own parts.
+   */
+  card: {
+    levels: [
+      { fill: 'surface', edge: 'cardEdge', behind: 'canvas' },
+      { fill: 'surfaceSunk', edge: 'cardEdge', behind: 'surface' },
+      { fill: 'surface', edge: 'cardEdge', behind: 'surfaceSunk' },
+    ],
+    shadow:
+      'inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.6), 0 8px 24px -8px rgba(0, 0, 0, 0.7)',
+    gap: '1.5rem',
+  },
   /** Spacing scale, in rem. */
   space: {
     '0': '0',
@@ -283,18 +307,15 @@ export const tokens = {
   /**
    * My plan maps' canvas (2026-10-24): the picture on a card the learner pans and zooms (web
    * only). `height`: the card's window onto the map, from a 360px phone up; `grid` and `dot`: the
-   * dotted ground's spacing at 100% and each dot's radius; `worldRing`, `worldWide`, `worldRoad`:
-   * the width each picture is laid out at inside the card (the ring and the cloud; the staircase
-   * and the life map; the road), each at least the width its picture switches on at; `minimap`:
-   * the corner map's width; `road`: the road's width at 100%.
+   * dotted ground's spacing at 100% and each dot's radius (`grid` is also the snap grid a moved
+   * card lands on, RT-08); `minimap`: the mini-map's width; `road`: the road's width at 100%.
+   * The picture's own size comes from its layout (apps/web map-layout.ts), not from here
+   * (2026-10-25: the `worldRing`, `worldWide` and `worldRoad` widths went with the CSS grids).
    */
   canvas: {
-    height: 'clamp(22rem, 68dvh, 44rem)',
+    height: 'clamp(22rem, 75dvh, 44rem)',
     grid: '1.5rem',
     dot: '1.5px',
-    worldRing: '60rem',
-    worldWide: '64rem',
-    worldRoad: '54rem',
     minimap: '8rem',
     road: '2.75rem',
   },
@@ -336,6 +357,9 @@ export const TEXT_PAIRS: ReadonlyArray<readonly [ColorToken, ColorToken]> = [
   ['onBrand', 'brand'],
   ['onBrand', 'brandHover'],
   ['onAccent', 'accent'],
+  /** A plan map's middle (RT-07, 2026-10-25): the thinking cloud in cyan, the life map's circle in ink. */
+  ['onAccent', 'mapTone3'],
+  ['onAccent', 'ink'],
   /** The danger button (account deletion), web and native. */
   ['onBrand', 'danger'],
   ['success', 'successSoft'],
@@ -386,7 +410,17 @@ export const NON_TEXT_PAIRS: ReadonlyArray<readonly [ColorToken, ColorToken]> = 
   ['focus', 'stageBottom'],
   /** The marks chart's line and points on a card. */
   ['accent', 'surface'],
+  /** A plan map's progress ring round its middle, on the canvas (RT-07, 2026-10-25). */
+  ['success', 'canvas'],
 ];
+
+/**
+ * Every card edge against what is behind it (RT-04, WCAG 1.4.11: 3:1), generated from
+ * `card.levels` so a new level cannot skip a test: [edge, behind].
+ */
+export const CARD_PAIRS: ReadonlyArray<readonly [ColorToken, ColorToken]> = tokens.card.levels.map(
+  ({ edge, behind }) => [edge, behind] as const,
+);
 
 export type ProfileThemeId = keyof typeof tokens.profileThemes;
 
@@ -432,6 +466,15 @@ export const MAP_TONE_PAIRS: ReadonlyArray<readonly [ColorToken, ColorToken, 'te
     ['focus', soft, 'nonText'] as const,
     ['lineStrong', soft, 'nonText'] as const,
     [accent, 'canvas', 'nonText'] as const,
+    /**
+     * The canvas's cards (RT-07, 2026-10-25): a card's heading band is its tone, as the owner's
+     * pastel reference cards, with the dark `onAccent` words and number on it; the card's edge
+     * and its branch in the tone, at 3:1 on the canvas (above) and on the card's own soft fill.
+     */
+    ['onAccent', accent, 'text'] as const,
+    [accent, soft, 'nonText'] as const,
+    /** The road's milestone markers, in the tone, on the charcoal road (stageBottom). */
+    [accent, 'stageBottom', 'nonText'] as const,
   ]);
 
 /**
@@ -565,6 +608,7 @@ export function toCss(): string {
     lines.push(`  --uf-course-art-${kebab(k)}: ${v};`);
   for (const [k, v] of Object.entries(tokens.canvas))
     lines.push(`  --uf-canvas-${kebab(k)}: ${v};`);
+  lines.push(`  --uf-shadow-card: ${tokens.card.shadow};`, `  --uf-card-gap: ${tokens.card.gap};`);
   lines.push(`  --uf-font: ${tokens.font.family};`);
   lines.push(`  --uf-target: ${tokens.target};`);
   lines.push(`  --uf-target-pointer: ${tokens.targetPointer};`);

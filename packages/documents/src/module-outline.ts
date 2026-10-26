@@ -1,4 +1,9 @@
-import { MODULE_TERMS, type ModuleTerm } from '@universityflow/catalogue';
+import {
+  duplicateComponentNames,
+  MODULE_TERMS,
+  type ModuleTerm,
+  weightsAddUpTo100,
+} from '@universityflow/catalogue';
 import { z } from 'zod';
 import { cleanCondition, isIsoDate } from './letter';
 import { MODULE_CODE, termFromPrinted } from './registration';
@@ -405,7 +410,10 @@ export function draftFromModuleOutline(extracted: ExtractedModuleOutline): Modul
   const kept = keep(components, L.components);
   if (kept.length === 0) warnings.add('no-components');
   const total = kept.length === 0 ? null : weightsTotal(kept.map((c) => c.weight));
-  if (total !== null && total !== 100) warnings.add('weights-dont-add-up');
+  // The confirm schema's rule (A1-81), not the rounded total shown beside it.
+  if (total !== null && !weightsAddUpTo100(kept.map((c) => c.weight as number))) {
+    warnings.add('weights-dont-add-up');
+  }
 
   const dates: DraftOutlineDate[] = [];
   for (const d of extracted.dates) {
@@ -525,7 +533,12 @@ const componentSchema = z
 
 const NOT_IN_OUTLINE = z.object({ status: z.literal('not-in-outline') }).strict();
 
-/** Hard rule 6: weights that don't add up to 100 are refused, never rescaled. */
+/**
+ * Hard rule 6: weights that don't add up to 100 are refused, never rescaled. The rule is the
+ * catalogue's (`weightsAddUpTo100`, `duplicateComponentNames`), the one `resolveScheme` applies
+ * (A1-81): an exact sum (33.333 × 3 is not 100) and one name per component, so a confirmed outline
+ * is never one the module card can't use. Migration 0042 holds the database to it too.
+ */
 const confirmedComponents = z
   .object({
     status: z.literal('confirmed'),
@@ -537,8 +550,12 @@ const confirmedComponents = z
     supplementaryQuote: optionalText(OUTLINE_LIMITS.quote),
   })
   .strict()
-  .refine((c) => weightsTotal(c.items.map((i) => i.weight)) === 100, {
+  .refine((c) => weightsAddUpTo100(c.items.map((i) => i.weight)), {
     message: 'weights-dont-add-up',
+    path: ['items'],
+  })
+  .refine((c) => duplicateComponentNames(c.items.map((i) => i.name)).length === 0, {
+    message: 'duplicate-component-names',
     path: ['items'],
   });
 

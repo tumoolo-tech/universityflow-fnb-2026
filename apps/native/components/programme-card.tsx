@@ -54,12 +54,20 @@ export function ProgrammeCard({ result }: { result: ProgrammeResult }) {
         {result.faculty}
       </Body>
       <Body pair="card" strong>
-        {en.results.yourScore(result.scoreLabel, result.score, result.scoreMaximum)}
+        {en.results.scoreOn(
+          result.universityName,
+          result.scoreLabel,
+          result.score,
+          result.scoreMaximum,
+        )}
       </Body>
+      {/* How the score stands against the course's minimum (RT-03). */}
       <Body pair="card">
         {result.requiredScore === null
           ? en.results.noMinimum
-          : en.results.needed(result.scoreLabel, result.requiredScore)}
+          : result.score >= result.requiredScore
+            ? `${en.results.asksAtLeast(result.requiredScore)} · ${en.results.above(result.score - result.requiredScore)}`
+            : en.results.asksAtLeast(result.requiredScore)}
       </Body>
       {gaps.map((gap) => (
         <Body key={gap} pair="card">

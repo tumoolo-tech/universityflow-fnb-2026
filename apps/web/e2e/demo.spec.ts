@@ -371,6 +371,19 @@ for (const width of [360, 1280]) {
       });
     }
 
+    // The demo is in London (hackathon exception J): it never says "stays in South Africa".
+    test('the front door says real learners’ information will stay in South Africa, and the demo runs in London', async ({
+      page,
+    }) => {
+      await page.goto('/');
+      const bar = page.getByRole('region', { name: en.home.barLabel });
+      await expect(bar.getByText(en.home.barHereDemo, { exact: true })).toBeVisible();
+      await expect(bar.getByText(en.home.barHereDemoWhere, { exact: true })).toBeVisible();
+      await expect(page.getByText(/stays in South Africa/)).toHaveCount(0);
+      expect(await sideways(page)).toBeLessThanOrEqual(0);
+      await expectAccessible(page);
+    });
+
     test('/sign-in says what the demo is, offers both ways in, and has no phone form', async ({
       page,
     }) => {

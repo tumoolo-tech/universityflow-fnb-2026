@@ -363,6 +363,47 @@ describe('markNeeded: worked examples', () => {
     );
   });
 
+  // A1-82: "not published" never becomes "none" (gotcha 40), and no "secured" beside a DP not met.
+  it('already secured says when the exam subminimum isn’t published, and when the DP isn’t met', () => {
+    const sixtyForty = (extra: Partial<ConfirmedOutlineScheme> = {}) =>
+      scheme(
+        {
+          components: [C('Tests', 'test', 60), C('Exam', 'exam', 40)],
+          yearMarkWeight: 60,
+          examWeight: 40,
+          ...extra,
+        },
+        PASS_50,
+      );
+    // 90% of 60 is 54: the pass mark is reached on coursework alone.
+    expect(markNeeded(sixtyForty(), marks(['Tests', 90]), PASS).readings[0]?.result).toEqual({
+      kind: 'already-secured',
+      examSubminimum: 'not-published',
+    });
+    // A DP of 95% the coursework doesn't reach: the learner may not write the exam at all.
+    expect(
+      markNeeded(sixtyForty({ dpRequirement: { minimumYearMark: 95 } }), marks(['Tests', 90]), PASS)
+        .readings[0]?.result,
+    ).toEqual({
+      kind: 'already-secured',
+      examSubminimum: 'not-published',
+      examAdmission: 'not-met',
+    });
+    // A DP that is met says nothing more.
+    expect(
+      markNeeded(sixtyForty({ dpRequirement: { minimumYearMark: 50 } }), marks(['Tests', 90]), PASS)
+        .readings[0]?.result,
+    ).toEqual({ kind: 'already-secured', examSubminimum: 'not-published' });
+    // A module with no exam has no exam subminimum to wonder about.
+    const continuous = scheme(
+      { components: [C('Essay 1', 'assignment', 50), C('Essay 2', 'assignment', 50)] },
+      PASS_50,
+    );
+    expect(
+      markNeeded(continuous, marks(['Essay 1', 100], ['Essay 2', 60]), PASS).readings[0]?.result,
+    ).toEqual({ kind: 'already-secured' });
+  });
+
   it('refuses a target outside 0–100', () => {
     expect(() => markNeeded(FORTY_SIXTY, {}, own(101))).toThrow(InvalidAssessmentMarksError);
   });
@@ -407,6 +448,23 @@ describe('supplementaryOutlook', () => {
     expect(supplementaryOutlook(noPass, 47)).toEqual(
       expect.objectContaining({ kind: 'unknown', reason: 'pass-mark-not-published' }),
     );
+  });
+
+  // A1-85: a range printed in whole percents covers the marks between them: "45–49%" with a pass
+  // mark of 50 takes 49.3, as it takes 49.
+  it('a printed upper bound covers everything below the next whole percent, and below the pass mark', () => {
+    const s = supp({ eligibleFinalMark: { from: 45, to: 49 } });
+    expect(supplementaryOutlook(s, 49.3).kind).toBe('may-qualify');
+    expect(supplementaryOutlook(s, 49.99).kind).toBe('may-qualify');
+    expect(supplementaryOutlook(s, 50).kind).toBe('above-range');
+    // "40–44%" stops before 45, pass mark or not.
+    const low = supp({ eligibleFinalMark: { from: 40, to: 44 } });
+    expect(supplementaryOutlook(low, 44.5).kind).toBe('may-qualify');
+    expect(supplementaryOutlook(low, 45).kind).toBe('above-range');
+    // A bound printed with decimals is taken as printed.
+    const exact = supp({ eligibleFinalMark: { from: 45, to: 49.5 } });
+    expect(supplementaryOutlook(exact, 49.5).kind).toBe('may-qualify');
+    expect(supplementaryOutlook(exact, 49.6).kind).toBe('above-range');
   });
 
   it('gotcha 40: no cap printed means the result is not published, never "capped at 50"', () => {

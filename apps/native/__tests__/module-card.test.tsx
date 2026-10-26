@@ -1,8 +1,16 @@
-import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { en } from '@universityflow/content/app';
-import type { ModuleCardData } from '@universityflow/ui';
+import {
+  calculate,
+  calculatorFields,
+  calculatorWords,
+  initialValues,
+  type ModuleCardData,
+} from '@universityflow/ui';
 import { router, useLocalSearchParams } from 'expo-router';
+import { AccessibilityInfo, Platform } from 'react-native';
 import ModuleCardScreen from '../app/module/[code]';
+import { MARK_ANNOUNCE_DELAY_MS, markKeyboard } from '../components/mark-calculator';
 import { MyModulesCard } from '../components/my-modules-card';
 import { formatDate } from '../lib/format';
 import { saveToken } from '../lib/session';
@@ -163,6 +171,71 @@ describe('the module card screen', () => {
       ],
       target: null,
     });
+  });
+
+  it('a mark field opens a keyboard that can type “18/24”: a decimal pad has no “/” (A7-24)', async () => {
+    expect(markKeyboard('ios')).toBe('numbers-and-punctuation');
+    expect(markKeyboard('android')).toBe('default');
+    serve({ [PATH]: { json: card() } });
+    const screen = await render(<ModuleCardScreen />);
+    await waitFor(() => expect(screen.getByTestId('mark-calculator')).toBeTruthy());
+    for (const id of ['mark-0:1', 'mark-1:1', 'mark-2:1']) {
+      const field = screen.getByTestId(id);
+      expect(field.props.keyboardType).toBe(markKeyboard(Platform.OS));
+      expect(field.props.autoCorrect).toBe(false);
+      expect(field.props.autoCapitalize).toBe('none');
+    }
+    // The target is a percentage only: the decimal pad is right for it.
+    expect(screen.getByTestId('mark-target').props.keyboardType).toBe('decimal-pad');
+  });
+
+  it('says what the marks mean once, after typing stops, on one channel (A7-25)', async () => {
+    const said = jest
+      .spyOn(AccessibilityInfo, 'announceForAccessibility')
+      .mockImplementation(() => {});
+    // The preset's AccessibilityInfo is already a mock: only this test's calls count.
+    said.mockClear();
+    jest.useFakeTimers();
+    try {
+      serve({ [PATH]: { json: card() } });
+      const screen = await render(<ModuleCardScreen />);
+      await waitFor(() => expect(screen.getByTestId('mark-calculator')).toBeTruthy());
+      const words = calculatorWords();
+      const scheme = card().scheme;
+      const summaryOf = (test1: string) => {
+        const values = initialValues(calculatorFields(scheme, words).fields, card().marks);
+        return calculate({ scheme, values: { ...values, '0:1': test1 }, target: '' }, words)
+          .summary;
+      };
+      const summaries = () =>
+        said.mock.calls
+          .map(([text]) => text)
+          .filter((text) => text !== t.demoSample && text !== c.sampleMarks);
+      // Opening the card says nothing about marks nobody has typed yet.
+      await act(async () => {
+        jest.advanceTimersByTime(MARK_ANNOUNCE_DELAY_MS * 2);
+      });
+      expect(summaries()).toEqual([]);
+      // "6" then "62": one announcement, of "62", once typing stops.
+      await fireEvent.changeText(screen.getByTestId('mark-0:1'), '6');
+      await act(async () => {
+        jest.advanceTimersByTime(MARK_ANNOUNCE_DELAY_MS - 100);
+      });
+      await fireEvent.changeText(screen.getByTestId('mark-0:1'), '62');
+      await act(async () => {
+        jest.advanceTimersByTime(MARK_ANNOUNCE_DELAY_MS - 100);
+      });
+      expect(summaries()).toEqual([]);
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+      expect(summaries()).toEqual([summaryOf('62')]);
+      expect(summaryOf('62')).not.toBe(summaryOf('6'));
+      // No Android live region as well: TalkBack would say it twice.
+      expect(screen.getByTestId('calculator-result').props.accessibilityLiveRegion).toBeUndefined();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('says a module that isn’t theirs isn’t found', async () => {

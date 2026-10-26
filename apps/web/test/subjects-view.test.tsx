@@ -141,8 +141,11 @@ describe('My subjects', () => {
   it('sets each subject chip off from its card, so the names don’t run together (A3-31)', () => {
     render(<SubjectsView data={checked} />);
     const list = screen.getByTestId('subjects-list');
-    // The card is `bg-surface`: a chip of the same colour vanishes into it (measured, A3-31).
-    expect(list.closest('.bg-surface')).toBeTruthy();
+    // The card is a card on the page, `surface` (`.uf-card`, RT-04): a chip of the same colour
+    // vanishes into it (measured, A3-31).
+    const card = list.closest('.uf-card');
+    expect(card).toBeTruthy();
+    expect(card?.parentElement?.closest('.uf-card')).toBeNull();
     for (const li of within(list).getAllByRole('listitem')) {
       const chip = li.firstElementChild as HTMLElement;
       expect(chip.className).not.toMatch(/\bbg-surface\b/);

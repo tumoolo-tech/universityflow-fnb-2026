@@ -20,6 +20,7 @@
   --color-muted: var(--uf-color-ink-muted);
   --color-line: var(--uf-color-line);
   --color-line-strong: var(--uf-color-line-strong);
+  --color-card-edge: var(--uf-color-card-edge);
   --color-brand: var(--uf-color-brand);
   --color-brand-hover: var(--uf-color-brand-hover);
   --color-on-brand: var(--uf-color-on-brand);
@@ -504,7 +505,8 @@
     background:
       radial-gradient(var(--uf-shape-haze-card), var(--uf-glass-haze), transparent 70%),
       var(--uf-color-surface);
-    border: var(--uf-border-thin) solid var(--uf-color-line);
+    /* The card edge, at 3:1 on the page (RT-04). */
+    border: var(--uf-border-thin) solid var(--uf-color-card-edge);
   }
 
   /* The current nav pill: mauve fading to nothing (GLASS_PAIRS: pill). */
@@ -932,6 +934,85 @@
       outline-color: Highlight;
     }
   }
+
+  /*
+   * cards3: every card is its own unit (RT-04, the owner's run-through, 2026-10-25). `Card`
+   * (components/ui.tsx) draws its fill, edge and shadow from here, so a card inside a card can
+   * take the next level (tokens.card.levels): the page's card is `surface`, a card in it
+   * `surfaceSunk`, a card in that `surface` again, each with the `cardEdge` at 3:1 against what is
+   * behind it (CARD_PAIRS, WCAG 1.4.11). After `.uf-glow-card`, which keeps its own glow fill.
+   * A tile inside a card is a `.uf-panel` (`panelLook`): the sunk fill with the same edge.
+   * Nothing moves: the shadow is still, so reduced motion has nothing to stop. Held by
+   * test/card-separation.test.tsx.
+   */
+  .uf-card {
+    border-color: var(--uf-color-card-edge);
+    box-shadow: var(--uf-shadow-card);
+  }
+
+  .uf-card:not(.uf-glow-card) {
+    background-color: var(--uf-color-surface);
+  }
+
+  .uf-card .uf-card {
+    background-color: var(--uf-color-surface-sunk);
+    box-shadow: none;
+  }
+
+  .uf-card .uf-card .uf-card {
+    background-color: var(--uf-color-surface);
+  }
+
+  .uf-panel {
+    border: var(--uf-border-thin) solid var(--uf-color-card-edge);
+  }
+
+  /* A card's title, alone at its top or in its head, is set off from the body by a hairline. */
+  .uf-card > h2:first-child,
+  .uf-card > .uf-card-head {
+    padding-block-end: var(--uf-space-3);
+    border-block-end: var(--uf-border-thin) solid var(--uf-color-line);
+  }
+
+  /*
+   * The funding card (components/funding-card.tsx, RT-05): the deadline in a panel with the
+   * accent's side rule (brand on the panel, NON_TEXT_PAIRS brand on surfaceSunk), its label a
+   * caps caption; the key facts as chips that wrap into columns, each with the card edge.
+   */
+  .uf-funding-deadline {
+    border-inline-start: var(--uf-border-rule) solid var(--uf-color-brand);
+  }
+
+  .uf-funding-deadline[data-state="closed"],
+  .uf-funding-deadline[data-state="unknown"] {
+    border-inline-start-color: var(--uf-color-line-strong);
+  }
+
+  .uf-funding-label {
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-medium);
+    line-height: var(--uf-leading-normal);
+    letter-spacing: var(--uf-tracking-wide);
+    text-transform: uppercase;
+    color: var(--uf-color-ink-muted);
+  }
+
+  .uf-funding-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: var(--uf-space-2);
+  }
+
+  .uf-funding-fact {
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-1);
+    padding: var(--uf-space-2) var(--uf-space-3);
+    border-radius: var(--uf-radius-md);
+    border: var(--uf-border-thin) solid var(--uf-color-card-edge);
+  }
+
+  /* end cards3 */
 }
 
 @keyframes uf-draw {
@@ -987,6 +1068,11 @@
  * short-screen rule can change them.
  */
 @layer components {
+  /* The signed-in shell is at least one screen tall; the chat makes it exactly one (RT-01). */
+  .uf-app {
+    min-height: 100dvh;
+  }
+
   .uf-sidebar {
     scrollbar-width: thin;
   }
@@ -1034,6 +1120,10 @@
       padding: var(--uf-space-5) var(--uf-space-6) var(--uf-space-2);
       /* The name starts where the links' icons and the group names do: the nav's inset plus a link's. */
       padding-inline: calc(var(--uf-space-3) + var(--uf-space-4));
+    }
+
+    .uf-sidebar {
+      height: 100dvh;
     }
 
     .uf-nav {
@@ -1099,6 +1189,30 @@
     }
   }
 
+  /*
+   * From a laptop's width the page is one screen, the demo's or staging's banner included: the
+   * app takes what the banner leaves, rather than a whole screen under it (RT-01). A phone keeps
+   * the app a whole screen and lets the banner scroll away, or the banner would take a third of
+   * the conversation's room.
+   */
+  @media (min-height: 30rem) and (min-width: 64rem) {
+    body:has(.uf-chat) {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+    }
+
+    .uf-app:has(.uf-chat) {
+      flex: 1 1 0;
+      height: auto;
+      min-height: 0;
+    }
+
+    .uf-app:has(.uf-chat) .uf-sidebar {
+      height: auto;
+    }
+  }
+
   /* The preview notice gives way to the chat; the composer says "no AI connected" itself. */
   .uf-app:has(.uf-chat) .uf-preview {
     display: none;
@@ -1110,7 +1224,13 @@
     padding-bottom: var(--uf-space-3);
   }
 
+  /*
+   * Positioned, so what is placed absolutely inside a reply (every `.sr-only` word of a campus
+   * card) is clipped by this scroll, not laid against the page, which it grew by thousands of
+   * pixels (RT-01).
+   */
   .uf-chat-scroll {
+    position: relative;
     min-height: 0;
     scrollbar-width: thin;
   }
@@ -1523,12 +1643,41 @@
 @layer components {
   /* plan-maps: My plan maps (app/(app)/goals/maps/[id]/plan-map-view.tsx) */
 
+  /*
+   * The fixed slots a card in the picture is built from (map-layout.ts `SLOT`, px at the 16px
+   * root; the view test holds these equal to it): every text slot is a set number of lines of
+   * `--uf-map-line` (space.5, 24px), clamped there, so a card's height is a sum the server knows
+   * (MAPS-05, A4-21) and the picture scales with the learner's font size, in rem.
+   */
   .uf-map {
+    --uf-map-line: var(--uf-space-5);
+    --uf-map-slot-pad: var(--uf-space-4);
+    --uf-map-slot-border: var(--uf-border-thick);
+    --uf-map-slot-gap: var(--uf-space-2);
+    --uf-map-slot-head: var(--uf-target);
+    --uf-map-slot-status: calc(var(--uf-space-5) + var(--uf-space-1));
+    --uf-map-slot-note: calc(var(--uf-space-5) * 3);
+    --uf-map-slot-reflect: var(--uf-space-7);
+    --uf-map-slot-target: var(--uf-space-5);
+    --uf-map-slot-link: var(--uf-target);
+    --uf-map-slot-step: var(--uf-space-6);
+    --uf-map-slot-more: var(--uf-space-5);
+    --uf-map-slot-actions: var(--uf-target);
+    --uf-map-slot-hub-pad: var(--uf-space-3);
+    --uf-map-slot-hub-heading: calc(var(--uf-space-5) + var(--uf-space-1));
+    --uf-map-slot-hub-note: var(--uf-space-7);
+    --uf-map-slot-hub-goal: calc(var(--uf-space-7) + var(--uf-space-1) + var(--uf-space-5));
+    --uf-map-slot-hub-words: var(--uf-space-5);
+    --uf-map-slot-hub-words-two: calc(var(--uf-space-5) * 2 + var(--uf-space-1));
+    --uf-map-slot-hub-progress: var(--uf-space-5);
+    --uf-map-slot-hub-foot: var(--uf-target);
     position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--uf-space-4);
   }
+
+  /* ── The List: the outline (§8.2), on the page and in the app ─────────────────────────── */
 
   /* M1: the centre settles in once. */
   .uf-map-centre {
@@ -1543,6 +1692,12 @@
     border: var(--uf-border-thick) solid var(--uf-color-line-strong);
     background: var(--uf-color-surface);
     animation: uf-map-settle var(--uf-duration-enter) var(--uf-easing-enter) both;
+  }
+
+  .uf-map-centre-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--uf-space-2);
   }
 
   .uf-map-branches,
@@ -1575,7 +1730,8 @@
     gap: var(--uf-space-2);
     padding: var(--uf-space-3);
     border-radius: var(--uf-radius-md);
-    border: var(--uf-border-thin) solid var(--uf-color-line);
+    /* The card edge, at 3:1 on the canvas card and the page (RT-04). */
+    border: var(--uf-border-thin) solid var(--uf-color-card-edge);
     background: var(--uf-color-surface);
   }
 
@@ -1584,16 +1740,30 @@
     border-inline-start: var(--uf-border-rule) solid var(--uf-map-tone, var(--uf-color-line-strong));
   }
 
-  .uf-map-heading {
+  .uf-map-head {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     gap: var(--uf-space-2);
+    min-width: 0;
+  }
+
+  .uf-map-heading {
+    min-width: 0;
     font-size: var(--uf-text-lg);
     font-weight: var(--uf-weight-bold);
+    line-height: var(--uf-leading-tight);
   }
 
   .uf-map-number {
+    flex-shrink: 0;
+    color: var(--uf-map-tone, var(--uf-color-ink));
+    font-weight: var(--uf-weight-bold);
+  }
+
+  .uf-map-slot-icon {
+    flex-shrink: 0;
+    width: var(--uf-space-5);
+    height: var(--uf-space-5);
     color: var(--uf-map-tone, var(--uf-color-ink));
   }
 
@@ -1603,14 +1773,21 @@
     color: var(--uf-color-ink-muted);
   }
 
-  .uf-map-status {
+  .uf-map-meta {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--uf-space-2);
-    font-weight: var(--uf-weight-medium);
   }
 
   /* Status is a word and an icon, never colour alone (§7); Not achieved is neutral (D7). */
+  .uf-map-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--uf-space-1);
+    font-weight: var(--uf-weight-medium);
+  }
+
   .uf-map-icon {
     flex-shrink: 0;
     fill: none;
@@ -1697,10 +1874,6 @@
     padding-top: var(--uf-space-2);
   }
 
-  .uf-map-lines {
-    display: none;
-  }
-
   /* Picture or List, at every width: the picture sits on its canvas card from a 360px phone up. */
   .uf-map-toggle {
     display: flex;
@@ -1709,245 +1882,813 @@
     gap: var(--uf-space-2);
   }
 
-  .uf-map-line {
+  .uf-map-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--uf-space-2);
+  }
+
+  /* The card's Move button (RT-08): the keyboard's way to move it, a 44px round target. */
+  .uf-map-move {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--uf-target);
+    height: var(--uf-target);
+    flex-shrink: 0;
+    border-radius: var(--uf-radius-full);
+    border: var(--uf-border-thick) solid var(--uf-color-line-strong);
+    background: var(--uf-color-surface);
+    color: var(--uf-color-ink);
+    cursor: pointer;
+  }
+
+  .uf-map-move:hover {
+    border-color: var(--uf-color-brand);
+  }
+
+  .uf-map-move[aria-pressed="true"] {
+    border-color: var(--uf-color-brand);
+    background: var(--uf-color-brand);
+    color: var(--uf-color-on-brand);
+  }
+
+  .uf-map-move svg,
+  .uf-map-pad-btn svg {
     fill: none;
-    stroke: var(--uf-color-line-strong);
+    stroke: currentColor;
     stroke-width: 2;
-    vector-effect: non-scaling-stroke;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Move mode's pad under the canvas's window (MAPS-11, WCAG 2.5.7): four arrows, Put down and
+     Cancel, each a 44px target at full size (never zoomed with the map), wrapping on a phone. */
+  .uf-map-pad {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--uf-space-2);
+    min-width: 0;
+    margin: 0;
+    margin-inline-end: auto;
+    padding: 0;
+    border: 0;
+  }
+
+  .uf-map-pad-btn,
+  .uf-map-pad-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--uf-target);
+    height: var(--uf-target);
+    flex-shrink: 0;
+    border-radius: var(--uf-radius-full);
+    border: var(--uf-border-thick) solid var(--uf-color-line-strong);
+    background: var(--uf-color-surface);
+    color: var(--uf-color-ink);
+    cursor: pointer;
+  }
+
+  .uf-map-pad-text {
+    padding-inline: var(--uf-space-4);
+    font-weight: var(--uf-weight-medium);
+  }
+
+  .uf-map-pad-btn:hover,
+  .uf-map-pad-text:hover {
+    border-color: var(--uf-color-brand);
+  }
+
+  .uf-map-pad-text[data-primary] {
+    border-color: var(--uf-color-brand);
+    background: var(--uf-color-brand);
+    color: var(--uf-color-on-brand);
+  }
+
+  /* The learner's About me words, read live: pills in the middle; the life map's ribbon. */
+  .uf-map-hub-words {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--uf-space-1);
+  }
+
+  .uf-map-hub-word {
+    padding: 0 var(--uf-space-2);
+    border: var(--uf-border-thin) solid currentColor;
+    border-radius: var(--uf-radius-full);
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-medium);
+    line-height: var(--uf-map-line);
+    white-space: nowrap;
+  }
+
+  .uf-map-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--uf-space-2);
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-medium);
+  }
+
+  .uf-map-meter {
+    display: block;
+    width: var(--uf-space-8);
+    height: var(--uf-space-2);
+    border-radius: var(--uf-radius-full);
+    background: color-mix(in srgb, currentColor 20%, transparent);
+    overflow: hidden;
+  }
+
+  .uf-map-meter > span {
+    display: block;
+    height: 100%;
+    background: currentColor;
+  }
+
+  /* ── The Picture (RT-07, RT-08): every part placed by the page, nothing measured ────────── */
+
+  .uf-map[data-view="picture"] {
+    display: block;
+  }
+
+  .uf-map[data-view="picture"] > .uf-map-links {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  /* The middle: its shape drawn round its words (map-art.tsx), the words centred on it. */
+  .uf-map[data-view="picture"] > .uf-map-centre {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  /* The shape's star tips, cloud bumps, ring and flag reach past the box (MAPS-10). */
+  .uf-map[data-view="picture"] .uf-map-hub-art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-centre-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--uf-map-slot-gap);
+    padding: var(--uf-map-slot-hub-pad);
+    text-align: center;
+    /* The one light shape on the board: dark words on it. */
+    color: var(--uf-color-on-accent);
+  }
+
+  .uf-map[data-view="picture"] .uf-map-centre-body > * {
+    max-width: 100%;
+  }
+
+  /* The staircase's summit and the road's goal: a card in the brand's mauve, a flag above. */
+  .uf-map--stairs[data-view="picture"] .uf-map-centre-body,
+  .uf-map--road[data-view="picture"] .uf-map-centre-body {
+    border-radius: var(--uf-radius-lg);
+    background: var(--uf-color-brand);
+    color: var(--uf-color-on-brand);
+  }
+
+  .uf-map[data-view="picture"] .uf-map-centre-body .uf-map-hint,
+  .uf-map[data-view="picture"] .uf-map-centre-body .text-muted {
+    color: inherit;
+    opacity: 0.85;
+  }
+
+  /* The goal's link: one line (24px tall, the least target, WCAG 2.5.8), the whole width to press. */
+  .uf-map-hub-link {
+    display: block;
+    max-width: 100%;
+    height: var(--uf-map-line);
+    line-height: var(--uf-map-line);
+    color: inherit;
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-medium);
+    text-decoration: underline;
+    text-underline-offset: var(--uf-space-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .uf-map-hub-heading {
+    height: var(--uf-map-slot-hub-heading);
+    font-size: var(--uf-text-lg);
+    font-weight: var(--uf-weight-bold);
+    line-height: var(--uf-map-slot-hub-heading);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-goal {
+    height: var(--uf-map-slot-hub-goal);
+    overflow: hidden;
+  }
+
+  /* In the picture only (MAPS-24): the List shows the whole course name. */
+  .uf-map[data-view="picture"] .uf-map-goal-line {
+    height: var(--uf-space-7);
+    font-size: var(--uf-text-sm);
+    line-height: var(--uf-map-line);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-hub-words {
+    height: var(--uf-map-slot-hub-words);
+    align-content: flex-start;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-hub-words[data-rows="2"] {
+    height: var(--uf-map-slot-hub-words-two);
+  }
+
+  /* The life map's ribbon across its circle (the owner's fourth picture). */
+  .uf-map--branches[data-view="picture"] .uf-map-hub-words {
+    margin-inline: calc(var(--uf-space-6) * -1);
+    padding-inline: var(--uf-space-5);
+    border-radius: var(--uf-radius-sm);
+    background: var(--uf-color-brand);
+    color: var(--uf-color-on-brand);
+  }
+
+  .uf-map--branches[data-view="picture"] .uf-map-hub-word {
+    border: 0;
+    padding: 0;
+  }
+
+  .uf-map--branches[data-view="picture"] .uf-map-hub-word + .uf-map-hub-word::before {
+    content: "·";
+    margin-inline-end: var(--uf-space-1);
+  }
+
+  /* The foot row: how far along, and (while writing is on) Edit and Add a stop as round buttons. */
+  .uf-map-hub-foot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--uf-space-2);
+    width: 100%;
+    height: var(--uf-map-slot-hub-progress);
+  }
+
+  .uf-map-hub-foot[data-actions] {
+    height: var(--uf-map-slot-hub-foot);
+    justify-content: space-between;
+  }
+
+  .uf-map-hub-foot .uf-map-progress {
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .uf-map-hub-foot .uf-map-meter {
+    width: var(--uf-space-7);
+  }
+
+  .uf-map-hub-foot .uf-map-actions {
+    flex-wrap: nowrap;
+  }
+
+  .uf-map-hub-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--uf-target);
+    height: var(--uf-target);
+    flex-shrink: 0;
+    border-radius: var(--uf-radius-full);
+    border: var(--uf-border-thick) solid var(--uf-color-line-strong);
+    background: var(--uf-color-surface);
+    color: var(--uf-color-ink);
+    cursor: pointer;
+  }
+
+  .uf-map-hub-btn:hover {
+    border-color: var(--uf-color-brand);
+  }
+
+  .uf-map-hub-btn[aria-disabled="true"] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .uf-map-hub-btn svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* The middle's shapes: the starburst, the cloud, the circle with its halo; the ring outside. */
+  .uf-map-hub-shape,
+  .uf-map--ring .uf-map-hub-shape {
+    fill: var(--uf-color-accent);
+    stroke: var(--uf-color-accent);
+    stroke-width: var(--uf-space-1);
+    stroke-linejoin: round;
+  }
+
+  .uf-map--cloud .uf-map-hub-shape {
+    fill: var(--uf-color-map-tone3);
+    stroke: var(--uf-color-map-tone3);
+  }
+
+  .uf-map--branches .uf-map-hub-shape {
+    fill: var(--uf-color-ink);
+    stroke: var(--uf-color-ink);
+    stroke-width: 0;
+  }
+
+  .uf-map-hub-halo {
+    fill: none;
+    stroke: var(--uf-color-brand);
+    stroke-width: var(--uf-border-thick);
+    stroke-dasharray: var(--uf-border-thick) var(--uf-space-2);
+    stroke-linecap: round;
+  }
+
+  /* The ring outside the shape, on the canvas (MAPS-14), 6px wide. */
+  /* The track is a quiet guide (the arc and "n of m achieved" carry the meaning). */
+  .uf-map-hub-track {
+    fill: none;
+    stroke: var(--uf-color-line);
+    stroke-width: calc(var(--uf-space-1) + var(--uf-border-thick));
+  }
+
+  .uf-map-hub-progress {
+    fill: none;
+    stroke: var(--uf-color-success);
+    stroke-width: calc(var(--uf-space-1) + var(--uf-border-thick));
+    stroke-linecap: round;
+    transition-property: stroke-dasharray;
+    transition-duration: var(--uf-duration-enter);
+  }
+
+  .uf-map-hub-pole {
+    fill: none;
+    stroke: var(--uf-color-ink-muted);
+    stroke-width: var(--uf-border-thick);
+    stroke-linecap: round;
+  }
+
+  .uf-map-hub-pennant {
+    fill: var(--uf-color-accent);
+  }
+
+  /* The cards: stickers on the board (the owner's first picture, on the dark ground). */
+  .uf-map[data-view="picture"] > .uf-map-branches {
+    display: block;
+    gap: 0;
+  }
+
+  /* No easing on a card's place as a rule (MAPS-12: a dropped card would jump back and glide); a
+     card moved by the keys glides from dot to dot, and Reset layout re-flows with the FLIP. The
+     lifted card is the pointer's, never the browser's (no selection, no long-press menu). */
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch {
+    position: absolute;
+    margin: 0;
+    z-index: 1;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch[data-moving] {
+    transition-property: left, top;
+    transition-duration: var(--uf-duration-normal);
+    transition-timing-function: var(--uf-easing-enter);
+  }
+
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch > .uf-map-card {
+    height: 100%;
+    gap: var(--uf-map-slot-gap);
+    padding: var(--uf-map-slot-pad);
+    border: var(--uf-map-slot-border) solid var(--uf-map-tone);
+    border-radius: var(--uf-radius-lg);
+    background: var(--uf-map-soft);
+    /* The sticker's hard shadow, in the card's own tone: black on near-black would vanish. */
+    box-shadow: var(--uf-space-1) var(--uf-space-1) 0 0
+      color-mix(in srgb, var(--uf-map-tone) 35%, var(--uf-color-canvas));
+    transition-property: box-shadow, transform;
+    transition-duration: var(--uf-duration-fast);
+  }
+
+  /* The head: a band in the card's tone across its top (the pictures' pastel), dark words on it. */
+  .uf-map[data-view="picture"] .uf-map-branch .uf-map-head {
+    height: var(--uf-map-slot-head);
+    margin: calc(var(--uf-map-slot-pad) * -1) calc(var(--uf-map-slot-pad) * -1) 0;
+    padding: 0 var(--uf-space-3);
+    border-radius: calc(var(--uf-radius-lg) - var(--uf-map-slot-border))
+      calc(var(--uf-radius-lg) - var(--uf-map-slot-border)) 0 0;
+    background: var(--uf-map-tone);
+    color: var(--uf-color-on-accent);
+  }
+
+  .uf-map[data-view="picture"] .uf-map-branch .uf-map-heading {
+    font-size: var(--uf-text-base);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-branch .uf-map-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--uf-space-6);
+    height: var(--uf-space-6);
+    border-radius: var(--uf-radius-full);
+    background: var(--uf-color-canvas);
+    color: var(--uf-map-tone);
+    font-size: var(--uf-text-sm);
+  }
+
+  .uf-map[data-view="picture"] .uf-map-branch .uf-map-slot-icon,
+  .uf-map[data-view="picture"] .uf-map-branch .uf-map-subtitle {
+    color: inherit;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-branch .uf-map-subtitle {
+    opacity: 0.8;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-meta {
+    height: var(--uf-map-slot-status);
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  /* The status chip: an icon and a word; the Achieved chip in success, Not achieved quiet (D7). */
+  .uf-map[data-view="picture"] .uf-map-status {
+    height: var(--uf-map-slot-status);
+    padding: 0 var(--uf-space-3) 0 var(--uf-space-2);
+    border: var(--uf-border-thin) solid var(--uf-color-line-strong);
+    border-radius: var(--uf-radius-full);
+    font-size: var(--uf-text-sm);
+    color: var(--uf-color-ink-muted);
+  }
+
+  .uf-map[data-view="picture"] .uf-map-status[data-status="achieved"] {
+    border-color: var(--uf-color-success);
+    color: var(--uf-color-success);
+  }
+
+  /* "You are here" on the climb and the road: a pill in the card's tone. */
+  .uf-map-here {
+    display: inline-flex;
+    align-items: center;
+    height: var(--uf-map-line);
+    padding: 0 var(--uf-space-2);
+    border-radius: var(--uf-radius-full);
+    background: var(--uf-map-tone);
+    color: var(--uf-color-on-accent);
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-bold);
+    white-space: nowrap;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-note {
+    height: var(--uf-map-slot-note);
+    font-size: var(--uf-text-sm);
+    line-height: var(--uf-map-line);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* In the middle, two lines (the compact hub). */
+  .uf-map[data-view="picture"] .uf-map-centre-body .uf-map-note {
+    height: var(--uf-map-slot-hub-note);
+    -webkit-line-clamp: 2;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-reflect-line {
+    height: var(--uf-map-slot-reflect);
+    line-height: var(--uf-map-line);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-target {
+    height: var(--uf-map-slot-target);
+    line-height: var(--uf-map-line);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-link {
+    display: flex;
+    align-items: center;
+    height: var(--uf-map-slot-link);
+  }
+
+  /* A card's first few steps, as compact rows; the rest, and their editing, in the List. */
+  .uf-map[data-view="picture"] .uf-map-steps {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    gap: 0;
+  }
+
+  .uf-map-step-row {
+    display: flex;
+    align-items: center;
+    gap: var(--uf-space-2);
+    height: var(--uf-map-slot-step);
+    min-width: 0;
+  }
+
+  .uf-map-step-name {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .uf-map-step-status {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  .uf-map-steps-more {
+    display: flex;
+    align-items: center;
+    height: var(--uf-map-slot-more);
+  }
+
+  .uf-map-more-btn {
+    min-height: var(--uf-map-slot-more);
+    color: var(--uf-color-brand);
+    font-size: var(--uf-text-sm);
+    text-decoration: underline;
+    text-underline-offset: var(--uf-space-1);
+    cursor: pointer;
+  }
+
+  .uf-map[data-view="picture"] .uf-map-branch > .uf-map-card > .uf-map-actions {
+    height: var(--uf-map-slot-actions);
+    flex-wrap: nowrap;
+    margin-top: auto;
+  }
+
+  /* A card being edited, or with its menu open, grows over its neighbours and sits on top. */
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch[data-active] {
+    z-index: 5;
+    height: auto;
+    min-height: 0;
+  }
+
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch[data-active] > .uf-map-card {
+    height: auto;
+  }
+
+  .uf-map[data-view="picture"] > .uf-map-centre[data-active] {
+    z-index: 5;
+    height: auto;
+  }
+
+  .uf-map[data-view="picture"] > .uf-map-centre[data-active] .uf-map-centre-body {
+    height: auto;
+  }
+
+  /* A card lifted by the pointer, or in Move mode from its Move button: on top, lifted off the
+     board (a bigger shadow), following the pointer without easing. */
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch[data-drag-id] > .uf-map-card {
+    cursor: grab;
+  }
+
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch[data-lifted],
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch[data-moving] {
+    z-index: 6;
+    transition: none;
+  }
+
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch[data-lifted] > .uf-map-card,
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch[data-moving] > .uf-map-card {
+    cursor: grabbing;
+    box-shadow: var(--uf-space-3) var(--uf-space-3) 0 0
+      color-mix(in srgb, var(--uf-map-tone) 35%, var(--uf-color-canvas));
+  }
+
+  .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch[data-moving] > .uf-map-card {
+    outline: var(--uf-border-thick) dashed var(--uf-color-focus);
+    outline-offset: var(--uf-space-1);
+  }
+
+  /* Visible focus on the board: the ring outside the card, on the ground, never on the tone edge. */
+  .uf-map[data-view="picture"]
+    > .uf-map-branches
+    > .uf-map-branch
+    > .uf-map-card:has(:focus-visible) {
+    outline: var(--uf-border-thick) solid var(--uf-color-focus);
+    outline-offset: var(--uf-space-1);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch[data-lifted] > .uf-map-card {
+      scale: 1.03;
+    }
+  }
+
+  /* The branches: a filled taper or a line in the card's tone, ending on its edge. */
+  .uf-map-link-taper {
+    fill: var(--uf-map-tone);
+  }
+
+  .uf-map-link-line {
+    fill: none;
+    stroke: var(--uf-map-tone);
+    stroke-width: var(--uf-border-thick);
+    stroke-linecap: round;
+    stroke-linejoin: round;
     stroke-dasharray: 1;
     stroke-dashoffset: 0;
-    /* M2: each connector draws itself from the centre outward, once a visit. */
-    animation: uf-map-draw var(--uf-duration-draw) var(--uf-easing-enter) both;
-    animation-delay: calc(var(--i, 0) * var(--uf-duration-fast) / 2);
   }
 
-  /* The picture is laid out by the map's own width (its canvas, plan-map-canvas.tsx, which gives
-   * each picture a set width from tokens.canvas), not the page's: so a phone shows the same
-   * picture, moved and zoomed in its card. Outside a canvas (the List) it is the outline. */
-  @container uf-map-world (min-width: 48rem) {
-    /* A stop's soft fill, in the picture only. */
-    .uf-map[data-view="picture"] .uf-map-branch > .uf-map-card {
-      background: var(--uf-map-soft, var(--uf-color-surface));
-    }
-
-    /* The ring (Six stops) and the cloud: the centre in the middle cell of a 3 by 3 grid, each
-     * stop in its cell clockwise from the top (placed by the page, `grid-area`), so sighted and
-     * keyboard order agree (WCAG 2.4.3). */
-    .uf-map--ring[data-view="picture"],
-    .uf-map--cloud[data-view="picture"] {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      grid-template-rows: repeat(3, minmax(9rem, auto));
-      gap: var(--uf-space-5);
-    }
-
-    .uf-map--ring[data-view="picture"] > .uf-map-centre,
-    .uf-map--cloud[data-view="picture"] > .uf-map-centre {
-      grid-area: 2 / 2;
-      align-self: center;
-    }
-
-    .uf-map--ring[data-view="picture"] > .uf-map-branches,
-    .uf-map--cloud[data-view="picture"] > .uf-map-branches {
-      grid-area: 1 / 1 / 4 / 4;
-      display: grid;
-      grid-template-columns: subgrid;
-      grid-template-rows: subgrid;
-    }
-
-    .uf-map--ring[data-view="picture"] > .uf-map-lines,
-    .uf-map--cloud[data-view="picture"] > .uf-map-lines,
-    .uf-map--branches[data-view="picture"] > .uf-map-lines {
-      display: block;
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
-    /* Six stops: a starburst behind the centre (decoration), cards with a sticker shadow. */
-    .uf-map--ring[data-view="picture"] > .uf-map-centre::before {
-      content: "";
-      position: absolute;
-      inset: calc(var(--uf-space-3) * -1);
-      z-index: -1;
-      background: var(--uf-color-map-tone1-soft);
-      clip-path: polygon(
-        50% 0%,
-        61% 15%,
-        79% 8%,
-        78% 26%,
-        96% 32%,
-        84% 47%,
-        96% 63%,
-        78% 70%,
-        79% 89%,
-        61% 83%,
-        50% 100%,
-        39% 83%,
-        21% 89%,
-        22% 70%,
-        4% 63%,
-        16% 47%,
-        4% 32%,
-        22% 26%,
-        21% 8%,
-        39% 15%
-      );
-    }
-
-    .uf-map--ring[data-view="picture"] .uf-map-branch > .uf-map-card {
-      border: var(--uf-border-thick) solid var(--uf-map-tone, var(--uf-color-line-strong));
-      box-shadow: var(--uf-space-1) var(--uf-space-1) 0 var(--uf-color-line-strong);
-    }
-
-    /* The cloud: a cloud in the middle; notes, ovals and label strips in turn. */
-    .uf-map--cloud[data-view="picture"] > .uf-map-centre {
-      border-radius: 50% 45% 55% 40% / 45% 50% 40% 55%;
-      padding: var(--uf-space-6);
-    }
-
-    .uf-map--cloud[data-view="picture"] .uf-map-branch:where(:nth-child(3n + 2)) > .uf-map-card {
-      border-radius: var(--uf-space-7);
-    }
-
-    .uf-map--cloud[data-view="picture"] .uf-map-branch:where(:nth-child(3n)) > .uf-map-card {
-      border-radius: 0;
-    }
-
-    .uf-map--cloud[data-view="picture"] .uf-map-branch:nth-child(3n) .uf-map-heading {
-      text-transform: uppercase;
-      letter-spacing: var(--uf-tracking-wide);
-    }
-
-    /* The staircase: rows of four steps rising left to right; a step's bar shows how it went. */
-    .uf-map--stairs[data-view="picture"] > .uf-map-branches {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      align-items: end;
-      gap: var(--uf-space-3);
-    }
-
-    .uf-map--stairs[data-view="picture"] .uf-map-branch:nth-child(4n + 1) {
-      margin-top: calc(var(--uf-space-6) * 3);
-    }
-
-    .uf-map--stairs[data-view="picture"] .uf-map-branch:nth-child(4n + 2) {
-      margin-top: calc(var(--uf-space-6) * 2);
-    }
-
-    .uf-map--stairs[data-view="picture"] .uf-map-branch:nth-child(4n + 3) {
-      margin-top: var(--uf-space-6);
-    }
-
-    .uf-map--stairs[data-view="picture"] .uf-map-branch > .uf-map-card {
-      border-bottom: var(--uf-border-rule) solid var(--uf-color-line-strong);
-    }
-
-    .uf-map--stairs[data-view="picture"] .uf-map-branch[data-status="achieved"] > .uf-map-card {
-      border-bottom-color: var(--uf-color-success);
-    }
-
-    /* The road: milestones either side of a dashed road, a marker where each meets it. */
-    .uf-map--road[data-view="picture"] > .uf-map-branches {
-      position: relative;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      column-gap: var(--uf-space-7);
-      row-gap: var(--uf-space-4);
-    }
-
-    .uf-map--road[data-view="picture"] > .uf-map-branches::before {
-      content: "";
-      position: absolute;
-      inset-block: 0;
-      left: 50%;
-      border-left: var(--uf-border-rule) dashed var(--uf-color-line-strong);
-      transform-origin: top;
-      animation: uf-map-road var(--uf-duration-draw) var(--uf-easing-enter) both;
-    }
-
-    .uf-map--road[data-view="picture"] .uf-map-branch:nth-child(odd) {
-      grid-column: 1;
-    }
-
-    .uf-map--road[data-view="picture"] .uf-map-branch:nth-child(even) {
-      grid-column: 2;
-      margin-top: var(--uf-space-7);
-    }
-
-    .uf-map--road[data-view="picture"] .uf-map-branch::after {
-      content: "";
-      position: absolute;
-      top: var(--uf-space-4);
-      width: var(--uf-space-4);
-      height: var(--uf-space-4);
-      border-radius: var(--uf-radius-full);
-      background: var(--uf-map-tone, var(--uf-color-line-strong));
-    }
-
-    .uf-map--road[data-view="picture"] .uf-map-branch:nth-child(odd)::after {
-      right: calc(var(--uf-space-7) / -2 - var(--uf-space-2));
-    }
-
-    .uf-map--road[data-view="picture"] .uf-map-branch:nth-child(even)::after {
-      left: calc(var(--uf-space-7) / -2 - var(--uf-space-2));
-    }
+  .uf-map-link-head {
+    fill: var(--uf-map-tone);
   }
 
-  @container uf-map-world (min-width: 64rem) {
-    /* The life map: the centre in a circle, seven numbered branches around it. */
-    .uf-map--branches[data-view="picture"] {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      grid-template-rows: repeat(3, minmax(9rem, auto));
-      gap: var(--uf-space-5);
-    }
+  .uf-map-link-dot {
+    fill: var(--uf-color-canvas);
+    stroke: var(--uf-map-tone);
+    stroke-width: var(--uf-border-thick);
+  }
 
-    .uf-map--branches[data-view="picture"] > .uf-map-centre {
-      grid-area: 2 / 2;
-      align-self: center;
-      border-radius: var(--uf-radius-full);
-      padding: var(--uf-space-6);
-      text-align: center;
-    }
+  .uf-map-link[data-achieved] .uf-map-link-dot {
+    fill: var(--uf-color-success);
+  }
 
-    .uf-map--branches[data-view="picture"] > .uf-map-branches {
-      grid-area: 1 / 1 / 4 / 4;
-      display: grid;
-      grid-template-columns: subgrid;
-      grid-template-rows: subgrid;
-    }
+  /* The road (the owner's fifth picture): charcoal with a dashed centre line, on a dark edge. */
+  .uf-map-road-edge,
+  .uf-map-road-way,
+  .uf-map-road-line {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
 
-    .uf-map--branches[data-view="picture"] .uf-map-number {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: var(--uf-space-6);
-      min-height: var(--uf-space-6);
-      border-radius: var(--uf-radius-full);
-      border: var(--uf-border-thick) solid var(--uf-map-tone, var(--uf-color-line-strong));
-    }
+  .uf-map-road-edge {
+    stroke: var(--uf-color-canvas);
+    stroke-width: calc(var(--uf-canvas-road) + var(--uf-border-rule));
+  }
+
+  .uf-map-road-way {
+    stroke: var(--uf-color-stage-bottom);
+    stroke-width: var(--uf-canvas-road);
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+
+  .uf-map-road-line {
+    stroke: var(--uf-color-ink-muted);
+    stroke-width: var(--uf-border-thick);
+    stroke-dasharray: var(--uf-space-3) var(--uf-space-3);
+  }
+
+  .uf-map-road-post {
+    fill: none;
+    stroke: var(--uf-color-stage-bottom);
+    stroke-width: var(--uf-border-rule);
+    stroke-linecap: round;
+  }
+
+  .uf-map-road-board {
+    fill: var(--uf-color-surface);
+    stroke: var(--uf-color-line-strong);
+    stroke-width: var(--uf-border-thin);
+  }
+
+  .uf-map-road-text {
+    fill: var(--uf-color-ink);
+    font-family: var(--uf-font-family);
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-bold);
+    letter-spacing: var(--uf-tracking-wide);
+  }
+
+  .uf-map-marker circle {
+    fill: var(--uf-map-tone);
+    stroke: var(--uf-color-canvas);
+    stroke-width: var(--uf-border-thick);
+  }
+
+  .uf-map-marker path {
+    fill: var(--uf-color-on-accent);
+  }
+
+  .uf-map-marker[data-achieved] circle {
+    fill: var(--uf-color-success);
+  }
+
+  /* Sparks from a stop just marked Achieved (a small, removable piece: the owner decides): ten
+     bits in the card's tone and in success, out from the chip and gone. None under reduced
+     motion (not drawn at all, plan-map-view.tsx). */
+  .uf-map-sparks {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    pointer-events: none;
+  }
+
+  .uf-map-spark {
+    position: absolute;
+    width: var(--uf-space-1);
+    height: var(--uf-space-1);
+    background: var(--uf-map-tone);
+    animation: uf-map-spark var(--uf-duration-enter) var(--uf-easing-enter) both;
+  }
+
+  .uf-map-spark[data-shape="round"] {
+    border-radius: var(--uf-radius-full);
+    background: var(--uf-color-success);
   }
 
   /* Forced colours: the tones give way to the system's; the icons and words keep the meaning. */
   @media (forced-colors: active) {
     .uf-map-card,
-    .uf-map-centre {
+    .uf-map-centre,
+    .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch > .uf-map-card {
       border-color: CanvasText;
+      box-shadow: none;
+    }
+
+    .uf-map[data-view="picture"] .uf-map-branch .uf-map-head {
+      background: Highlight;
+      color: HighlightText;
+    }
+
+    .uf-map-hub-shape {
+      fill: Canvas;
+      stroke: CanvasText;
+    }
+
+    .uf-map-link-taper,
+    .uf-map-link-head,
+    .uf-map-marker circle {
+      fill: CanvasText;
+    }
+
+    .uf-map-link-line,
+    .uf-map-road-way,
+    .uf-map-road-line {
+      stroke: CanvasText;
+    }
+
+    .uf-map-spark {
+      display: none;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .uf-map-centre,
     .uf-map-branch,
-    .uf-map-line,
     .uf-map-reflect,
+    .uf-map-spark,
     [data-just="achieved"] > .uf-map-card,
-    [data-just="achieved"] > .uf-map-card .uf-map-tick,
-    .uf-map--road[data-view="picture"] > .uf-map-branches::before {
+    [data-just="achieved"] > .uf-map-card .uf-map-tick {
       animation: none;
+    }
+
+    .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch,
+    .uf-map[data-view="picture"] > .uf-map-branches > .uf-map-branch > .uf-map-card,
+    .uf-map-hub-progress {
+      transition: none;
     }
   }
 
@@ -2024,9 +2765,20 @@
   }
 }
 
-@keyframes uf-map-road {
+/* The sparks on a new Achieved (removable with the `.uf-map-spark*` rules and the Sparks
+   component in plan-map-view.tsx: the owner decides). */
+@keyframes uf-map-spark {
   from {
-    transform: scaleY(0);
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translate(
+        calc(cos(var(--a, 0deg)) * var(--uf-space-7) * var(--k, 1)),
+        calc(sin(var(--a, 0deg)) * var(--uf-space-7) * var(--k, 1))
+      )
+      scale(0.4);
+    opacity: 0;
   }
 }
 
@@ -2321,13 +3073,14 @@
   /* end cards8 */
 
   /* maps: the plan map on a canvas card (app/(app)/goals/maps/[id]/plan-map-canvas.tsx,
-   * 2026-10-24). The card holds a window onto the picture, laid out at its own width
-   * (tokens.canvas), so the `plan-maps` block's container queries draw the picture on a 360px
-   * phone too. Before the page is live the window scrolls natively both ways, so the map reads
-   * without JavaScript; once live (`data-enhanced`) the map moves by one transform, from the
-   * custom properties the canvas writes once a frame, over a dotted ground that moves and scales
-   * with it. Every value a token; every animation stilled under reduced motion. Held by
-   * test/plan-map-canvas.test.tsx. */
+   * 2026-10-24). The card holds a window onto the picture, laid out by the page at its own size
+   * (map-layout.ts: the `plan-maps` block draws the cards where it puts them), so a 360px phone
+   * has the picture too. Before the page is live the server's own script puts the map on its
+   * first view (`data-placed`, A4-21) and the window scrolls natively both ways, so the map
+   * reads without JavaScript; once live (`data-enhanced`) the map moves by one transform, from
+   * the custom properties the canvas writes once a frame, over a dotted ground that moves and
+   * scales with it. The mini-map sits under the window, never over a card (RT-07). Every value a
+   * token; every animation stilled under reduced motion. Held by test/plan-map-canvas.test.tsx. */
   .uf-canvas {
     container: uf-canvas / inline-size;
     position: relative;
@@ -2337,7 +3090,8 @@
     min-width: 0;
     padding: var(--uf-space-2);
     border-radius: var(--uf-radius-lg);
-    border: var(--uf-border-thin) solid var(--uf-color-line);
+    /* The card edge, at 3:1 on the page (RT-04). */
+    border: var(--uf-border-thin) solid var(--uf-color-card-edge);
     background: var(--uf-color-surface);
   }
 
@@ -2380,6 +3134,11 @@
     color: var(--uf-color-brand);
   }
 
+  .uf-canvas-btn[aria-disabled="true"] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   .uf-canvas-icon {
     fill: none;
     stroke: currentColor;
@@ -2409,8 +3168,8 @@
   .uf-canvas-viewport,
   .uf-canvas-stage,
   .uf-canvas-world,
-  .uf-canvas-paths,
-  .uf-canvas-paths path,
+  .uf-map-links,
+  .uf-map-links path,
   .uf-minimap rect {
     transition: none;
   }
@@ -2430,6 +3189,18 @@
     background-position: var(--uf-canvas-margin, 0) var(--uf-canvas-margin, 0);
   }
 
+  /* Far out (under half size) the dots would turn to noise behind the cards: quieter, and only
+     every other one. */
+  .uf-canvas[data-far] .uf-canvas-stage {
+    background-image: radial-gradient(
+      circle,
+      var(--uf-color-line) var(--uf-canvas-dot),
+      transparent calc(var(--uf-canvas-dot) + var(--uf-border-thin))
+    );
+    background-size: calc(var(--uf-canvas-grid) * 2 * var(--uf-canvas-scale, 1))
+      calc(var(--uf-canvas-grid) * 2 * var(--uf-canvas-scale, 1));
+  }
+
   .uf-canvas-viewport:focus-visible {
     outline: var(--uf-border-thick) solid var(--uf-color-focus);
     outline-offset: calc(var(--uf-border-thick) * -1);
@@ -2442,37 +3213,25 @@
     cursor: grab;
   }
 
-  .uf-canvas[data-panning] .uf-canvas-viewport {
+  .uf-canvas[data-panning] .uf-canvas-viewport,
+  .uf-canvas[data-lifting] .uf-canvas-viewport {
     cursor: grabbing;
   }
 
-  /* The picture's own width: the `plan-maps` block lays it out from 48rem (64rem) of this. */
+  /* The picture's own size: set by the page from its layout (map-layout.ts), in rem. */
   .uf-canvas-world {
-    container: uf-map-world / inline-size;
     position: relative;
   }
 
-  .uf-canvas-world--ring,
-  .uf-canvas-world--cloud {
-    width: var(--uf-canvas-world-ring);
-  }
-
-  .uf-canvas-world--stairs,
-  .uf-canvas-world--branches {
-    width: var(--uf-canvas-world-wide);
-  }
-
-  .uf-canvas-world--road {
-    width: var(--uf-canvas-world-road);
-  }
-
-  /* Live: the stage is sized by the canvas (the zoomed map and a window's margin all round); the
-     pan is the window's scroll over it, the zoom one scale. */
-  .uf-canvas[data-enhanced] .uf-canvas-stage {
+  /* Placed (before the page is live) or live: the stage is sized by the canvas (the zoomed map
+     and a window's margin all round); the pan is the window's scroll over it, the zoom one scale. */
+  .uf-canvas[data-enhanced] .uf-canvas-stage,
+  .uf-canvas[data-placed] .uf-canvas-stage {
     position: relative;
   }
 
-  .uf-canvas[data-enhanced] .uf-canvas-world {
+  .uf-canvas[data-enhanced] .uf-canvas-world,
+  .uf-canvas[data-placed] .uf-canvas-world {
     position: absolute;
     top: var(--uf-canvas-margin, 0);
     left: var(--uf-canvas-margin, 0);
@@ -2481,171 +3240,103 @@
   }
 
   /* While a finger or the mouse pans, no text is selected, and the map rides one layer. */
-  .uf-canvas[data-panning] .uf-canvas-world {
+  .uf-canvas[data-panning] .uf-canvas-world,
+  .uf-canvas[data-lifting] .uf-canvas-world {
     user-select: none;
+  }
+
+  .uf-canvas[data-panning] .uf-canvas-world {
     will-change: transform;
   }
 
-  /* The road and the climb line, behind the cards (decoration, measured by the canvas). */
-  .uf-canvas-paths {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 0;
-    overflow: visible;
-    pointer-events: none;
-  }
-
-  .uf-canvas-road,
-  .uf-canvas-road-line,
-  .uf-canvas-climb {
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .uf-canvas-road {
-    stroke: var(--uf-color-surface-sunk);
-    stroke-width: var(--uf-canvas-road);
-  }
-
-  .uf-canvas-road-line {
-    stroke: var(--uf-color-line-strong);
-    stroke-width: var(--uf-border-thick);
-    stroke-dasharray: var(--uf-space-3) var(--uf-space-3);
-  }
-
-  .uf-canvas-climb {
-    stroke: var(--uf-color-brand);
-    stroke-width: var(--uf-border-rule);
-  }
-
-  .uf-canvas-draw {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 0;
-  }
-
-  /* It draws itself in once, when the card first comes into view; the road's centre line after. */
-  .uf-canvas:not([data-seen]) .uf-canvas-draw {
-    stroke-dashoffset: 1;
-  }
-
-  .uf-canvas:not([data-seen]) .uf-canvas-road-line {
+  /* The branches draw themselves in once, when the card first comes into view, in reading order:
+     a tapered branch fades in, a line (the staircase's arrows, the road) draws from its start,
+     each milestone's marker after the road reaches it. */
+  .uf-canvas:not([data-seen]) .uf-map-link,
+  .uf-canvas:not([data-seen]) .uf-map-marker,
+  .uf-canvas:not([data-seen]) .uf-map-road-line {
     opacity: 0;
   }
 
-  .uf-canvas[data-seen] .uf-canvas-draw {
+  .uf-canvas:not([data-seen]) .uf-map-link-line,
+  .uf-canvas:not([data-seen]) .uf-map-road-way {
+    stroke-dashoffset: 1;
+  }
+
+  .uf-canvas[data-seen] .uf-map-link {
+    animation: uf-canvas-fade var(--uf-duration-enter) var(--uf-easing-enter) both;
+    animation-delay: calc(var(--i, 0) * var(--uf-duration-fast) / 2);
+  }
+
+  .uf-canvas[data-seen] .uf-map-link-line {
+    animation: uf-map-draw var(--uf-duration-draw) var(--uf-easing-enter) both;
+    animation-delay: calc(var(--i, 0) * var(--uf-duration-fast) / 2);
+  }
+
+  .uf-canvas[data-seen] .uf-map-road-way {
     animation: uf-map-draw var(--uf-duration-journey) var(--uf-easing-enter) both;
   }
 
-  .uf-canvas[data-seen] .uf-canvas-road-line {
+  .uf-canvas[data-seen] .uf-map-marker,
+  .uf-canvas[data-seen] .uf-map-road-line {
     animation: uf-canvas-fade var(--uf-duration-enter) var(--uf-easing-enter) both;
-    animation-delay: var(--uf-duration-journey);
+    animation-delay: calc(var(--uf-duration-journey) * (var(--i, 0) + 1) / 7);
   }
 
-  /* With the drawn road, the straight dashed one gives way; the milestones sit on the road. */
-  .uf-canvas-world:has(.uf-canvas-road)
-    .uf-map--road[data-view="picture"]
-    > .uf-map-branches::before {
-    display: none;
+  /* Under the window: the mini-map (where the window is on the whole map; a tap or a drag there
+     moves it) and its switch. Docked here, it can never cover a card (RT-07). */
+  .uf-canvas-foot {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: var(--uf-space-2);
+    min-height: var(--uf-target);
   }
 
-  @container uf-map-world (min-width: 48rem) {
-    .uf-canvas-world--road .uf-map--road[data-view="picture"] > .uf-map-branches {
-      column-gap: calc(var(--uf-space-8) * 2);
-    }
-
-    .uf-canvas-world--road .uf-map--road[data-view="picture"] .uf-map-branch:nth-child(odd)::after {
-      right: calc(var(--uf-space-8) * -1 - var(--uf-space-2));
-    }
-
-    .uf-canvas-world--road
-      .uf-map--road[data-view="picture"]
-      .uf-map-branch:nth-child(even)::after {
-      left: calc(var(--uf-space-8) * -1 - var(--uf-space-2));
-    }
-
-    .uf-canvas-world--road .uf-map--road[data-view="picture"] .uf-map-branch::after {
-      box-shadow: 0 0 0 var(--uf-border-thick) var(--uf-color-canvas);
-    }
-
-    /* The goal waits where the road ends and where the stairs lead: top centre, top right. */
-    .uf-canvas-world--road .uf-map--road[data-view="picture"] > .uf-map-centre {
-      align-self: center;
-      max-width: var(--uf-width-form);
-      text-align: center;
-    }
-
-    .uf-canvas-world--stairs .uf-map--stairs[data-view="picture"] > .uf-map-centre {
-      align-self: flex-end;
-      max-width: var(--uf-width-form);
-    }
+  /* While a card is in Move mode the foot (its pad) keeps to the screen's foot as long as the
+     canvas is on screen, so a phone never has to scroll between the card and the pad (MAPS-11). */
+  .uf-canvas-foot:has(.uf-map-pad) {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding-block: var(--uf-space-2) calc(var(--uf-space-2) + env(safe-area-inset-bottom, 0px));
+    background: var(--uf-color-surface);
   }
 
-  /* A part lifts under the pointer or the keyboard; one done glows softly; one planned is dashed,
-     so how it went reads without colour too (with the word and the icon). */
-  .uf-canvas .uf-map-card,
-  .uf-canvas .uf-map-centre {
-    transition-property: transform, box-shadow;
-    transition-duration: var(--uf-duration-normal);
-    transition-timing-function: var(--uf-easing-enter);
+  .uf-canvas-foot-btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--uf-target);
+    padding-inline: var(--uf-space-3);
+    border-radius: var(--uf-radius-full);
+    color: var(--uf-color-brand);
+    font-size: var(--uf-text-sm);
+    font-weight: var(--uf-weight-medium);
+    text-decoration: underline;
+    text-underline-offset: var(--uf-space-1);
+    cursor: pointer;
   }
 
-  .uf-canvas .uf-map-branch > .uf-map-card:hover,
-  .uf-canvas .uf-map-branch > .uf-map-card:focus-within {
-    transform: translateY(calc(var(--uf-motion-lift) * -2));
-  }
-
-  .uf-canvas .uf-map-branch[data-status="planned"] > .uf-map-card {
-    border-style: dashed;
-  }
-
-  .uf-canvas .uf-map-branch[data-status="achieved"] > .uf-map-card {
-    position: relative;
-  }
-
-  .uf-canvas .uf-map-branch[data-status="achieved"] > .uf-map-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    pointer-events: none;
-    box-shadow: 0 0 var(--uf-space-6) var(--uf-space-1)
-      color-mix(in srgb, var(--uf-color-success) 40%, transparent);
-  }
-
-  /* The mini-map: where the window is on the whole map; a tap or a drag there moves it. */
   .uf-minimap {
-    position: absolute;
-    left: var(--uf-space-5);
-    bottom: var(--uf-space-5);
     width: var(--uf-canvas-minimap);
     height: auto;
     max-height: calc(var(--uf-canvas-minimap) * 1.25);
     padding: var(--uf-space-1);
     border-radius: var(--uf-radius-md);
     border: var(--uf-border-thin) solid var(--uf-color-line-strong);
-    background: var(--uf-glass-card);
+    background: var(--uf-color-canvas);
     cursor: pointer;
     touch-action: none;
   }
 
+  /* Each card in its tone (they are a few pixels wide here: the colour tells them apart). */
   .uf-minimap-part {
-    fill: var(--uf-color-surface-sunk);
-    stroke: var(--uf-color-line-strong);
-    stroke-width: var(--uf-border-thin);
-    vector-effect: non-scaling-stroke;
-  }
-
-  .uf-minimap-part[data-status="achieved"] {
-    fill: var(--uf-color-success-soft);
-    stroke: var(--uf-color-success);
+    fill: var(--uf-map-tone, var(--uf-color-line-strong));
+    stroke: none;
   }
 
   .uf-minimap-part[data-centre] {
-    fill: var(--uf-color-map-tone1-soft);
-    stroke: var(--uf-color-map-tone1);
+    fill: var(--uf-color-accent);
   }
 
   .uf-minimap-view {
@@ -2655,9 +3346,15 @@
     vector-effect: non-scaling-stroke;
   }
 
-  /* On the smallest phones the mini-map would cover the map: it goes (the buttons stay). */
+  /* On the smallest phones the room under the window is for the map: no mini-map (the buttons
+     stay), and no foot at all unless a card is in Move mode (its pad lives there, MAPS-11). */
   @container uf-canvas (max-width: 30rem) {
-    .uf-minimap {
+    .uf-canvas-foot > .uf-canvas-foot-btn,
+    .uf-canvas-foot > .uf-minimap {
+      display: none;
+    }
+
+    .uf-canvas-foot:not(:has(.uf-map-pad)) {
       display: none;
     }
   }
@@ -2735,21 +3432,25 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .uf-canvas[data-seen] .uf-canvas-draw,
-    .uf-canvas[data-seen] .uf-canvas-road-line {
+    .uf-canvas[data-seen] .uf-map-link,
+    .uf-canvas[data-seen] .uf-map-link-line,
+    .uf-canvas[data-seen] .uf-map-road-way,
+    .uf-canvas[data-seen] .uf-map-marker,
+    .uf-canvas[data-seen] .uf-map-road-line {
       animation: none;
     }
 
-    .uf-canvas:not([data-seen]) .uf-canvas-draw {
-      stroke-dashoffset: 0;
-    }
-
-    .uf-canvas:not([data-seen]) .uf-canvas-road-line {
+    .uf-canvas:not([data-seen]) .uf-map-link,
+    .uf-canvas:not([data-seen]) .uf-map-marker,
+    .uf-canvas:not([data-seen]) .uf-map-road-line {
       opacity: 1;
     }
 
-    .uf-canvas .uf-map-card,
-    .uf-canvas .uf-map-centre,
+    .uf-canvas:not([data-seen]) .uf-map-link-line,
+    .uf-canvas:not([data-seen]) .uf-map-road-way {
+      stroke-dashoffset: 0;
+    }
+
     .uf-canvas-btn {
       transition: none;
     }
@@ -2770,22 +3471,13 @@
       border-color: ButtonText;
     }
 
-    .uf-canvas-road {
-      stroke: GrayText;
-    }
-
-    .uf-canvas-climb,
-    .uf-canvas-road-line {
-      stroke: CanvasText;
+    .uf-minimap-part {
+      fill: CanvasText;
     }
 
     .uf-minimap-view {
       fill: none;
       stroke: Highlight;
-    }
-
-    .uf-canvas .uf-map-branch[data-status="achieved"] > .uf-map-card::after {
-      display: none;
     }
   }
 

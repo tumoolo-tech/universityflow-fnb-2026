@@ -154,4 +154,7 @@ export const moduleOutline = {
   dpLine: (percent: number) => `To write the exam (DP): a year mark of ${percent}%`,
   examSubminimumLine: (percent: number) => `Exam subminimum: ${percent}%`,
   remove: (code: string) => `Remove the outline for ${code}`,
+  /** A1-81: two parts with one name, which the module card's rules can't tell apart. */
+  duplicateNames:
+    'Two parts have the same name. Give each part its own name, like “Test 1” and “Test 2”.',
 } as const;

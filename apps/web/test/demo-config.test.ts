@@ -201,8 +201,8 @@ describe('readConfig: the demo’s database on Supabase (owner’s decision, 202
     });
     expect(config.databaseUrl).toBe(`${POOLER}?sslmode=verify-full`);
     expect(config.databaseConnection).toEqual({
-      max: 5,
-      idleTimeoutMillis: 5_000,
+      max: 10,
+      idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 15_000,
       ca: PEM,
     });

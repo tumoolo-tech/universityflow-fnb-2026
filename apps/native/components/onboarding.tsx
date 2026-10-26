@@ -11,6 +11,7 @@ import type { Me } from '../lib/types';
 import {
   Body,
   Button,
+  Card,
   Checkbox,
   Field,
   Heading,
@@ -26,6 +27,24 @@ import {
 function privacyPolicyUrl(): string | null {
   try {
     return `${apiUrl()}/privacy`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The judges' demo sends no SMS (a hackathon exception, docs/deploy/demo.md §4b): its server
+ * returns the made-up guardian's consent page as a path (`demoConsentLink`), opened on the same
+ * server in the browser, as the web shows it. Only a `/consent/<token>` path is offered: the app
+ * never opens anywhere else a response names. Nothing is processed before that yes (hard rule 5:
+ * the server holds it).
+ */
+const CONSENT_PATH = /^\/consent\/[A-Za-z0-9_-]{8,200}$/;
+
+function demoConsentUrl(link: unknown): string | null {
+  if (typeof link !== 'string' || !CONSENT_PATH.test(link)) return null;
+  try {
+    return `${apiUrl()}${link}`;
   } catch {
     return null;
   }
@@ -68,6 +87,8 @@ export function Onboarding({ me, onChanged }: { me: Me; onChanged: () => Promise
   const [waiting, setWaiting] = useState(false);
   /** The guardian SMS waits for 07:00 when asked for at night (A12-04). */
   const [queued, setQueued] = useState(false);
+  /** The judges' demo: the made-up guardian's consent page, since nothing was sent. */
+  const [demoLink, setDemoLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -119,10 +140,12 @@ export function Onboarding({ me, onChanged }: { me: Me; onChanged: () => Promise
         onDelete={toAccount}
         onSubmit={(guardian) =>
           run(async () => {
-            const sent = await api<{ queuedUntil?: string }>('/api/me/guardian', {
-              json: guardian,
-            });
+            const sent = await api<{ queuedUntil?: string; demoConsentLink?: unknown }>(
+              '/api/me/guardian',
+              { json: guardian },
+            );
             setQueued(Boolean(sent?.queuedUntil));
+            setDemoLink(demoConsentUrl(sent?.demoConsentLink));
             setWaiting(true);
           })
         }
@@ -136,6 +159,13 @@ export function Onboarding({ me, onChanged }: { me: Me; onChanged: () => Promise
         <Title>{en.onboarding.waitingTitle}</Title>
         <Body>{en.onboarding.waitingLeadApp}</Body>
         {queued ? <Notice tone="info">{en.onboarding.guardianQueued}</Notice> : null}
+        {demoLink ? (
+          <Card emphasis testID="demo-guardian-link">
+            <Heading level={3}>{en.demoPhoneSignup.guardianLinkTitle}</Heading>
+            <Body pair="card">{en.demoPhoneSignup.guardianLinkLead}</Body>
+            <SourceLink url={demoLink}>{en.demoPhoneSignup.guardianLinkAction}</SourceLink>
+          </Card>
+        ) : null}
         {notice ? <Notice tone="info">{notice}</Notice> : null}
         {error ? <Notice tone="danger">{error}</Notice> : null}
         <Button

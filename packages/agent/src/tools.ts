@@ -7,7 +7,9 @@ import {
   whatINeedFor,
 } from '@universityflow/admissions';
 import {
+  bursariesFor,
   examGrade,
+  fundingField,
   type Helpline,
   isDraft,
   isSubjectId,
@@ -34,7 +36,7 @@ import {
   campusUniversity,
   firstWeek,
 } from './campus';
-import { NSFAS_DECIDES } from './charter';
+import { BURSARY_FUNDER_DECIDES, NSFAS_DECIDES } from './charter';
 import type { AgentContext } from './context';
 import type { DistressTopic } from './crisis';
 import { examCountdown, goalCard } from './goals';
@@ -376,15 +378,39 @@ export const applicationPack = define({
 export const fundingOverview = define({
   name: 'funding_overview',
   description:
-    'NSFAS: the application window, the published criteria (household income threshold, SASSA), the documents to prepare, the N+ rule, and the learner’s own document checklist.',
-  input: z.object({}),
-  async run(context) {
+    'NSFAS: the application window, the published criteria (household income threshold, SASSA), the documents to prepare, the N+ rule, and the learner’s own document checklist. Also well-known bursaries: each one’s published criteria, fields, what it covers, its window (open, not yet open, closed, or dates to check, decided by code) and any work-back obligation. Pass a field to list only bursaries for it.',
+  input: z.object({ field: fundingField.optional() }),
+  async run(context, input) {
     const nsfas = context.catalogue.nsfas;
     const done = new Map((await context.checklist('funding:nsfas')).map((c) => [c.item, c.done]));
     const checklist = (nsfas?.documents ?? []).map((_, i) => ({
       item: `document-${i}`,
       done: done.get(`document-${i}`) ?? false,
     }));
+    const bursaries = bursariesFor(context.catalogue.bursaries ?? [], context.today, input.field);
+    const bursaryFacts =
+      bursaries.length > 0
+        ? {
+            bursaries: bursaries.map(({ bursary: b, status }) => ({
+              id: b.id,
+              name: b.name,
+              funder: b.funder,
+              status,
+              opens: b.opensOn,
+              closes: b.closesOn,
+              window_note: b.windowNote,
+              who: b.who,
+              fields: b.fieldsAsPrinted,
+              covers: b.covers,
+              work_back: b.workBack.kind === 'required' ? b.workBack.terms : null,
+              how_to_apply: b.howToApply,
+              apply_url: b.applyUrl,
+              intake: b.academicYear,
+              unverified_preview_data: isDraft(b),
+            })),
+            bursary_rule: BURSARY_FUNDER_DECIDES,
+          }
+        : {};
     return {
       forModel: nsfas
         ? {
@@ -399,9 +425,14 @@ export const fundingOverview = define({
             apply_url: nsfas.applyUrl,
             rule: NSFAS_DECIDES,
             unverified_preview_data: isDraft(nsfas),
+            ...bursaryFacts,
           }
-        : { status: 'not-available' },
-      artifacts: [{ kind: 'funding', nsfas, checklist }],
+        : { status: 'not-available', ...bursaryFacts },
+      artifacts: [
+        bursaries.length > 0
+          ? { kind: 'funding', nsfas, checklist, bursaries }
+          : { kind: 'funding', nsfas, checklist },
+      ],
     };
   },
 });

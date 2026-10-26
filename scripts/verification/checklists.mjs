@@ -78,6 +78,8 @@ export function allRecordKeys(raw, methods) {
     ...(raw.academicCalendars ?? []).map(academicCalendarKey),
     // Public TVET colleges (planning.md §19.1): register, site, programme and teach-out records.
     ...collegeRecordKeys(raw),
+    // Bursaries beside NSFAS (prefixed: a bursary id could otherwise read like another record's).
+    ...(raw.bursaries ?? []).map((b) => `bursary:${b.id}`),
   ];
 }
 
@@ -840,6 +842,48 @@ export function renderChecklists(catalogue, today = new Date()) {
   ]
     .join('\n')
     .replace(/\n{3,}/g, '\n\n');
+
+  const bursaries = raw.bursaries ?? [];
+  if (bursaries.length > 0) {
+    const printed = (value) => (value === null || value === undefined ? 'not published' : value);
+    files['bursaries.md'] = [
+      preamble(
+        'Bursaries',
+        'Well-known bursaries beside NSFAS. Check each against the **funder’s own page** (or the administrator the funder names), not a bursary directory. A value the page doesn’t print reads "not published": confirm it really isn’t there, never fill it in.',
+        bursaries.length,
+      ),
+      ...bursaries.map((b) =>
+        [
+          `## \`${b.id}\``,
+          '',
+          `${cell(b.name)} (${cell(b.funder)}). Edit at ${where(sources.bursaries, `id: '${b.id}'`)}.`,
+          '',
+          HEADER,
+          ...provenanceRows(b),
+          row('name', b.name),
+          row('funder', b.funder),
+          row('funderKind', b.funderKind),
+          ...(b.administeredBy ? [row('administeredBy', b.administeredBy)] : []),
+          ...b.who.map((w, i) => row(`who ${i + 1}`, w)),
+          row('fieldsAsPrinted', b.fieldsAsPrinted),
+          row('fields (our broad groups)', b.fields.join(', ')),
+          row('covers', printed(b.covers)),
+          row('opensOn', printed(b.opensOn)),
+          row('closesOn', printed(b.closesOn)),
+          row('windowNote', printed(b.windowNote)),
+          row('howToApply', b.howToApply),
+          row('applyUrl (opens, right page?)', b.applyUrl),
+          row(
+            'workBack',
+            b.workBack.kind === 'required' ? b.workBack.terms : 'not stated on the page',
+          ),
+          recordFooter(`bursary:${b.id}`),
+        ].join('\n'),
+      ),
+    ]
+      .join('\n\n')
+      .replace(/\n{3,}/g, '\n\n');
+  }
 
   files['helplines.md'] = [
     preamble(

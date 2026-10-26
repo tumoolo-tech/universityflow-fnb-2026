@@ -76,6 +76,96 @@ describe('sign-in', () => {
     expect(screen.getByRole('header', { name: en.auth.title })).toBeTruthy();
   });
 
+  it('says nothing about a demo on an ordinary server', async () => {
+    serve({ 'POST /api/auth/request-pin': { json: { ok: true, phoneMasked: '082 *** 0001' } } });
+    const screen = await renderSignIn();
+    expect(screen.queryByText(en.demoPhoneSignup.noticeTitle)).toBeNull();
+    await fireEvent.changeText(screen.getByLabelText(en.auth.phoneLabel), phone);
+    await fireEvent.press(screen.getByRole('button', { name: en.auth.sendPin }));
+    expect(await screen.findByRole('header', { name: en.auth.pinTitle })).toBeTruthy();
+    expect(screen.queryByText(en.demoPhoneSignup.pinOnScreenTitle)).toBeNull();
+  });
+});
+
+/**
+ * The judges' demo (docs/deploy/demo.md §4b, `UF_DEMO_PHONE_SIGNUP=onscreen`): the server takes
+ * made-up 080 numbers only, sends nothing and returns the PIN for the screen (`demoPin`). The
+ * server decides; the app shows what it is given.
+ */
+describe('sign-in on the judges’ demo', () => {
+  const d = en.demoPhoneSignup;
+  /** A made-up toll-free number, built at runtime (hard rule 4). */
+  const tollFree = ['080', '0', '000', '001'].join('');
+
+  afterEach(() => {
+    delete process.env['EXPO_PUBLIC_UF_DEMO'];
+  });
+
+  it('shows the PIN the demo returns, where it is typed, and signs in with it', async () => {
+    const calls = serve({
+      'POST /api/auth/request-pin': {
+        json: { ok: true, phoneMasked: '080 *** 0001', demoPin: '246810' },
+      },
+      'POST /api/auth/verify-pin': { json: { ok: true, isNewStudent: true, token: 'tok-demo' } },
+    });
+    const screen = await renderSignIn();
+    await fireEvent.changeText(screen.getByLabelText(en.auth.phoneLabel), tollFree);
+    await fireEvent.press(screen.getByRole('button', { name: en.auth.sendPin }));
+
+    expect(await screen.findByText(d.pinOnScreenTitle)).toBeTruthy();
+    expect(screen.getByText(d.pinOnScreen('246810'))).toBeTruthy();
+    // Not "we sent it by SMS": nothing was sent.
+    expect(screen.queryByText(en.auth.pinLead('080 *** 0001'))).toBeNull();
+    await fireEvent.changeText(screen.getByLabelText(en.auth.pinLabel), '246810');
+    await fireEvent.press(screen.getByRole('button', { name: en.auth.verify }));
+    await waitFor(async () => expect(await readToken()).toBe('tok-demo'));
+    expect(calls[1]?.body).toEqual({ phone: tollFree, pin: '246810' });
+  });
+
+  it('ignores a demoPin that isn’t six digits', async () => {
+    serve({
+      'POST /api/auth/request-pin': {
+        json: { ok: true, phoneMasked: '080 *** 0001', demoPin: '<b>1</b>' },
+      },
+    });
+    const screen = await renderSignIn();
+    await fireEvent.changeText(screen.getByLabelText(en.auth.phoneLabel), tollFree);
+    await fireEvent.press(screen.getByRole('button', { name: en.auth.sendPin }));
+    expect(await screen.findByRole('header', { name: en.auth.pinTitle })).toBeTruthy();
+    expect(screen.queryByText(d.pinOnScreenTitle)).toBeNull();
+  });
+
+  it.each([
+    ['demo-080-only', 400, d.only080],
+    ['demo-080-taken', 409, d.numberTaken],
+  ])('a number the demo refuses (%s) says why', async (detail, status, sentence) => {
+    serve({ 'POST /api/auth/request-pin': { status, json: { error: 'phone', detail } } });
+    const screen = await renderSignIn();
+    await fireEvent.changeText(screen.getByLabelText(en.auth.phoneLabel), tollFree);
+    await fireEvent.press(screen.getByRole('button', { name: en.auth.sendPin }));
+    expect(await screen.findByText(sentence)).toBeTruthy();
+  });
+
+  it('a judges’ build says first that it is the demo: made-up details, an 080 number', async () => {
+    process.env['EXPO_PUBLIC_UF_DEMO'] = '1';
+    serve({});
+    const screen = await renderSignIn();
+    // Not "we'll send you a PIN by SMS": the demo sends nothing.
+    expect(screen.getByRole('header', { name: d.pageTitle })).toBeTruthy();
+    expect(screen.queryByText(en.auth.lead)).toBeNull();
+    expect(screen.getByRole('header', { name: d.noticeTitle })).toBeTruthy();
+    for (const point of d.noticePoints) expect(screen.getByText(point)).toBeTruthy();
+    const field = screen.getByLabelText(d.phoneLabel);
+    // A made-up number: the phone's own is never offered to fill in.
+    expect(field.props.autoComplete).toBe('off');
+    expect(field.props.textContentType).toBe('none');
+    expect(screen.getByText(d.phoneHint)).toBeTruthy();
+  });
+});
+
+describe('sign-in, the button', () => {
+  const phone = syntheticPhone(1);
+
   it('keeps Send disabled until the number is long enough', async () => {
     serve({});
     const screen = await renderSignIn();

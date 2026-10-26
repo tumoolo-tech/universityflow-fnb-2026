@@ -10,19 +10,47 @@ import {
   parseMark,
   type SavedMark,
 } from '@universityflow/ui';
-import { useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { type KeyboardTypeOptions, Platform, StyleSheet, View } from 'react-native';
 import { api, errorMessage } from '../lib/api';
 import { theme } from '../lib/theme';
-import { Body, Button, Field, Heading, Notice, SectionTitle, useAnnounce } from './ui';
+import { announce, Body, Button, Field, Heading, Notice, SectionTitle, useAnnounce } from './ui';
+
+/**
+ * A mark field's keyboard: one that can type "/" for a score like "18/24" (A7-24). The decimal
+ * pad has no "/" on iOS or on most Android phones. iOS's numbers-and-punctuation keyboard opens on
+ * the digits with "/" beside them; Android has no such keyboard, so the default one.
+ */
+export function markKeyboard(os: string): KeyboardTypeOptions {
+  return os === 'ios' ? 'numbers-and-punctuation' : 'default';
+}
+
+/** How long the marks must stay unchanged before what they mean is said (A7-25). */
+export const MARK_ANNOUNCE_DELAY_MS = 800;
+
+/**
+ * Says what the marks mean once typing stops, on one channel on both platforms: an announcement
+ * (A3-02), never as well a live region, which TalkBack would read a second time (A7-25). Nothing on
+ * opening the card: only a change the learner made.
+ */
+function useSettledAnnounce(text: string) {
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    const timer = setTimeout(() => announce(text), MARK_ANNOUNCE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [text]);
+}
 
 /**
  * The module card's mark calculator in the app (Phase 6c, D11, D13): the same view model as the
  * web's (packages/ui `calculate`), run on the phone by packages/admissions from the scheme the
  * server resolved, so it works with no data. Only "Save my marks" needs the network. What the
- * marks mean is said as they change (a polite live region on Android, an announcement on iOS,
- * A3-02). A mark that isn't one is marked on its field; nothing is worked out until it is fixed.
- * Nothing animates.
+ * marks mean is said once typing stops (`useSettledAnnounce`). A mark that isn't one is marked on
+ * its field; nothing is worked out until it is fixed. Nothing animates.
  */
 export function MarkCalculator({
   scheme,
@@ -50,7 +78,7 @@ export function MarkCalculator({
   const inFlight = useRef(false);
 
   const view = calculate({ scheme, values, target }, words);
-  useAnnounce(view.summary);
+  useSettledAnnounce(view.summary);
   useAnnounce(status);
   const invalid = new Set(view.kind === 'invalid' ? view.invalid : []);
   const targetInvalid = view.kind === 'invalid' && view.targetInvalid;
@@ -93,7 +121,10 @@ export function MarkCalculator({
               label={f.label}
               hint={words.markHint}
               error={invalid.has(f.key) ? words.markInvalid : null}
-              keyboardType="decimal-pad"
+              keyboardType={markKeyboard(Platform.OS)}
+              autoCorrect={false}
+              autoCapitalize="none"
+              spellCheck={false}
               value={values[f.key] ?? ''}
               onChangeText={(text) => setValues((v) => ({ ...v, [f.key]: text }))}
               testID={`mark-${f.key}`}
@@ -124,7 +155,7 @@ export function MarkCalculator({
         </>
       )}
 
-      <View style={styles.result} accessibilityLiveRegion="polite" testID="calculator-result">
+      <View style={styles.result} testID="calculator-result">
         <SectionTitle pair="sunk">{words.resultTitle}</SectionTitle>
         {view.kind === 'result' ? (
           <>
@@ -203,7 +234,8 @@ const styles = StyleSheet.create({
     gap: theme.space['2'],
     padding: theme.space['3'],
     borderRadius: theme.radius.md,
-    backgroundColor: theme.color.surfaceSunk,
+    // A panel in its card: the sunk fill and the card edge (RT-04).
+    ...theme.panel,
   },
   needed: { gap: theme.space['1'] },
 });

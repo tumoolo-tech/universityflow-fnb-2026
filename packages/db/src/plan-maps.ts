@@ -38,6 +38,19 @@ export const PLAN_MAP_LIMITS = {
   title: 60,
 } as const;
 
+/**
+ * The furthest a card's corner may sit from the canvas's own corner, in pixels at 100%, either
+ * way (migration 0043 holds the same; `packages/ui` PLAN_POSITION_MAX too, checked by a web test).
+ */
+export const PLAN_POSITION_MAX = 4000;
+
+/** One card's place on the canvas (RT-08): its top-left corner. */
+export interface PlanPlaceInput {
+  readonly nodeId: string;
+  readonly x: number;
+  readonly y: number;
+}
+
 const PLAN_STATUSES: ReadonlyArray<PlanNodeStatus> = ['planned', 'achieved', 'not-achieved'];
 const TEMPLATE_ID = /^[a-z0-9-]{1,40}$/;
 const SLOT_ID = /^slot:[a-z0-9-]{1,40}$/;
@@ -73,6 +86,8 @@ export interface PlanNodeRecord {
   readonly targetMonth: string | null;
   readonly statusChangedOn: string | null;
   readonly updatedAt: Date;
+  /** Where the learner put the card on the canvas; null, where the template puts it. */
+  readonly place: { readonly x: number; readonly y: number } | null;
 }
 
 export interface PlanMapRecord {
@@ -130,6 +145,7 @@ function toNode(row: NodeRow): PlanNodeRecord {
     targetMonth: row.targetMonth ? row.targetMonth.slice(0, 7) : null,
     statusChangedOn: row.statusChangedOn,
     updatedAt: row.updatedAt,
+    place: row.placeX === null || row.placeY === null ? null : { x: row.placeX, y: row.placeY },
   };
 }
 
@@ -263,11 +279,16 @@ export async function createPlanMap(
     readonly templateId: string;
     readonly linksGoal: boolean;
     readonly parts: ReadonlyArray<PlanPartInput>;
+    /** The learner's own name for the map (RT-06): their words, behind the switch (D2). */
+    readonly title?: string | null | undefined;
   },
+  options: PlanWords = { words: false },
 ): Promise<PlanMapRecord> {
   if (!TEMPLATE_ID.test(input.templateId)) throw new InvalidStateError('Not a template id');
   checkParts(input.parts);
   const { tx } = ctx;
+  const title = cleanWords(input.title) ?? null;
+  await checkWords(tx, [[title, PLAN_MAP_LIMITS.title]], options);
   await lock(tx, `plan-maps:${ctx.studentId}`);
   const [count] = await tx.select({ n: sql<number>`count(*)::int` }).from(planMaps);
   if ((count?.n ?? 0) >= PLAN_MAP_LIMITS.maps) throw new PlanMapLimitError('too-many-maps');
@@ -276,6 +297,7 @@ export async function createPlanMap(
     .values({
       studentId: ctx.studentId,
       templateId: input.templateId,
+      title,
       linksGoal: input.linksGoal,
       createdAt: ctx.now,
       updatedAt: ctx.now,
@@ -501,10 +523,18 @@ export async function movePlanNode(
   const at = Math.min(Math.max(0, Math.trunc(to.position)), target.length);
   target.splice(at, 0, node.id);
   if (!sameParent) {
-    // The top first, then each level under it: every part's parent is already in place.
+    // The top first, then each level under it: every part's parent is already in place. A part
+    // that changes level leaves its place on the canvas: it is now a step inside a card, or a
+    // new stop that the template places (migration 0043).
     await ctx.tx
       .update(planMapNodes)
-      .set({ parentId: parent.id, depth: node.depth + shift, updatedAt: ctx.now })
+      .set({
+        parentId: parent.id,
+        depth: node.depth + shift,
+        placeX: null,
+        placeY: null,
+        updatedAt: ctx.now,
+      })
       .where(eq(planMapNodes.id, node.id));
     for (const n of moving.slice(1)) {
       await ctx.tx
@@ -520,6 +550,49 @@ export async function movePlanNode(
   await renumber(ctx, target);
   await touch(ctx, mapId);
   await ctx.audit('plan-map.node-moved');
+}
+
+/**
+ * Puts cards where the learner dragged or keyed them on the canvas (RT-08): the centre or a stop,
+ * a whole number of pixels inside the canvas's bounds. Numbers only, never words (no switch);
+ * the audit row says only that a layout was saved (hard rule 4).
+ */
+export async function savePlanLayout(
+  ctx: PlanContext,
+  mapId: string,
+  places: ReadonlyArray<PlanPlaceInput>,
+): Promise<PlanMapRecord> {
+  const map = await lockedMap(ctx, mapId);
+  if (places.length === 0 || places.length > PLAN_MAP_LIMITS.nodes) {
+    throw new InvalidStateError('A layout moves one card or more, up to a whole map');
+  }
+  const inBounds = (n: number) => Number.isInteger(n) && n >= 0 && n <= PLAN_POSITION_MAX;
+  for (const p of places) {
+    const node = nodeIn(map, p.nodeId);
+    if (node.depth > 1) throw new InvalidStateError('A step sits inside its card');
+    if (!inBounds(p.x) || !inBounds(p.y)) throw new InvalidStateError('Off the canvas');
+  }
+  for (const p of places) {
+    await ctx.tx
+      .update(planMapNodes)
+      .set({ placeX: p.x, placeY: p.y })
+      .where(eq(planMapNodes.id, p.nodeId));
+  }
+  await touch(ctx, mapId);
+  await ctx.audit('plan-map.layout-saved');
+  return (await readPlanMap(ctx.tx, mapId)) as PlanMapRecord;
+}
+
+/** "Reset layout": every card of the map back where its template puts it. */
+export async function resetPlanLayout(ctx: PlanContext, mapId: string): Promise<PlanMapRecord> {
+  await lockedMap(ctx, mapId);
+  await ctx.tx
+    .update(planMapNodes)
+    .set({ placeX: null, placeY: null })
+    .where(eq(planMapNodes.mapId, mapId));
+  await touch(ctx, mapId);
+  await ctx.audit('plan-map.layout-reset');
+  return (await readPlanMap(ctx.tx, mapId)) as PlanMapRecord;
 }
 
 /** Deletes a part and everything under it. The centre stays: delete the map instead. */

@@ -515,7 +515,8 @@ const styles = StyleSheet.create({
     gap: theme.space['1'],
     padding: theme.space['3'],
     borderRadius: theme.radius.md,
-    backgroundColor: theme.color.surfaceSunk,
+    // A panel in its card: the sunk fill and the card edge (RT-04).
+    ...theme.panel,
   },
   row: {
     gap: theme.space['1'],

@@ -13,8 +13,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
  */
 
 const failure = { code: '' };
-vi.mock('firebase/app', () => ({ getApps: () => [], initializeApp: () => ({}) }));
-vi.mock('firebase/auth', () => ({
+vi.mock('@firebase/app', () => ({ getApps: () => [], initializeApp: () => ({}) }));
+vi.mock('@firebase/auth', () => ({
   initializeAuth: () => ({}),
   getAuth: () => ({}),
   inMemoryPersistence: {},

@@ -6,7 +6,8 @@ import { demoPhoneSignup } from './sections';
  * The judge demo's on-screen phone sign-up (a hackathon exception the owner approved on
  * 2026-10-24, docs/deploy/demo.md). The notice must say: made-up details only, a made-up 080
  * number and never a cellphone, nothing is sent (the PIN and the guardian's link on screen), and
- * the account is deleted within 24 hours.
+ * the account is deleted after 24 hours. Never "within 24 hours": on a daily cron (Vercel Hobby)
+ * a copy can stand for up to 49 hours when nobody visits (docs/deploy/demo.md §7).
  */
 describe('en.demoPhoneSignup', () => {
   it('is its own section, after the sections before it', () => {
@@ -16,14 +17,20 @@ describe('en.demoPhoneSignup', () => {
     expect(en.demoPhoneSignup).toBe(demoPhoneSignup);
   });
 
-  it('the notice says made-up details, an 080 number, nothing sent, deleted within 24 hours', () => {
+  it('the notice says made-up details, an 080 number, nothing sent, deleted after 24 hours', () => {
     const notice = demoPhoneSignup.noticePoints.join(' ');
     expect(notice).toMatch(/made-up details only/);
     expect(notice).toMatch(/080/);
     expect(notice).toMatch(/never a cellphone number/);
     expect(notice).toMatch(/Nothing is sent/);
     expect(notice).toMatch(/shown on screen/);
-    expect(notice).toMatch(/deleted within 24 hours/);
+    expect(notice).toMatch(/deleted after 24 hours/);
+  });
+
+  it('no demo words promise deletion within a set time the daily sweep cannot keep', () => {
+    const all = JSON.stringify({ phone: en.demoPhoneSignup, demo: en.demo });
+    expect(all).not.toMatch(/within 24 hours/);
+    expect(all).not.toMatch(/within 30 days/);
   });
 
   it('the way in says the details are made up', () => {
@@ -49,7 +56,7 @@ describe('en.demoPhoneSignup', () => {
   });
 
   it('the onboarding line and the guardian’s link say what happens', () => {
-    expect(demoPhoneSignup.onboardingNotice).toMatch(/deleted within 24 hours/);
+    expect(demoPhoneSignup.onboardingNotice).toMatch(/deleted after 24 hours/);
     expect(demoPhoneSignup.guardianLinkLead).toMatch(/by SMS/);
     expect(demoPhoneSignup.guardianLinkLead).toMatch(/made-up guardian/);
     expect(demoPhoneSignup.guardianPhoneHint).toMatch(/080/);

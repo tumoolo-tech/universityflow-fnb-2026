@@ -509,7 +509,34 @@ const DEMO_ONLY = [
   'UF_DEMO_REAL_PHOTOS',
   // The on-screen phone sign-up on made-up 080 numbers (a hackathon exception, 2026-10-24).
   'UF_DEMO_PHONE_SIGNUP',
+  // Vercel's own name for the secret it sends a cron job (`Authorization: Bearer`). Today the
+  // only cron is the demo's scheduled sweep (A11-61, /api/demo/sweep, a hackathon exception:
+  // docs/deploy/hackathon-undo-pr.md M), so nothing but a demo may carry it: production's own
+  // retention job (A11-04) takes it off this list the day it is built on a cron.
+  'CRON_SECRET',
 ] as const;
+
+/** Vercel asks for 16 characters; ours are 32, like every other secret the app is given. */
+export const MIN_CRON_SECRET_LENGTH = 32;
+
+/**
+ * Demo only: the secret Vercel sends when it invokes the demo's scheduled sweep
+ * (docs/deploy/demo.md "The scheduled sweep"), or null when unset (the route then refuses and
+ * logs why, and the lazy sweep is all there is). Read where it is compared, never kept in the
+ * Config; set but short, the demo refuses to start.
+ */
+export function readCronSecret(
+  env: Record<string, string | undefined> = process.env,
+): string | null {
+  const secret = env['CRON_SECRET']?.trim();
+  if (!secret) return null;
+  if (secret.length < MIN_CRON_SECRET_LENGTH) {
+    throw new ConfigError(
+      `CRON_SECRET must be at least ${MIN_CRON_SECRET_LENGTH} random characters (docs/deploy/demo.md, "The scheduled sweep")`,
+    );
+  }
+  return secret;
+}
 
 /** Production and staging never carry a demo's switches (a demo setting copied by mistake). */
 function refuseDemoMarkers(env: Record<string, string | undefined>, where: string): void {
@@ -574,10 +601,16 @@ function readDatabaseCa(env: Record<string, string | undefined>): string | null 
  * A demo on Postgres runs in serverless function instances, each with its own pool, through
  * Supabase's transaction pooler (docs/deploy/demo.md): a few connections each, let go when idle,
  * and a pooler that doesn't answer is an error within seconds rather than a hung request.
+ *
+ * The pooler is in London and the functions in Cape Town, about 160 ms apart, and a new connection
+ * costs five or six round trips (TCP, TLS, sign-in) before its first query. So (the slow start,
+ * 2026-10-25): ten connections, enough for a learner's copy to be written and the home's reads to
+ * run side by side; and kept 30 s, so a judge's next click finds them open. Idle connections hold
+ * no server connection in transaction mode.
  */
 export const DEMO_DATABASE_POOL = {
-  max: 5,
-  idleTimeoutMillis: 5_000,
+  max: 10,
+  idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 15_000,
 } as const;
 
@@ -969,6 +1002,8 @@ export function readConfig(
   else refuseHostOutsideSouthAfrica(env);
   if (demo) checkDemo(env, providers, authSecret);
   else refuseDemoMarkers(env, staging ? 'on a staging site' : 'in production');
+  // The scheduled sweep's secret (A11-61): a demo starts without one, never with a short one.
+  if (demo) readCronSecret(env);
   const demoAiDailyCap = demo ? readDemoAiDailyCap(env) : null;
   const demoSignup = demo ? readDemoSignupSetting(env) : null;
   const demoUrl = readUrl(env, 'NEXT_PUBLIC_UF_DEMO_URL');

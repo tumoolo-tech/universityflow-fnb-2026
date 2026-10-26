@@ -1,4 +1,4 @@
-import type { TeachOutNotice } from '../../colleges';
+import type { ProgrammeTypeEntry, TeachOutNotice } from '../../colleges';
 
 /**
  * Where the list of public TVET colleges comes from, and the national teach-outs (research and
@@ -79,5 +79,43 @@ export const teachOutNotices: TeachOutNotice[] = [
       'https://www.dhet.gov.za/SiteAssets/Gazettes/2026/54858%2017-6%20HighEduTrain.pdf',
       'https://www.dhet.gov.za/SiteAssets/Media%20Advisory%20and%20Statement%202026/Minister%20Manamela%20brief%20media%20on%20developments%20regarding%20modernising%20qualifications.pdf',
     ],
+  },
+];
+
+/**
+ * Where each programme type starts, nationally (A1-84, A10-67), from DHET's own policy documents
+ * as linked from its TVET Colleges page (read 2026-10-25). Drafts: a person checks each quote
+ * against its page (hard rule 3).
+ *
+ * - NC(V): "National Certificates (Vocational): Qualifications at Levels 2 to 4 on the NQF",
+ *   Government Gazette No. 28677, 29 March 2006, section 3(1), the PDF's page 13 (a scan: the
+ *   quote is read from it, so check the wording). Its other routes (an ABET Level 1 certificate,
+ *   an NQF Level 1 qualification, a bridging programme) are not school grades, so `orAfter` is null.
+ * - N4–N6: Report 191 (NATED), Part 2, "Formal Technical College Instructional Offerings N4–N6",
+ *   printed under each N4 programme's admission requirements (N4 Farming Management, the PDF's
+ *   page 14, as the example); some programmes add a subject, which the college's own rule shows.
+ */
+export const programmeTypeEntries: ProgrammeTypeEntry[] = [
+  {
+    sourceUrl:
+      'https://www.dhet.gov.za/FET%20College%20Examination/Other%20TVET%20College%20Examination%20Documents%201/3NCV%20Qualifications%20L2-4%20Mar%202006.pdf',
+    academicYear: 2027,
+    type: 'ncv',
+    afterGrade: 9,
+    orAfter: null,
+    quote:
+      'The minimum entrance requirements for the National Certificate (Vocational) at Level 2 on the NQF are: (a) A Grade 9 Certificate; or (b) An Adult Education and Training (ABET) NQF Level 1 Certificate; or (c) A recognised equivalent qualification obtained at NQF Level 1; or (d) An approved bridging programme …',
+    page: 'Section 3(1), PDF page 13 (Government Gazette No. 28677, 29 March 2006)',
+  },
+  {
+    sourceUrl:
+      'https://www.dhet.gov.za/FET%20College%20Examination/Other%20TVET%20College%20Examination%20Documents%201/6Report%20191%20Part%202%20NEP%20Formal%20TC%20instructional%20offerings%20N4-6.pdf',
+    academicYear: 2027,
+    type: 'n4-n6',
+    afterGrade: 12,
+    orAfter: 'N3',
+    quote:
+      'A Senior Certificate, or a National Certificate: N3, or a National Senior Certificate, or an equivalent qualification.',
+    page: 'Admission requirements, N4 Farming Management, PDF page 14',
   },
 ];

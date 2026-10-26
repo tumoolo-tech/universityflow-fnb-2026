@@ -71,4 +71,7 @@ export const demoSignup = {
     'Your browser blocked Google’s sign-in pop-up. Allow pop-ups for this site and try again, or use the email link.',
   /** The sign-up form: Firebase refused the address as written. */
   invalidEmail: 'Check your email address and try again.',
+  /** The sign-up page's search and share description (A6-04, wave 10). Owed the owner's review. */
+  pageDescription:
+    'Judges aged 18 or older can sign up for the demo with an email link or Google. It is for the hackathon judging only, and not the real service yet.',
 } as const;

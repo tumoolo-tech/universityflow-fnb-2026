@@ -214,7 +214,7 @@ export async function moduleCardData(
   const universityId = registration.universityId as UniversityId;
   const programme = programmeById(view, registration.programmeId);
   const university = view.universities.find((u) => u.id === universityId);
-  const scheme = resolve(view, {
+  const { scheme, outlineNotUsed } = resolve(view, {
     universityId,
     code: registered.code,
     academicYear: registration.academicYear,
@@ -255,6 +255,7 @@ export async function moduleCardData(
     },
     sample,
     scheme,
+    ...(outlineNotUsed ? { outlineNotUsed: true as const } : {}),
     records: recordInfo(view, universityId),
     outline: outline ? cardOutline(outline) : null,
     calendar: cardCalendar(view, universityId, registration.academicYear),
@@ -303,7 +304,7 @@ function resolve(
     outline: ConfirmedOutlineScheme | undefined;
     now: Date;
   },
-): ResolvedScheme {
+): { readonly scheme: ResolvedScheme; readonly outlineNotUsed: boolean } {
   const base = {
     module: {
       universityId: input.universityId,
@@ -315,13 +316,16 @@ function resolve(
     today: input.now,
     includeDrafts: view.includesDrafts,
   };
-  if (!input.outline) return resolveScheme(base);
+  if (!input.outline) return { scheme: resolveScheme(base), outlineNotUsed: false };
   try {
-    return resolveScheme({ ...base, outline: input.outline });
+    return { scheme: resolveScheme({ ...base, outline: input.outline }), outlineNotUsed: false };
   } catch (error) {
-    // The database holds only confirmed outlines whose weights add up; one that can't be used is
-    // left out (never repaired), and the published rules are used alone.
-    if (error instanceof InvalidSchemeError) return resolveScheme(base);
+    // The confirm step and the database (0042) hold an outline to resolveScheme's own rule, but
+    // one confirmed before 0042 may break it (A1-81). It is left out, never repaired, the
+    // published rules are used alone, and the card says so: never silently.
+    if (error instanceof InvalidSchemeError) {
+      return { scheme: resolveScheme(base), outlineNotUsed: true };
+    }
     throw error;
   }
 }

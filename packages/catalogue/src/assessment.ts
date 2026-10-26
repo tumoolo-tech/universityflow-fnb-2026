@@ -4,6 +4,7 @@ import { dateRangeSchema } from './campus';
 import type { CatalogueView } from './catalogue';
 import { sourced } from './provenance';
 import { isUniversitySource, type Programme, type UniversityId, universityId } from './records';
+import { duplicateComponentNames, weightsAddUpTo100 } from './weights';
 
 /**
  * How marks work (planning.md §3 Stage 6; docs/plans/phase-6-proposal.md, "The rule model"):
@@ -251,14 +252,13 @@ export function weightingProblems(w: Weighting): string[] {
   }
   if (components === undefined) return problems;
   if (components.length === 0) problems.push('A scheme with components lists at least one');
-  if (!near(total(components), 100)) {
+  if (!weightsAddUpTo100(components.map((c) => c.weight))) {
     problems.push(`The components weigh ${Number(total(components).toFixed(4))}%, not 100%`);
   }
-  const names = new Set<string>();
+  for (const name of duplicateComponentNames(components.map((c) => c.name))) {
+    problems.push(`Two components are called “${name}”`);
+  }
   for (const c of components) {
-    const key = c.name.trim().toLowerCase();
-    if (names.has(key)) problems.push(`Two components are called “${c.name}”`);
-    names.add(key);
     if (c.bestOf && c.bestOf.count > c.bestOf.of) {
       problems.push(`“${c.name}” counts the best ${c.bestOf.count} of only ${c.bestOf.of}`);
     }

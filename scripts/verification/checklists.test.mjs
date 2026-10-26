@@ -32,6 +32,16 @@ describe('verification checklists', () => {
     }
   });
 
+  it('put each bursary in bursaries.md, a date the source does not print as not published', () => {
+    const list = catalogue.raw.bursaries ?? [];
+    assert.ok(list.length >= 8, `expected the bursaries, got ${list.length}`);
+    assert.ok(allRecordKeys(catalogue.raw, catalogue.methods).includes('bursary:sasol'));
+    for (const b of list) {
+      assert.ok(files['bursaries.md']?.includes(marker(`bursary:${b.id}`)), `${b.id} not listed`);
+    }
+    assert.match(files['bursaries.md'], /\| opensOn \| not published \|/);
+  });
+
   it('put each programme in its own university’s file', () => {
     for (const p of catalogue.raw.programmes) {
       assert.ok(files[`${p.universityId}.md`]?.includes(marker(p.id)), `${p.id} not in its file`);

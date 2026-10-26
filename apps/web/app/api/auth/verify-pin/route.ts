@@ -46,7 +46,7 @@ export const POST = handler(async (request: Request) => {
   const { token, isNewStudent, review, studentId } = await store.verifyOtp(phone, pin);
   if (onScreen) {
     await leaveEarlier(services, earlier, studentId);
-    await markOwner(services, phone, request);
+    await markOwner(services, phone, studentId, request);
   }
   // The store-review account (A7-01): the store wrote its audit row; this is the alert. The
   // response is the same as any sign-in's.

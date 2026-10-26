@@ -8,12 +8,22 @@ import { DEMO_PHONE_SIGNUP_PATH, demoPhoneSignupOn } from '@/lib/demo-phone-sign
 import { demoSignupOrNull } from '@/lib/demo-signup';
 import { signedInOrRefused } from '@/lib/server/demo/entry';
 import { isDemo } from '@/lib/server/deployment';
+import { pageMetadata } from '@/lib/server/seo';
 import { SignInForm } from './sign-in-form';
 
 export const dynamic = 'force-dynamic';
-/** In judge demo mode there is no phone sign-in, so the title says what the page offers. */
+/**
+ * In judge demo mode there is no phone sign-in, so the title says what the page offers: the ways
+ * in, a title of its own beside the picker's (A6-04).
+ */
 export function generateMetadata(): Metadata {
-  return { title: isDemo() ? en.demo.signInTitle : en.auth.title };
+  return isDemo()
+    ? pageMetadata({
+        path: '/sign-in',
+        title: en.demo.signInPageTitle,
+        description: en.demo.description,
+      })
+    : pageMetadata({ path: '/sign-in', title: en.auth.title, description: en.auth.description });
 }
 
 /**

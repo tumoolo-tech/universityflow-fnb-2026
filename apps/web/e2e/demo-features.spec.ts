@@ -1,6 +1,12 @@
 import { expect, type Page, test } from '@playwright/test';
 import { en } from '@universityflow/content';
-import { expectAccessible, serverErrorsSince, serverLogMark, trackCspViolations } from './helpers';
+import {
+  expectAccessible,
+  goTo,
+  serverErrorsSince,
+  serverLogMark,
+  trackCspViolations,
+} from './helpers';
 
 /**
  * The judge demo's hackathon exceptions of 2026-10-24 (docs/deploy/demo.md), run by
@@ -260,4 +266,26 @@ test('a university learner opens Mmereko in a canvas over My CV; a school learne
   ).toBeVisible();
   await expect(page.getByRole('button', { name: en.cvMmereko.open, exact: true })).toHaveCount(0);
   await expect(page.locator('dialog, iframe')).toHaveCount(0);
+});
+
+// A5-28 (Phase 6 audit): reached by a click, as a judge does, My CV keeps the policy of the page
+// the visit started on. Mmereko's page must still load in the frame (the CSP check in afterEach
+// fails on any refusal).
+test('Open Mmereko works after a click to My CV from the sidebar, not only on a fresh load', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.route('https://mmereko.tumoolo.tech/**', (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><title>Mmereko</title><p>Sign in</p>',
+    }),
+  );
+  await start(page, personas['demo-first-year'].name);
+  // The Main nav (behind the Menu on a phone): a client-side navigation, as a judge's click is.
+  await goTo(page, en.cv.title);
+  await expect(page).toHaveURL(/\/cv$/);
+  await page.getByRole('button', { name: en.cvMmereko.open, exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: en.cvMmereko.title, exact: true });
+  await expect(dialog.frameLocator('iframe').getByText('Sign in', { exact: true })).toBeVisible();
 });

@@ -302,6 +302,13 @@ describe('How marks work', () => {
     expect(view.sampleNotice).toBe(t.demoSample);
     expect(row(view, 'weighting')?.source?.text).toBe(t.sources.sampleOutline('date(2027-02-03)'));
   });
+
+  it('says when the learner’s confirmed outline couldn’t be used, never silently (A1-81)', () => {
+    expect(moduleCardView(data({ outlineNotUsed: true }), formatDate).how.outlineNotUsed).toBe(
+      how.outlineNotUsed,
+    );
+    expect(moduleCardView(data(), formatDate).how.outlineNotUsed).toBeNull();
+  });
 });
 
 describe('Dates', () => {

@@ -16,3 +16,16 @@ export async function scopeToLearner(tx: Tx, studentId: string, now: Date): Prom
     sql`select set_config('uf.student_id', ${studentId}, true), set_config('uf.today', ${sastDate(now)}, true)`,
   );
 }
+
+/**
+ * `scopeToLearner` and then `set local role uf_app`, in one statement: one round trip to the
+ * database instead of two on every learner request. `set_config('role', …, true)` is what
+ * `set local role` does (the same membership check, transaction-local), and nothing in the
+ * statement reads what it sets. The judge demo's database is a continent away from its functions
+ * (docs/deploy/demo.md), so each round trip saved there is about 160 ms.
+ */
+export async function actAsLearner(tx: Tx, studentId: string, now: Date): Promise<void> {
+  await tx.execute(
+    sql`select set_config('uf.student_id', ${studentId}, true), set_config('uf.today', ${sastDate(now)}, true), set_config('role', 'uf_app', true)`,
+  );
+}

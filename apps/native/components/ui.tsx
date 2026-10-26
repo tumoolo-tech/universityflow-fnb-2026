@@ -554,13 +554,20 @@ export function CallButton(props: {
 export function Card(props: {
   children: ReactNode;
   emphasis?: boolean;
+  /** Inside another card (RT-04): the next level's fill and its own edge, never the parent's fill. */
+  nested?: boolean;
   style?: ViewStyle;
   accessibilityLabel?: string;
   testID?: string;
 }) {
   return (
     <View
-      style={[styles.card, props.emphasis ? styles.cardEmphasis : null, props.style]}
+      style={[
+        styles.card,
+        props.nested ? theme.panel : null,
+        props.emphasis ? styles.cardEmphasis : null,
+        props.style,
+      ]}
       accessibilityLabel={props.accessibilityLabel}
       testID={props.testID}
     >
@@ -636,9 +643,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.sm,
   },
   card: {
-    backgroundColor: theme.color.surface,
-    borderColor: theme.color.line,
-    borderWidth: theme.border.thin,
+    // The card edge at 3:1 on the screen (RT-04; it was the 1.40:1 hairline).
+    ...theme.card,
     borderRadius: theme.radius.md,
     padding: theme.space['4'],
     gap: theme.space['2'],

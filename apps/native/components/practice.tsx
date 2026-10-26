@@ -35,7 +35,8 @@ export function PracticeView({ practice }: { practice: PracticeArtifact }) {
             gap: theme.space['2'],
             padding: theme.space['3'],
             borderRadius: theme.radius.sm,
-            backgroundColor: theme.color.surfaceSunk,
+            // A panel in its card: the sunk fill and the card edge (RT-04).
+            ...theme.panel,
           }}
         >
           <Body pair="sunk" strong>

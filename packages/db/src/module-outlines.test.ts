@@ -358,3 +358,69 @@ describe('another learner, consent, export and deletion', () => {
     expect(row?.n).toBe(0);
   });
 });
+
+describe('D10: kept for the academic year plus one (A11-63)', () => {
+  it('the owner’s sweep deletes outlines from 1 January two years on, and no sooner', async () => {
+    const { store, student } = await adultUnder('adult-v3-test');
+    await student.saveModuleOutline({ ...OUTLINE, moduleCode: 'KEEP1001', academicYear: 2027 });
+    await student.saveModuleOutline({ ...OUTLINE, moduleCode: 'KEEP1001', academicYear: 2029 });
+    // Through 2028 the 2027 outline stays (22:30 UTC on 31 December is 00:30 SAST on 1 January).
+    expect(await store.deleteExpiredModuleOutlines(new Date('2028-12-31T21:00:00Z'))).toBe(0);
+    expect((await student.moduleOutlines()).map((o) => o.academicYear)).toEqual([2027, 2029]);
+    expect(
+      await store.deleteExpiredModuleOutlines(new Date('2028-12-31T22:30:00Z')),
+    ).toBeGreaterThan(0);
+    expect((await student.moduleOutlines()).map((o) => o.academicYear)).toEqual([2029]);
+  });
+});
+
+describe('the outline’s file, deleted after the save (A1-88)', () => {
+  it('queues the file under an id that names nothing else, for the owner to delete and forget', async () => {
+    const { store, student } = await adultUnder('adult-v3-test');
+    const document = await student.addDocument(upload());
+    const saved = await student.saveModuleOutline({ ...OUTLINE, documentId: document?.id ?? null });
+    expect(saved.fileDeletionId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await store.queuedFileDeletion(saved.fileDeletionId as string)).toBe(
+      document?.storageKey,
+    );
+    await store.forgetFileDeletion(saved.fileDeletionId as string);
+    expect(await store.queuedFileDeletion(saved.fileDeletionId as string)).toBeNull();
+    // An outline typed in has no file to delete.
+    expect((await student.saveModuleOutline(OUTLINE)).fileDeletionId).toBeNull();
+  });
+
+  it('the queue takes only the learner’s own outline document, and only from the learner’s own role', async () => {
+    const owner = await adultUnder('adult-v3-test');
+    const other = await adultUnder('adult-v3-test');
+    const document = await owner.student.addDocument(upload());
+    await expect(
+      other.student.saveModuleOutline({ ...OUTLINE, documentId: document?.id ?? null }),
+    ).rejects.toThrow(NotFoundError);
+    expect(await owner.student.documents()).toHaveLength(1);
+  });
+
+  // A11-61: a judge demo has no job runner, so its scheduled sweep reads the queue itself.
+  it('lists the queued ids (oldest first, bounded), for a sweep with no job runner', async () => {
+    const { store, student } = await adultUnder('adult-v3-test');
+    const first = await student.addDocument(upload());
+    const a = await student.saveModuleOutline({
+      ...OUTLINE,
+      moduleCode: 'QUEUE1001',
+      documentId: first?.id ?? null,
+    });
+    const second = await student.addDocument(upload());
+    const b = await student.saveModuleOutline({
+      ...OUTLINE,
+      moduleCode: 'QUEUE1002',
+      documentId: second?.id ?? null,
+    });
+    const ids = await store.queuedFileDeletionIds(100);
+    const ours = ids.filter((id) => id === a.fileDeletionId || id === b.fileDeletionId);
+    expect(ours).toEqual([a.fileDeletionId, b.fileDeletionId]);
+    for (const id of ids) expect(id).toMatch(/^[0-9a-f-]{36}$/);
+    expect((await store.queuedFileDeletionIds(1)).length).toBeLessThanOrEqual(1);
+    await store.forgetFileDeletion(a.fileDeletionId as string);
+    expect(await store.queuedFileDeletionIds(100)).not.toContain(a.fileDeletionId);
+    await expect(store.queuedFileDeletionIds(0)).rejects.toThrow();
+  });
+});

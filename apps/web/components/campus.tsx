@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { type ReactNode, useId } from 'react';
 import { CallLink } from '@/components/place-links';
 import { NoWarningLine, SafetyNotes } from '@/components/safety-notes';
-import { Badge, Card, Checkbox, Notice, SourceLink } from '@/components/ui';
+import { Badge, Card, Checkbox, Notice, panelLook, SourceLink } from '@/components/ui';
 import { UniversityName } from '@/components/university-mark';
 import { MobilityNote, PlaceWayfinding } from '@/components/wayfinding';
 import { formatDate } from '@/lib/client/api';
@@ -115,7 +115,7 @@ export function CampusTour({
                     {places.map((p) => (
                       <li
                         key={p.id}
-                        className="flex flex-col gap-1 rounded-md bg-sunk p-3"
+                        className={`${panelLook} flex flex-col gap-1 p-3`}
                         data-testid={`place-${p.id}`}
                       >
                         <p className="flex flex-wrap items-center gap-2">
@@ -288,7 +288,7 @@ export function FirstWeekCard({
           const link = STEP_LINKS[step.id];
           const ticked = step.doneAt !== null;
           return (
-            <li key={step.id} className="flex flex-col gap-1 rounded-md bg-sunk p-3">
+            <li key={step.id} className={`${panelLook} flex flex-col gap-1 p-3`}>
               {onToggle ? (
                 <label
                   htmlFor={`${titleId}-${step.id}`}

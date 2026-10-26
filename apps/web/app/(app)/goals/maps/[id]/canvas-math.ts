@@ -100,19 +100,184 @@ export function homeView(centre: Box, viewport: Size): View {
   };
 }
 
-/** Below this zoom the map's words are too small to read, so the first view is the middle. */
-export const READABLE = 0.75;
+/**
+ * Below this zoom a card's words are too small to read (the integrator, 2026-10-25: a card's
+ * 15px words must stay about 12px on screen): the first view never goes under it.
+ */
+export const READABLE = 0.85;
 
 /**
- * The view a card opens on: the map across the card's width from its top (so it reads from the
- * first stop down), never above 100%; where that would be too small to read (a phone), the
- * middle at 100%.
+ * The view a card opens on (the integrator, 2026-10-25/26), as one self-contained function: it
+ * names nothing outside itself, because `placeScript` sends its own source to run before the page
+ * is live (A4-21), so the two can never disagree. The rule:
+ *
+ * 1. The whole map, centred, when it fits at a readable zoom (`readable`: a card's 14-15px words
+ *    stay about 12px on screen), never above 100%.
+ * 2. Otherwise the middle (or, in a phone's window narrower than the middle's shape, its `words`:
+ *    the box of what it says) and as many of the cards nearest it as still fit readably, whole.
+ * 3. Then, among the zooms from that fit down to `readable` and the pans that keep all of that in
+ *    the window, the one that cuts the fewest cards at the window's edge (a card is in, or out of
+ *    sight, never sliced), then shows the most whole cards, then is the larger, then the nearer
+ *    to centred.
+ *
+ * Null when there is nothing to measure (the caller shows the middle at 100%).
  */
-export function firstView(world: Size, viewport: Size, centre: Box, pad: number): View {
-  if (world.width <= 0) return homeView(centre, viewport);
-  const scale = Math.min(1, (viewport.width - 2 * pad) / world.width);
-  if (scale < READABLE) return homeView(centre, viewport);
-  return { x: (viewport.width - world.width * scale) / 2, y: pad, scale };
+export function firstViewOf(
+  world: Size,
+  viewport: Size,
+  hub: Box,
+  words: Box,
+  cards: ReadonlyArray<Box>,
+  pad: number,
+  readable: number,
+): View | null {
+  const vw = viewport.width;
+  const vh = viewport.height;
+  if (!(world.width > 0 && world.height > 0 && vw > 0 && vh > 0)) return null;
+  const fitScale = (b: Box) => Math.min(1, (vw - 2 * pad) / b.width, (vh - 2 * pad) / b.height);
+  const union = (a: Box, b: Box): Box => {
+    const x = Math.min(a.x, b.x);
+    const y = Math.min(a.y, b.y);
+    return {
+      x,
+      y,
+      width: Math.max(a.x + a.width, b.x + b.width) - x,
+      height: Math.max(a.y + a.height, b.y + b.height) - y,
+    };
+  };
+  const whole = { x: 0, y: 0, width: world.width, height: world.height };
+  const regions: Box[] = [];
+  if (fitScale(whole) >= readable) regions.push(whole);
+  else {
+    const start = fitScale(hub) >= readable ? hub : words;
+    const hx = hub.x + hub.width / 2;
+    const hy = hub.y + hub.height / 2;
+    const far = (b: Box) => Math.hypot(b.x + b.width / 2 - hx, b.y + b.height / 2 - hy);
+    const near = cards.slice().sort((a, b) => far(a) - far(b));
+    // The middle and the nearest cards that still fit, nearest first, trying each card as the
+    // first one beside it (the nearest alone can lead to a poor set, as on the life map).
+    for (let k = -1; k < near.length; k += 1) {
+      let region = start;
+      const order = k < 0 ? near : [near[k] as Box, ...near.filter((_, i) => i !== k)];
+      for (const c of order) {
+        const next = union(region, c);
+        if (fitScale(next) >= readable) region = next;
+      }
+      regions.push(region);
+    }
+    if (fitScale(start) < readable) {
+      // Not even the middle's words fit readably (a tiny window): them, centred, at `readable`.
+      return {
+        x: (vw - start.width * readable) / 2 - start.x * readable,
+        y: (vh - start.height * readable) / 2 - start.y * readable,
+        scale: readable,
+      };
+    }
+  }
+  /** The pans along one axis that keep the region whole, and those that put a card just in or out. */
+  const offsets = (lo: number, hi: number, edges: number[]) => {
+    const out = [(lo + hi) / 2, lo, hi];
+    for (const e of edges) if (e >= lo && e <= hi) out.push(e);
+    return out;
+  };
+  const inset = 8;
+  let best: { v: View; score: number[] } | null = null;
+  for (const region of regions) {
+    const top = fitScale(region);
+    const scales =
+      top - readable < 0.005 ? [top] : [0, 1, 2, 3, 4].map((k) => top - ((top - readable) * k) / 4);
+    for (const s of scales) {
+      // Keeping the region whole, within how far the map may pan (`clampView`: its edges never
+      // further than `pad` inside the window).
+      const within = (lo: number, hi: number, len: number, view: number): [number, number] => {
+        const far = view - len * s - pad;
+        const plo = Math.min(pad, far);
+        const phi = Math.max(pad, far);
+        const a = Math.max(lo, plo);
+        const b = Math.min(hi, phi);
+        if (a <= b) return [a, b];
+        const mid = Math.min(phi, Math.max(plo, (lo + hi) / 2));
+        return [mid, mid];
+      };
+      const [xlo, xhi] = within(
+        pad - region.x * s,
+        vw - pad - (region.x + region.width) * s,
+        world.width,
+        vw,
+      );
+      const [ylo, yhi] = within(
+        pad - region.y * s,
+        vh - pad - (region.y + region.height) * s,
+        world.height,
+        vh,
+      );
+      const xe: number[] = [];
+      const ye: number[] = [];
+      for (const c of cards) {
+        xe.push(
+          inset - c.x * s,
+          vw - inset - (c.x + c.width) * s,
+          -(c.x + c.width) * s,
+          vw - c.x * s,
+        );
+        ye.push(
+          inset - c.y * s,
+          vh - inset - (c.y + c.height) * s,
+          -(c.y + c.height) * s,
+          vh - c.y * s,
+        );
+      }
+      const xs = offsets(xlo, xhi, xe);
+      const ys = offsets(ylo, yhi, ye);
+      for (const x of xs) {
+        for (const y of ys) {
+          let cut = 0;
+          let shown = 0;
+          for (const c of cards) {
+            const l = x + c.x * s;
+            const r = x + (c.x + c.width) * s;
+            const t = y + c.y * s;
+            const b = y + (c.y + c.height) * s;
+            const inside = l >= -0.5 && r <= vw + 0.5 && t >= -0.5 && b <= vh + 0.5;
+            const seen = r > 1 && l < vw - 1 && b > 1 && t < vh - 1;
+            if (inside) shown += 1;
+            else if (seen) cut += 1;
+          }
+          const off = Math.abs(x - (xlo + xhi) / 2) + Math.abs(y - (ylo + yhi) / 2);
+          const score = [cut, -shown, -s, off];
+          let better = best === null;
+          if (best !== null) {
+            for (let i = 0; i < score.length; i += 1) {
+              const d = (score[i] as number) - (best.score[i] as number);
+              if (Math.abs(d) > 1e-9) {
+                better = d < 0;
+                break;
+              }
+            }
+          }
+          if (better) best = { v: { x, y, scale: s }, score };
+        }
+      }
+    }
+  }
+  return best ? best.v : null;
+}
+
+/**
+ * The view a card opens on: `firstViewOf` at `READABLE`; with nothing to measure, the middle at
+ * 100%. `placeScript` runs the same before the page is live (A4-21), so nothing shifts.
+ */
+export function firstView(
+  world: Size,
+  viewport: Size,
+  centre: Box,
+  cards: ReadonlyArray<Box>,
+  pad: number,
+  words: Box = centre,
+): View {
+  return (
+    firstViewOf(world, viewport, centre, words, cards, pad, READABLE) ?? homeView(centre, viewport)
+  );
 }
 
 /**
@@ -268,6 +433,41 @@ export function centreOn(view: View, point: Point, viewport: Size): View {
     y: viewport.height / 2 - point.y * view.scale,
     scale: view.scale,
   };
+}
+
+/**
+ * The first view, applied before the page is live (A4-21): a small inline script the server sends
+ * after the canvas's markup, which puts the map exactly where `MapCanvas.start()` will once it
+ * hydrates (the same `firstView`, then `clampView`, then the same custom properties, stage size and
+ * scroll), so nothing shifts when the page comes alive. It marks the canvas `data-placed`; the
+ * live canvas marks it `data-enhanced` and takes over. No React, nothing from the page; the
+ * decision is `firstViewOf`'s own source, so the server's view and the live one are one rule.
+ * test/plan-map-canvas.test.tsx runs it against the rendered DOM and compares the two views.
+ */
+export function placeScript(portId: string, pad = EDGE): string {
+  return (
+    `(function(){var p=document.getElementById(${JSON.stringify(portId)});if(!p)return;` +
+    `var r=p.parentNode;while(r&&!(r.className&&(' '+r.className+' ').indexOf(' uf-canvas ')>=0))r=r.parentNode;` +
+    `var st=p.firstElementChild,w=st&&st.firstElementChild;if(!r||!st||!w)return;` +
+    // The map's size, its middle and its cards, measured as the live canvas measures them (the
+    // world is still unscaled here), so the two views agree whatever the root font size.
+    `var W=w.offsetWidth,H=w.offsetHeight,c=w.querySelector('.uf-map-centre');` +
+    `var vw=p.clientWidth,vh=p.clientHeight,pad=${pad};if(!vw||!vh||!W||!H)return;` +
+    `var box=function(e){return{x:e.offsetLeft,y:e.offsetTop,width:e.offsetWidth,height:e.offsetHeight};};` +
+    `var hub=c?box(c):{x:0,y:0,width:0,height:0},wb=c&&c.querySelector('.uf-map-centre-body');` +
+    `var words=wb?{x:hub.x+wb.offsetLeft,y:hub.y+wb.offsetTop,width:wb.offsetWidth,height:wb.offsetHeight}:hub;` +
+    `var cards=[],ls=w.querySelectorAll('.uf-map-branches>li'),i;for(i=0;i<ls.length;i++)cards.push(box(ls[i]));` +
+    // The live canvas's own rule, its source as it is (it names nothing outside itself).
+    `var v=(${firstViewOf.toString()})({width:W,height:H},{width:vw,height:vh},hub,words,cards,pad,${READABLE});` +
+    `if(!v)v={x:vw/2-(hub.x+hub.width/2),y:vh/2-(hub.y+hub.height/2),scale:1};` +
+    `var x=v.x,y=v.y,s=Math.min(${ZOOM.max},Math.max(${ZOOM.min},v.scale));` +
+    `function range(len,vl){var far=vl-len*s-pad;return[Math.min(pad,far),Math.max(pad,far)];}` +
+    `var rx=range(W,vw),ry=range(H,vh);x=Math.min(rx[1],Math.max(rx[0],x));y=Math.min(ry[1],Math.max(ry[0],y));` +
+    `var m=Math.max(vw,vh);p.style.setProperty('--uf-canvas-x',x+'px');p.style.setProperty('--uf-canvas-y',y+'px');` +
+    `p.style.setProperty('--uf-canvas-scale',String(s));p.style.setProperty('--uf-canvas-margin',m+'px');` +
+    `r.setAttribute('data-placed','');st.style.width=(W*s+2*m)+'px';st.style.height=(H*s+2*m)+'px';` +
+    `p.scrollLeft=m-x;p.scrollTop=m-y;})();`
+  );
 }
 
 const n = (v: number) => String(Math.round(v * 10) / 10);

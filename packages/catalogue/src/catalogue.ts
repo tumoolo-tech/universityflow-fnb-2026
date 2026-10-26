@@ -1,7 +1,9 @@
 import type { AcademicCalendar, AssessmentRules, ModuleAssessment } from './assessment';
 import { isSafetyPlaceKind, type SafetyPlaceKind } from './basics';
+import type { Bursary } from './bursary';
 import type { Campus, FacultyOffice, Place, RegistrationCalendar } from './campus';
 import type { Curriculum } from './curriculum';
+import { bursaries } from './data/bursaries';
 import { nscFinal2026 } from './data/nsc-exams-2026';
 import { siyavulaResources } from './data/siyavula';
 import { helplines, nsfas } from './data/support';
@@ -118,6 +120,8 @@ export interface CatalogueRecords {
   readonly moduleAssessments?: ReadonlyArray<ModuleAssessment>;
   /** Exam, supplementary and DP-list dates per university and year (Phase 6a). */
   readonly academicCalendars?: ReadonlyArray<AcademicCalendar>;
+  /** Well-known bursaries beside NSFAS (data/bursaries.ts), drafts until a person verifies them. */
+  readonly bursaries?: ReadonlyArray<Bursary>;
 }
 
 const ALL: CatalogueRecords = {
@@ -176,6 +180,7 @@ const ALL: CatalogueRecords = {
   assessmentRules: ASSESSMENT.flatMap((a) => a.rules),
   moduleAssessments: ASSESSMENT.flatMap((a) => a.modules),
   academicCalendars: ASSESSMENT.flatMap((a) => a.calendars),
+  bursaries,
 };
 
 /** Every record, drafts included. For tests and the data-verification checklist only. */
@@ -211,6 +216,11 @@ export interface CatalogueView {
   readonly moduleAssessments: ReadonlyArray<ModuleAssessment>;
   /** Exam and supplementary calendars of the universities shown (Phase 6a). */
   readonly academicCalendars: ReadonlyArray<AcademicCalendar>;
+  /**
+   * Bursaries beside NSFAS: verified (drafts only in preview). Optional so a hand-built view in a
+   * test needn't carry it; catalogueViewOf always sets it.
+   */
+  readonly bursaries?: ReadonlyArray<Bursary>;
   /** True when drafts were included, so the interface must label them. */
   readonly includesDrafts: boolean;
 }
@@ -276,6 +286,7 @@ export function catalogueViewOf(
     academicCalendars: (records.academicCalendars ?? []).filter(
       (c) => keep(c) && open.has(c.universityId),
     ),
+    bursaries: (records.bursaries ?? []).filter(keep),
     includesDrafts: options.includeDrafts,
   };
 }

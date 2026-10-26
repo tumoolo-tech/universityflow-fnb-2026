@@ -16,6 +16,7 @@ import {
   Input,
   Notice,
   Page,
+  panelLook,
   Select,
   StatusLine,
 } from '@/components/ui';
@@ -188,10 +189,7 @@ export function MeView(props: {
         ) : (
           <ul className="flex flex-col gap-2">
             {memory.map((m) => (
-              <li
-                key={m.id}
-                className="flex items-center justify-between gap-3 rounded-md bg-sunk p-3"
-              >
+              <li key={m.id} className={`${panelLook} flex items-center justify-between gap-3 p-3`}>
                 <span>{m.body}</span>
                 <Button variant="quiet" onClick={() => forget(m.id)}>
                   {me.forget}

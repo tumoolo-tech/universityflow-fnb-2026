@@ -40,15 +40,16 @@ export async function applicationSummaries(
     view.programmes.filter((p) => programmeIds.has(p.id)).map((p) => p.universityId),
   );
 
+  const universities = view.universities.filter((u) => universityIds.has(u.id));
+  // Every university's checklist at once: one wait for the database, not one per university (the
+  // judge demo's slow home, 2026-10-25, where each wait is a round trip to London).
+  const checklists = await Promise.all(
+    universities.map((u) => student.checklist(`application:${u.id}`)),
+  );
   const applications: ApplicationSummary[] = [];
-  for (const university of view.universities.filter((u) => universityIds.has(u.id))) {
+  for (const [i, university] of universities.entries()) {
     const record = records.find((r) => r.universityId === university.id);
-    const done = new Map(
-      (await student.checklist(`application:${university.id}`)).map((c) => [
-        c.item,
-        c.doneAt !== null,
-      ]),
-    );
+    const done = new Map((checklists[i] ?? []).map((c) => [c.item, c.doneAt !== null]));
     applications.push({
       university,
       window: view.windows.find((w) => w.universityId === university.id) ?? null,

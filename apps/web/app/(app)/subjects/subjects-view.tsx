@@ -13,7 +13,7 @@ import Link from 'next/link';
 import type { CSSProperties, ReactNode } from 'react';
 import { CardArtLayers } from '@/components/card-art';
 import { Icon } from '@/components/icons';
-import { Badge, Button, Card, EmptyState, Notice, Page, Select } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, Notice, Page, panelLook, Select } from '@/components/ui';
 import { UniversityName } from '@/components/university-mark';
 import { subjectArt } from '@/lib/subject-art';
 
@@ -162,7 +162,7 @@ function CourseName({ course, children }: { course: SubjectsCourse; children?: R
 
 function GoalRow({ goal }: { goal: NonNullable<SubjectsDoors['goal']> }) {
   return (
-    <div className="flex flex-col gap-1 rounded-md bg-sunk p-4" data-testid="subjects-goal">
+    <div className={`${panelLook} flex flex-col gap-1 p-4`} data-testid="subjects-goal">
       <h3 className="uf-caps text-sm text-muted">{t.goalLabel}</h3>
       <p className="font-medium">{goal.course.name}</p>
       <p className="text-sm text-muted">
@@ -426,7 +426,7 @@ function WhatIfAnswer({ asked }: { asked: NonNullable<SubjectsDoors['whatIf']> }
     <section
       id="what-if"
       aria-labelledby="subjects-what-if-result"
-      className="flex flex-col gap-2 rounded-md bg-sunk p-4"
+      className={`${panelLook} flex flex-col gap-2 p-4`}
     >
       <h3 id="subjects-what-if-result" className="font-bold">
         {t.whatIfHeading(asked.take.name, asked.drop.name)}

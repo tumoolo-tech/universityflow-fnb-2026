@@ -23,6 +23,7 @@ export {
   collegeOptions,
   type EntryRule,
   entryRule,
+  type ProgrammeTypeStart,
 } from './colleges';
 export {
   CLOSE_LEVELS,

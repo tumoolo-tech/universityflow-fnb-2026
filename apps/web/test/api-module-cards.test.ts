@@ -1,5 +1,5 @@
 import { en } from '@universityflow/content';
-import type { ModuleCardData } from '@universityflow/ui';
+import { type ModuleCardData, moduleCardView } from '@universityflow/ui';
 import { describe, expect, it, vi } from 'vitest';
 import { E2E_REGISTRATION_PROGRAMME } from '../lib/server/e2e-fixtures';
 import { Browser } from './harness';
@@ -17,6 +17,8 @@ import { Browser } from './harness';
  */
 
 vi.mock('next/headers', async () => (await import('./harness')).nextHeaders);
+
+const { getServices } = await import('../lib/server/services');
 
 const routes = {
   requestPin: (await import('../app/api/auth/request-pin/route')).POST,
@@ -178,6 +180,38 @@ describe('module cards over the routes (Phase 6c)', () => {
     expect((await get(browser, id, 'TEST101')).body.marks).toEqual([
       { component: 'Test 1', attempt: 1, percent: 64 },
     ]);
+  });
+
+  it('says when a confirmed outline couldn’t be used, never dropping it silently (A1-81)', async () => {
+    const browser = await adult();
+    const id = await register(browser);
+    const saved = await browser.json<{ id: string }>(routes.outlines.PUT, '/api/module-outlines', {
+      method: 'PUT',
+      json: OUTLINE,
+    });
+    // An outline confirmed before migration 0042 with two parts of one name: the database kept it
+    // (0042's check is NOT VALID for older rows), and resolveScheme refuses it.
+    const { database } = await getServices();
+    await database.exec(`
+      alter table module_outlines drop constraint module_outlines_outline_check;
+      update module_outlines set outline = jsonb_set(outline, '{components,items,0,name}', '"Exam"')
+        where id = '${saved.body.id}';
+      alter table module_outlines add constraint module_outlines_outline_check
+        check (uf_module_outline_ok(outline)) not valid;
+    `);
+    const { status, body } = await get(browser, id, 'TEST101');
+    expect(status).toBe(200);
+    expect(body.outlineNotUsed).toBe(true);
+    expect(body.scheme.weighting?.source.level).not.toBe('outline');
+    const view = moduleCardView(body, (iso) => iso);
+    expect(view.how.outlineNotUsed).toBe(en.moduleCard.how.outlineNotUsed);
+    // A card whose outline was used says nothing of the kind.
+    const other = await adult();
+    const otherId = await register(other);
+    await other.json(routes.outlines.PUT, '/api/module-outlines', { method: 'PUT', json: OUTLINE });
+    const fine = await get(other, otherId, 'TEST101');
+    expect(fine.body.outlineNotUsed).toBeUndefined();
+    expect(moduleCardView(fine.body, (iso) => iso).how.outlineNotUsed).toBeNull();
   });
 
   it('refuses to save marks while the module’s weighting isn’t published', async () => {

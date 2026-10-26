@@ -3,12 +3,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type Database, rowsOf } from './client';
 import {
   ConsentRequiredError,
+  InvalidStateError,
   NotFoundError,
   PersonalNumberError,
   PlanMapLimitError,
   PlanWordsError,
 } from './errors';
-import { PLAN_MAP_LIMITS, type PlanPartInput } from './plan-maps';
+import { PLAN_MAP_LIMITS, PLAN_POSITION_MAX, type PlanPartInput } from './plan-maps';
 import { adultStudent, signIn, syntheticPhone, testDatabase, testStore } from './testing';
 
 /**
@@ -478,6 +479,152 @@ describe('moving and deleting parts', () => {
         NO_WORDS,
       ),
     ).rejects.toThrow(/already/);
+  });
+});
+
+describe('a map’s own name (RT-06, migration 0043)', () => {
+  it('keeps the name a learner gives a new map, with the switch on', async () => {
+    const { student } = await adult();
+    const map = await student.createPlanMap(
+      { templateId: 'staircase', linksGoal: false, parts: PARTS, title: '  My climb  ' },
+      WORDS,
+    );
+    expect(map.title).toBe('My climb');
+    expect((await student.planMap(map.id))?.title).toBe('My climb');
+  });
+
+  it('refuses a name without the switch, or one holding an ID number, and keeps no map', async () => {
+    const { student } = await adult();
+    await expect(
+      student.createPlanMap(
+        { templateId: 'staircase', linksGoal: false, parts: PARTS, title: 'My climb' },
+        NO_WORDS,
+      ),
+    ).rejects.toThrow(PlanWordsError);
+    await expect(
+      student.createPlanMap(
+        {
+          templateId: 'staircase',
+          linksGoal: false,
+          parts: PARTS,
+          title: ['9001', '0150', '0908', '6'].join(''),
+        },
+        WORDS,
+      ),
+    ).rejects.toThrow(PersonalNumberError);
+    await expect(
+      student.createPlanMap(
+        { templateId: 'staircase', linksGoal: false, parts: PARTS, title: 'x'.repeat(61) },
+        WORDS,
+      ),
+    ).rejects.toThrow();
+    expect(await student.planMaps()).toEqual([]);
+  });
+});
+
+describe('where each card sits on the canvas (RT-08, migration 0043)', () => {
+  it('saves a card’s place and reads it back; the template’s parts start with none', async () => {
+    const { student, map, bySlot } = await withMap();
+    expect(map.nodes.every((n) => n.place === null)).toBe(true);
+    await student.savePlanLayout(map.id, [
+      { nodeId: bySlot('slot:grade-10'), x: 120, y: 48 },
+      { nodeId: bySlot('slot:centre'), x: 600, y: 400 },
+    ]);
+    const nodes = (await student.planMap(map.id))?.nodes ?? [];
+    expect(nodes.find((n) => n.slotId === 'slot:grade-10')?.place).toEqual({ x: 120, y: 48 });
+    expect(nodes.find((n) => n.slotId === 'slot:centre')?.place).toEqual({ x: 600, y: 400 });
+    expect(nodes.find((n) => n.slotId === 'slot:grade-11')?.place).toBeNull();
+  });
+
+  it('refuses a place off the canvas, not a whole number, or for a step inside a card', async () => {
+    const { student, map, bySlot } = await withMap();
+    const id = bySlot('slot:grade-10');
+    for (const place of [
+      { x: -1, y: 0 },
+      { x: 0, y: PLAN_POSITION_MAX + 1 },
+      { x: 1.5, y: 0 },
+      { x: Number.NaN, y: 0 },
+    ]) {
+      await expect(student.savePlanLayout(map.id, [{ nodeId: id, ...place }])).rejects.toThrow(
+        InvalidStateError,
+      );
+    }
+    await expect(
+      student.savePlanLayout(map.id, [{ nodeId: bySlot('slot:matric-step'), x: 0, y: 0 }]),
+    ).rejects.toThrow(InvalidStateError);
+    await expect(
+      student.savePlanLayout(map.id, [
+        { nodeId: '00000000-0000-4000-8000-000000000999', x: 0, y: 0 },
+      ]),
+    ).rejects.toThrow(NotFoundError);
+    // The database holds the same bounds, and a place for a step at all.
+    await expect(
+      database.exec(`update plan_map_nodes set place_x = 0, place_y = 5000 where id = '${id}'`),
+    ).rejects.toThrow(/plan_map_nodes_canvas_place/);
+    await expect(
+      database.exec(`update plan_map_nodes set place_x = 10 where id = '${id}'`),
+    ).rejects.toThrow(/plan_map_nodes_canvas_place/);
+    await expect(
+      database.exec(
+        `update plan_map_nodes set place_x = 0, place_y = 0 where id = '${bySlot('slot:matric-step')}'`,
+      ),
+    ).rejects.toThrow(/plan_map_nodes_canvas_place/);
+  });
+
+  it('a place is not the learner’s words: it needs only consent, and the audit says nothing else', async () => {
+    const { student, studentId, map, bySlot } = await withMap();
+    await student.savePlanLayout(map.id, [{ nodeId: bySlot('slot:grade-11'), x: 24, y: 24 }]);
+    await student.resetPlanLayout(map.id);
+    const actions = (await auditOf(studentId)).filter((r) =>
+      r.action.startsWith('plan-map.layout'),
+    );
+    expect(actions).toEqual([
+      { action: 'plan-map.layout-saved', reason: null },
+      { action: 'plan-map.layout-reset', reason: null },
+    ]);
+  });
+
+  it('Reset layout clears every place on the map, and no other map’s', async () => {
+    const { student, map, bySlot } = await withMap();
+    const other = await student.createPlanMap({
+      templateId: 'the-road',
+      linksGoal: false,
+      parts: PARTS,
+    });
+    await student.savePlanLayout(map.id, [{ nodeId: bySlot('slot:grade-10'), x: 24, y: 24 }]);
+    await student.savePlanLayout(other.id, [
+      { nodeId: other.nodes[1]?.id as string, x: 48, y: 48 },
+    ]);
+    await student.resetPlanLayout(map.id);
+    expect((await student.planMap(map.id))?.nodes.every((n) => n.place === null)).toBe(true);
+    expect((await student.planMap(other.id))?.nodes[1]?.place).toEqual({ x: 48, y: 48 });
+  });
+
+  it('another learner can neither move nor reset a map’s cards', async () => {
+    const { map, bySlot } = await withMap();
+    const other = await adult();
+    await expect(
+      other.student.savePlanLayout(map.id, [{ nodeId: bySlot('slot:grade-10'), x: 0, y: 0 }]),
+    ).rejects.toThrow(NotFoundError);
+    await expect(other.student.resetPlanLayout(map.id)).rejects.toThrow(NotFoundError);
+  });
+
+  it('a card moved in a level, inside another card, loses its place', async () => {
+    const { student, map, bySlot } = await withMap();
+    await student.savePlanLayout(map.id, [{ nodeId: bySlot('slot:grade-11'), x: 240, y: 240 }]);
+    await student.movePlanNode(map.id, bySlot('slot:grade-11'), {
+      parentId: bySlot('slot:grade-10'),
+      position: 0,
+    });
+    const moved = (await student.planMap(map.id))?.nodes.find((n) => n.slotId === 'slot:grade-11');
+    expect(moved).toMatchObject({ depth: 2, place: null });
+  });
+
+  it('Download my data has each card’s place', async () => {
+    const { student, map, bySlot } = await withMap();
+    await student.savePlanLayout(map.id, [{ nodeId: bySlot('slot:grade-10'), x: 72, y: 96 }]);
+    const exported = await student.exportAll();
+    expect(JSON.stringify(exported.personal?.planMaps)).toMatch(/"placeX":72,"placeY":96/);
   });
 });
 

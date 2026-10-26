@@ -374,6 +374,18 @@ export function buildPrompts(rules) {
         'A whole number; blank: no cap (the owner’s choice). The key’s spend limit is the real cap',
       check: wholeNumber,
     },
+    {
+      // The scheduled sweep (A11-61, docs/deploy/demo.md "The scheduled sweep"): Vercel's own name.
+      name: 'CRON_SECRET',
+      secret: true,
+      what: 'The secret behind the demo’s scheduled sweep (Vercel sends it to GET /api/demo/sweep)',
+      where:
+        'Make one: 32 or more random letters and digits from a password generator; nowhere else. Mark it Sensitive in Vercel',
+      check: (v) =>
+        /^[A-Za-z0-9_-]{32,}$/.test(v)
+          ? ok()
+          : bad('at least 32 random letters, digits, - or _ (a demo refuses a shorter one)'),
+    },
     // The hackathon exceptions of 2026-10-24 (docs/deploy/demo.md, hackathon-undo-pr.md).
     {
       name: 'UF_CV',

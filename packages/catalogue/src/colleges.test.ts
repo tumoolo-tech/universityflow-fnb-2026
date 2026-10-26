@@ -13,7 +13,10 @@ import {
   isCollegeSource,
   isRegistered,
   normaliseCollegeName,
+  type ProgrammeTypeEntry,
   programmesAt,
+  programmeTypeEntry,
+  programmeTypeEntrySchema,
   registrationCheck,
   type TeachOutNotice,
   teachOutNoticeSchema,
@@ -255,6 +258,40 @@ describe('collegeViewOf', () => {
   it('never shows a verification dated in the future', () => {
     const college = { ...COLLEGE, verifiedOn: '2026-12-01', verifiedBy: 'A. Person' };
     expect(collegeViewOf(records([college]), TODAY, { includeDrafts: false }).colleges).toEqual([]);
+  });
+});
+
+describe('where a programme type starts (A1-84): a sourced record, gated like every other', () => {
+  const ENTRY: ProgrammeTypeEntry = {
+    sourceUrl: 'https://www.dhet.gov.za/ncv-policy.pdf',
+    academicYear: 2027,
+    type: 'ncv',
+    afterGrade: 9,
+    orAfter: null,
+    quote: 'The minimum entrance requirements are a Grade 9 Certificate.',
+    page: 'p. 13',
+  };
+  const withEntry = (entry: ProgrammeTypeEntry) => ({ ...records(), entries: [entry] });
+
+  it('cites DHET’s own domain', () => {
+    expect(programmeTypeEntrySchema.safeParse(ENTRY).success).toBe(true);
+    expect(
+      programmeTypeEntrySchema.safeParse({ ...ENTRY, sourceUrl: 'https://example.org/ncv.pdf' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('reaches a learner verified, or as a draft in preview only (hard rule 3)', () => {
+    const draft = withEntry(ENTRY);
+    expect(collegeViewOf(draft, TODAY, { includeDrafts: false }).entries).toEqual([]);
+    expect(programmeTypeEntry(collegeViewOf(draft, TODAY, { includeDrafts: true }), 'ncv')).toEqual(
+      ENTRY,
+    );
+    const checked = collegeViewOf(withEntry({ ...ENTRY, ...verified }), TODAY, {
+      includeDrafts: false,
+    });
+    expect(programmeTypeEntry(checked, 'ncv')?.afterGrade).toBe(9);
+    expect(programmeTypeEntry(checked, 'n4-n6')).toBeUndefined();
   });
 });
 

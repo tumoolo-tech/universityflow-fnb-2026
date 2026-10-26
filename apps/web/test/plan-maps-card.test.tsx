@@ -83,7 +83,7 @@ describe('PlanMapsCard', () => {
     expect((screen.getByLabelText(t.useGoal) as HTMLInputElement).checked).toBe(true);
   });
 
-  it('starts a map with one POST and opens it', async () => {
+  it('starts a map with one POST and opens it, named by the learner while writing is on (RT-06)', async () => {
     const fetch = vi.fn(async () =>
       Response.json({ map: { id: '00000000-0000-4000-8000-000000000009' } }),
     );
@@ -92,6 +92,14 @@ describe('PlanMapsCard', () => {
     fireEvent.click(screen.getByRole('button', { name: t.start }));
     fireEvent.click(screen.getByLabelText(new RegExp(t.templates['the-road'].name)));
     expect((screen.getByLabelText(t.useGoal) as HTMLInputElement).checked).toBe(false);
+    // A name is needed: without one nothing is sent, the field says why and takes focus.
+    fireEvent.click(screen.getByRole('button', { name: t.create }));
+    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.getByText(t.naming.needed)).toBeTruthy();
+    const name = screen.getByLabelText(t.naming.label) as HTMLInputElement;
+    expect(document.activeElement).toBe(name);
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    fireEvent.change(name, { target: { value: ' My road to engineering ' } });
     fireEvent.click(screen.getByRole('button', { name: t.create }));
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith('/goals/maps/00000000-0000-4000-8000-000000000009?new=1'),
@@ -101,7 +109,29 @@ describe('PlanMapsCard', () => {
       '/api/me/plan-maps',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ templateId: 'the-road', linksGoal: false }),
+        body: JSON.stringify({
+          templateId: 'the-road',
+          linksGoal: false,
+          title: 'My road to engineering',
+        }),
+      }),
+    );
+  });
+
+  it('while writing waits for the consent wording, asks for no name and sends none', async () => {
+    const fetch = vi.fn(async () =>
+      Response.json({ map: { id: '00000000-0000-4000-8000-000000000009' } }),
+    );
+    vi.stubGlobal('fetch', fetch);
+    card({ ...one, maps: [] }, false);
+    fireEvent.click(screen.getByRole('button', { name: t.start }));
+    expect(screen.queryByLabelText(t.naming.label)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: t.create }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/me/plan-maps',
+      expect.objectContaining({
+        body: JSON.stringify({ templateId: 'six-stops', linksGoal: false }),
       }),
     );
   });

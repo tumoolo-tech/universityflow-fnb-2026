@@ -134,6 +134,65 @@ describe('onboarding (hard rule 5: the server decides; the app asks and re-check
     expect(await screen.findByRole('link', { name: en.nav.chat })).toBeTruthy();
   });
 
+  it('on the judges’ demo, nothing is sent: the guardian’s link the server returns opens in the browser', async () => {
+    const d = en.demoPhoneSignup;
+    let current = me({ dateOfBirth: '2010-05-05', consentStatus: 'pending' });
+    serve({
+      'GET /api/me': () => ({ json: current }),
+      'GET /api/home': { json: home() },
+      'POST /api/me/guardian': { json: { ok: true, demoConsentLink: '/consent/tok-synthetic' } },
+    });
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const screen = await renderHome();
+    await fireEvent.changeText(
+      await screen.findByLabelText(en.onboarding.guardianName),
+      'Test Guardian',
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText(en.onboarding.guardianPhone),
+      ['080', '0', '000', '002'].join(''),
+    );
+    await fireEvent.press(
+      screen.getByRole('radio', { name: en.onboarding.relationships['legal-guardian'] }),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: en.onboarding.sendRequest }));
+
+    expect(await screen.findByRole('header', { name: en.onboarding.waitingTitle })).toBeTruthy();
+    expect(screen.getByText(d.guardianLinkTitle)).toBeTruthy();
+    expect(screen.getByText(d.guardianLinkLead)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('link', { name: d.guardianLinkAction }));
+    expect(open).toHaveBeenCalledWith(`${DEV_API_URL}/consent/tok-synthetic`);
+
+    open.mockRestore();
+    // The judge agreed as the made-up guardian in the browser: the app goes on.
+    current = me({ dateOfBirth: '2010-05-05', consentStatus: 'granted' }, true);
+    await fireEvent.press(screen.getByRole('button', { name: en.onboarding.checkAgain }));
+    expect(await screen.findByRole('link', { name: en.nav.chat })).toBeTruthy();
+  });
+
+  it('a guardian link that isn’t a /consent/ path on our server is never offered', async () => {
+    serve({
+      'GET /api/me': { json: me({ dateOfBirth: '2010-05-05', consentStatus: 'pending' }) },
+      'GET /api/home': { json: home() },
+      'POST /api/me/guardian': { json: { ok: true, demoConsentLink: 'https://evil.example/x' } },
+    });
+    const screen = await renderHome();
+    await fireEvent.changeText(
+      await screen.findByLabelText(en.onboarding.guardianName),
+      'Test Guardian',
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText(en.onboarding.guardianPhone),
+      ['080', '0', '000', '002'].join(''),
+    );
+    await fireEvent.press(
+      screen.getByRole('radio', { name: en.onboarding.relationships['legal-guardian'] }),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: en.onboarding.sendRequest }));
+    expect(await screen.findByRole('header', { name: en.onboarding.waitingTitle })).toBeTruthy();
+    expect(screen.queryByText(en.demoPhoneSignup.guardianLinkTitle)).toBeNull();
+  });
+
   it('a learner who turned 18 gives their own consent', async () => {
     let current = me({
       dateOfBirth: '2008-01-01',

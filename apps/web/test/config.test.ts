@@ -35,14 +35,28 @@ const WITH_ADAPTER = {
 };
 
 describe('data residency: functions run in Cape Town', () => {
-  it('pins every function to cpt1 in vercel.json', () => {
+  it('pins every function to cpt1 in vercel.json (London only while hackathon exception J stands)', () => {
     const vercel = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
+    if (vercel.regions[0] === 'lhr1') {
+      // The judge demo's functions beside its London database (docs/deploy/hackathon-undo-pr.md J).
+      // Allowed only while that exception is written down to be undone; production refuses lhr1.
+      const undo = readFileSync(
+        new URL('../../../docs/deploy/hackathon-undo-pr.md', import.meta.url),
+        'utf8',
+      );
+      expect(undo).toMatch(/^### J\. The demo's functions in London/m);
+      expect(vercel.regions).toEqual(['lhr1']);
+      return;
+    }
     expect(vercel.regions).toEqual(['cpt1']);
   });
 
   it('refuses to start in production outside cpt1', () => {
     expect(() => readConfig({ ...LIVE, VERCEL_REGION: 'iad1' }, WITH_ADAPTER)).toThrow(
       /must run in cpt1, not iad1/,
+    );
+    expect(() => readConfig({ ...LIVE, VERCEL_REGION: 'lhr1' }, WITH_ADAPTER)).toThrow(
+      /must run in cpt1, not lhr1/,
     );
     expect(() => readConfig({ ...LIVE, VERCEL_REGION: 'cpt1' }, WITH_ADAPTER)).not.toThrow();
   });

@@ -297,21 +297,33 @@ describe('the Firebase SDK is loaded only on the sign-up page', () => {
           return [];
         }
       })
-      .filter((file) => /from ['"]firebase|import\(['"]firebase/.test(readFileSync(file, 'utf8')))
+      .filter((file) =>
+        /from ['"]@?firebase|import\(['"]@?firebase/.test(readFileSync(file, 'utf8')),
+      )
       .map((file) => relative(WEB, file).replace(/\\/g, '/'));
     expect(importers).toEqual(['app/demo/sign-up/signup-form.tsx']);
   });
 
   it('the sign-up form loads it only when it is needed (a dynamic import)', () => {
     const form = readFileSync(join(WEB, 'app/demo/sign-up/signup-form.tsx'), 'utf8');
-    expect(form).not.toMatch(/^import[^;]*from ['"]firebase/m);
-    expect(form).toMatch(/import\(['"]firebase\/auth['"]\)/);
+    expect(form).not.toMatch(/^import[^;]*from ['"]@?firebase/m);
+    expect(form).toMatch(/import\(['"]@firebase\/app['"]\)/);
+    expect(form).toMatch(/import\(['"]@firebase\/auth['"]\)/);
   });
 
-  it('pins the SDK to one exact version', () => {
+  it('pins the two SDK packages it uses to exact versions, never the umbrella (A8-12)', () => {
     const pkg = JSON.parse(readFileSync(join(WEB, 'package.json'), 'utf8')) as {
       dependencies: Record<string, string>;
     };
-    expect(pkg.dependencies['firebase']).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(pkg.dependencies['@firebase/app']).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(pkg.dependencies['@firebase/auth']).toMatch(/^\d+\.\d+\.\d+$/);
+    // The umbrella brings Firestore and gRPC, which nothing here imports.
+    expect(pkg.dependencies['firebase']).toBeUndefined();
+    const root = JSON.parse(readFileSync(join(WEB, '../../package.json'), 'utf8')) as {
+      pnpm: { overrides: Record<string, string>; auditConfig: { ignoreGhsas: string[] } };
+    };
+    expect(Object.keys(root.pnpm.overrides).filter((k) => /firestore|grpc/.test(k))).toEqual([]);
+    // A8-13: braces' GHSA-vfj7-8cjw-p6xm was withdrawn; no dead ignore entry.
+    expect(root.pnpm.auditConfig.ignoreGhsas).not.toContain('GHSA-vfj7-8cjw-p6xm');
   });
 });

@@ -6,6 +6,21 @@
  *
  * The persona keys are the demo's fixed persona ids (apps/web/lib/server/demo/types.ts).
  */
+/** The guide's honest lines that still hold (`guide.honest` and `guide.honestNow` both start with them). */
+const HONEST_KEPT = [
+  'Everyone here is made up: the learners, their marks and their reports. Your copy is deleted after 24 hours.',
+  'University facts come from each university’s published pages. Many are still being checked, and those say “Not yet verified”.',
+  'The chat is the real AI, with every safety check on. If a page says “no AI connected”, the replies come from a simple practice script instead.',
+  'Uploads take only our SAMPLE reports and pictures, never a real document or photo.',
+  'Nothing is sent to a phone: no texts, WhatsApp messages or app notifications in the demo.',
+] as const;
+/** Stale since module marks shipped (#129): kept as written, no longer shown (`honestNow`). */
+const HONEST_STALE =
+  'Study help, marks, a weekly plan and a portfolio for the university years are still being built. They show as “Coming next”.';
+
+const HONEST_MODULE_CARDS =
+  'Each university learner’s first module has a module card built from a SAMPLE outline, with a few made-up marks in its mark calculator.';
+
 export const demoPersonas = {
   personas: {
     'demo-grade-10': {
@@ -68,6 +83,14 @@ export const demoPersonas = {
         line: 'What you did each year, kept together for bursaries, internships and jobs.',
       },
     },
+    /**
+     * Shown in place of `items.marks` since module cards with a mark calculator shipped (#129,
+     * A6-06, wave 10): what is still to come. Owed the owner's wording review.
+     */
+    weakSpots: {
+      name: 'Weak spots',
+      line: 'See early which modules need more of your time, and where to get help with them.',
+    },
   },
   /**
    * `/demo/guide`: a one-page guide for a judge with three minutes, linked from the picker (demo
@@ -80,14 +103,7 @@ export const demoPersonas = {
     title: 'A three-minute guide for judges',
     lead: 'Pick one learner, try two or three things, then press “Switch learner” and pick another. Each one shows a different part of the journey, from Grade 10 to a final year at university.',
     honestTitle: 'What’s real here, and what’s a stand-in',
-    honest: [
-      'Everyone here is made up: the learners, their marks and their reports. Your copy is deleted after 24 hours.',
-      'University facts come from each university’s published pages. Many are still being checked, and those say “Not yet verified”.',
-      'The chat is the real AI, with every safety check on. If a page says “no AI connected”, the replies come from a simple practice script instead.',
-      'Uploads take only our SAMPLE reports and pictures, never a real document or photo.',
-      'Nothing is sent to a phone: no texts, WhatsApp messages or app notifications in the demo.',
-      'Study help, marks, a weekly plan and a portfolio for the university years are still being built. They show as “Coming next”.',
-    ],
+    honest: [...HONEST_KEPT, HONEST_STALE],
     triesTitle: 'Things to try',
     /** One heading per learner: "Thabo, Grade 10". */
     personaHeading: (name: string, stage: string) => `${name}, ${stage}`,
@@ -125,6 +141,28 @@ export const demoPersonas = {
       ],
     },
     back: 'Back to the learners',
+    /**
+     * Since module cards with a mark calculator shipped (#129, A6-06, wave 10). The guide shows
+     * `honestNow` in place of `honest` (its first five lines unchanged, its stale last line replaced),
+     * and each learner's `tries` then their `moreTries`. Owed the owner's wording review.
+     */
+    honestModuleCards: HONEST_MODULE_CARDS,
+    honestNow: [
+      ...HONEST_KEPT,
+      'Study help, spotting weak modules early, a weekly plan and a portfolio for the university years are still being built. They show as “Coming next”.',
+      HONEST_MODULE_CARDS,
+    ],
+    moreTries: {
+      'demo-second-year': [
+        'Open My modules, then his first module’s card: change a mark in the Mark calculator and see what he needs in the exam.',
+      ],
+      'demo-final-year': [
+        'Open My modules, press “Add a module outline”, then “Use a sample module outline” and check it part by part.',
+      ],
+    },
+    /** The guide's search and share description (A6-04, wave 10). Owed the owner's review. */
+    description:
+      'A three-minute guide for judges: what to try as each made-up learner, and plainly what is real in the UniversityFlow demo and what is a stand-in.',
   },
   /**
    * The school on every made-up learner's profile (My CV's education needs one; a hackathon

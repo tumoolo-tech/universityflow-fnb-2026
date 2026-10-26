@@ -6,6 +6,7 @@ import {
   collegeProgrammeSchema,
   collegeSchema,
   isDhetSource,
+  programmeTypeEntrySchema,
   teachOutNoticeSchema,
 } from './colleges';
 import { DHET_COLLEGE_LIST, RAW_COLLEGES } from './colleges-catalogue';
@@ -103,5 +104,23 @@ describe('the public TVET college records', () => {
     );
     const open = programmes.filter((p) => p.type === 'ncv' && !closingNotice(p, notices, 2027));
     expect(open.length).toBeGreaterThan(200);
+  });
+
+  // A1-84 / A10-67: where each programme type starts is DHET's national rule, a sourced record,
+  // never words in packages/content (hard rule 2). Drafts: a person adds verifiedOn/verifiedBy.
+  it('say where each programme type starts, from DHET’s own policy, as drafts', () => {
+    const { entries = [] } = RAW_COLLEGES;
+    for (const e of entries) {
+      expect(programmeTypeEntrySchema.safeParse(e).error).toBeUndefined();
+      expect(isDhetSource(e.sourceUrl)).toBe(true);
+      expect(e.verifiedOn).toBeUndefined();
+      expect(e.verifiedBy).toBeUndefined();
+    }
+    expect(entries.map((e) => [e.type, e.afterGrade, e.orAfter])).toEqual([
+      ['ncv', 9, null],
+      ['n4-n6', 12, 'N3'],
+    ]);
+    expect(entries[0]?.quote).toMatch(/Grade 9 Certificate/);
+    expect(entries[1]?.quote).toMatch(/National Certificate: N3/);
   });
 });

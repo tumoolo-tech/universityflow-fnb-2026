@@ -6,11 +6,16 @@ import { Card, Page, PublicPage } from '@/components/ui';
 import { demoSignupOrNull } from '@/lib/demo-signup';
 import { demoConfigRefusal } from '@/lib/server/demo/entry';
 import { isDemo } from '@/lib/server/deployment';
+import { pageMetadata } from '@/lib/server/seo';
 import { currentStudent } from '@/lib/server/session';
 import { SignUpForm, type SignUpWords } from './signup-form';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: copy.pageTitle };
+export const metadata: Metadata = pageMetadata({
+  path: '/demo/sign-up',
+  title: copy.pageTitle,
+  description: copy.pageDescription,
+});
 
 /**
  * The judges' real sign-up: a HACKATHON EXCEPTION the owner approved on 2026-10-23 ("build the

@@ -41,4 +41,21 @@ export const home = {
   barLabel: 'Start here',
   barFree: 'Free for learners',
   barHere: 'Your information stays in South Africa',
+  /**
+   * The front door's search and share description (A6-04, wave 10). Owed the owner's wording
+   * review.
+   */
+  description:
+    'Free for learners: UniversityFlow checks your marks against each university’s own rules, shows what you qualify for and your Plan B, and helps you apply.',
+  /**
+   * The judge demo's words in place of `barHere` and `free` (the owner, 2026-10-25): the demo's
+   * database and functions are in London (docs/deploy/demo.md, hackathon exception J), so it never
+   * says "Your information stays in South Africa". Production shows `barHere` and `free`. Owed the
+   * owner's wording review.
+   */
+  barHereDemo: 'Real learners’ information will stay in South Africa',
+  /** Under `barHereDemo` in the bar. */
+  barHereDemoWhere: 'This demo runs in London, on made-up learners.',
+  freeDemo:
+    'Free for learners. Real learners’ information will stay in South Africa; this demo runs in London.',
 } as const;

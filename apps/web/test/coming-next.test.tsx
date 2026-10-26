@@ -66,11 +66,22 @@ describe('the "coming next" cards', () => {
     const section = screen.getByRole('region', { name: t.title });
     const cards = within(section).getAllByRole('listitem');
     expect(cards).toHaveLength(4);
-    for (const item of Object.values(t.items)) {
+    const items = [t.items.studyCoach, t.weakSpots, t.items.lifePlan, t.items.portfolio];
+    expect(cards.map((card) => card.querySelector('h3')?.textContent)).toEqual(
+      items.map((item) => t.label(item.name)),
+    );
+    for (const item of items) {
       expect(within(section).getByRole('heading', { name: t.label(item.name) })).toBeTruthy();
       expect(within(section).getByText(item.line)).toBeTruthy();
     }
     expect(within(section).getByText(t.lead)).toBeTruthy();
+  });
+
+  it('no longer says module marks are coming: the module card has them (A6-06)', () => {
+    render(<ComingNext />);
+    const section = screen.getByRole('region', { name: t.title });
+    expect(within(section).queryByText(t.items.marks.line)).toBeNull();
+    expect(within(section).queryByText(t.label(t.items.marks.name))).toBeNull();
   });
 
   it('link nowhere and promise no date: nothing to press', () => {

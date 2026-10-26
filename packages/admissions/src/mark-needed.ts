@@ -261,7 +261,16 @@ export type NeededResult =
       readonly reason: 'weighting-not-published' | 'pass-mark-not-published';
     }
   | { readonly kind: 'blocked'; readonly components: ReadonlyArray<string> }
-  | { readonly kind: 'already-secured' }
+  | {
+      readonly kind: 'already-secured';
+      /**
+       * A1-82: the exam counts, and no exam subminimum is published (gotcha 40: that is not "none"),
+       * so a very low exam mark may still stop a pass under a rule printed somewhere else.
+       */
+      readonly examSubminimum?: 'not-published';
+      /** A1-82: the exam counts, and on these marks the learner doesn't reach exam admission (DP). */
+      readonly examAdmission?: 'not-met';
+    }
   | { readonly kind: 'impossible'; readonly exact: number }
   | {
       readonly kind: 'needed';
@@ -342,17 +351,28 @@ export function markNeeded(
   const t = threshold(goal, scheme.rounding);
   if (y.examWeight === 0)
     return single('all-remaining', continuous(t, y.earned, y.outstandingWeight));
-  if (y.complete) return single('all-written', exam(t, y.earned, y.examWeight, subminimum));
+  // A1-82: what an "already secured" result must still say about the exam it doesn't need.
+  const caveats = {
+    ...(subminimum === undefined ? { examSubminimum: 'not-published' as const } : {}),
+    ...(dpStatus(scheme, marks).status === 'not-met' ? { examAdmission: 'not-met' as const } : {}),
+  };
+  const examResult = (earned: number) =>
+    withCaveats(exam(t, earned, y.examWeight, subminimum), caveats);
+  if (y.complete) return single('all-written', examResult(y.earned));
   const readings: Array<{ reading: Reading; result: NeededResult }> = [];
   if (y.yearMark !== undefined) {
     const likeAverage = y.earned + (y.outstandingWeight * y.yearMark) / 100;
-    readings.push({
-      reading: 'remaining-like-average',
-      result: exam(t, likeAverage, y.examWeight, subminimum),
-    });
+    readings.push({ reading: 'remaining-like-average', result: examResult(likeAverage) });
   }
-  readings.push({ reading: 'nothing-more', result: exam(t, y.earned, y.examWeight, subminimum) });
+  readings.push({ reading: 'nothing-more', result: examResult(y.earned) });
   return { readings, ...base };
+}
+
+function withCaveats(
+  result: NeededResult,
+  caveats: { examSubminimum?: 'not-published'; examAdmission?: 'not-met' },
+): NeededResult {
+  return result.kind === 'already-secured' ? { ...result, ...caveats } : result;
 }
 
 /** The highest exam subminimum that applies: the scheme's, or the exam components' own. */
@@ -428,6 +448,17 @@ export type SupplementaryOutlook =
     };
 
 /**
+ * Whether a final mark is within a printed range's top (A1-85). A whole percent printed as the
+ * top ("45–49%") covers every mark below the next whole percent (49.3 is in it), but never the
+ * pass mark or above it; a top printed with decimals is taken as printed.
+ */
+function withinTop(final: number, to: number, passMark: number | undefined): boolean {
+  if (!Number.isInteger(to)) return final <= to;
+  const next = passMark !== undefined && passMark > to && passMark < to + 1 ? passMark : to + 1;
+  return final < next;
+}
+
+/**
  * Whether a final mark falls where the resolved rules say a supplementary may follow, and what
  * its result can be. A range printed as "at least N" runs up to (not including) the pass mark.
  */
@@ -442,7 +473,8 @@ export function supplementaryOutlook(scheme: ResolvedScheme, final: number): Sup
   if (range.to === undefined && passMark === undefined) {
     return { kind: 'unknown', reason: 'pass-mark-not-published', rule };
   }
-  const inRange = range.to === undefined ? final < (passMark as number) : final <= range.to;
+  const inRange =
+    range.to === undefined ? final < (passMark as number) : withinTop(final, range.to, passMark);
   const bounds = {
     from: range.from,
     upTo: range.to ?? (passMark as number),

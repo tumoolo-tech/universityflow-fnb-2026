@@ -25,10 +25,17 @@ export const results = {
     planB: 'Plan B',
     planBLead: 'Extended programmes and diplomas you qualify for. A strong route into a degree.',
     empty: 'Nothing here yet.',
+    /** A collapsed group's cards are fetched when it opens (A4-19); when that fails. */
+    loadFailed: 'These courses didn’t load. Check your connection and try again.',
   },
   yourScore: (label: string, score: number, max: number) => `Your ${label}: ${score} of ${max}`,
   needed: (label: string, required: number) => `Needs ${label} ${required}`,
   noMinimum: 'No minimum score published',
+  /** RT-03: whose scale, and that its maximum is the most there is, not a target. */
+  scoreOn: (university: string, label: string, score: number, max: number) =>
+    `Your ${university} ${label}: ${score} (the most is ${max})`,
+  asksAtLeast: (required: number) => `This course asks for at least ${required}`,
+  above: (points: number) => (points === 0 ? 'you meet it exactly' : `you’re ${points} above`),
   pointsShort: (gap: number, label: string) => `${gap} ${label} points to go`,
   improve: (subject: string, current: number | null, target: number) =>
     current === null

@@ -100,7 +100,7 @@ import {
   RateLimitedError,
   TooYoungError,
 } from './errors';
-import { scopeToLearner } from './learner';
+import { actAsLearner, scopeToLearner } from './learner';
 import { MessagingStore } from './messaging';
 import {
   deleteExpiredModuleMarks,
@@ -112,11 +112,16 @@ import {
 } from './module-marks';
 import {
   assertOutlinesCovered,
+  deleteExpiredModuleOutlines,
   deleteModuleOutline,
+  forgetFileDeletion,
+  listQueuedFileDeletions,
   MODULE_OUTLINE_KIND,
   type ModuleOutlineRecord,
   type OutlineContext,
+  queuedFileDeletion,
   readModuleOutlines,
+  type SavedModuleOutline,
   saveModuleOutline,
 } from './module-outlines';
 import { isTollFreeNumber, maskPhone, normalisePhone, normaliseTollFree } from './phone';
@@ -140,9 +145,12 @@ import {
   type PlanNodePatch,
   type PlanNodeRecord,
   type PlanPartInput,
+  type PlanPlaceInput,
   type PlanWords,
   readPlanMap,
   readPlanMaps,
+  resetPlanLayout,
+  savePlanLayout,
   savePlanNode,
   updatePlanMap,
 } from './plan-maps';
@@ -387,6 +395,7 @@ export {
   MODULE_OUTLINES_ADULT_CONSENT_VERSION,
   MODULE_OUTLINES_CONSENT_VERSION,
   type ModuleOutlineRecord,
+  type SavedModuleOutline,
 } from './module-outlines';
 
 /** The document kinds that go whole to the AI provider with an ID or student number on them. */
@@ -752,6 +761,33 @@ export class Store {
    */
   async deleteExpiredModuleMarks(now: Date = this.#clock()): Promise<number> {
     return deleteExpiredModuleMarks(this.#db, sastDate(now));
+  }
+
+  /**
+   * D10 (migration 0042, A11-63): deletes every learner's confirmed module outlines once their
+   * academic year plus one has passed, as `deleteExpiredModuleMarks` does marks. Returns how many
+   * went, nothing else. A11-04's retention sweep runs it (A11-60: not scheduled yet).
+   */
+  async deleteExpiredModuleOutlines(now: Date = this.#clock()): Promise<number> {
+    return deleteExpiredModuleOutlines(this.#db, sastDate(now));
+  }
+
+  /** The storage key a `file.delete` job's id names (migration 0042, A1-88), or null once done. */
+  async queuedFileDeletion(id: string): Promise<string | null> {
+    return queuedFileDeletion(this.#db, id);
+  }
+
+  /** Forgets a queued file once storage has deleted it (A1-88). */
+  async forgetFileDeletion(id: string): Promise<void> {
+    return forgetFileDeletion(this.#db, id);
+  }
+
+  /**
+   * The queued file deletions still waiting, oldest first, at most `limit` (A11-61): for a sweep
+   * where no job runner will take the `file.delete` jobs (a judge demo). Ids only.
+   */
+  async queuedFileDeletionIds(limit = DEMO_SWEEP_BATCH): Promise<string[]> {
+    return listQueuedFileDeletions(this.#db, limit);
   }
 
   /**
@@ -1777,13 +1813,22 @@ export class Store {
    * browser that made it. Demo stores only.
    */
   async demoPhoneHasAccount(phoneInput: string): Promise<boolean> {
+    return (await this.demoPhoneAccount(phoneInput)) !== null;
+  }
+
+  /**
+   * The id of the account a made-up toll-free number holds now, or null. The browser's mark is
+   * bound to it, so a later account on the same number is never the old browser's (A5-27).
+   * Demo stores only.
+   */
+  async demoPhoneAccount(phoneInput: string): Promise<string | null> {
     this.#requireDemo();
     const phone = this.#phone(phoneInput);
     const [row] = await this.#db
       .select({ id: students.id })
       .from(students)
       .where(eq(students.phone, phone));
-    return Boolean(row);
+    return row?.id ?? null;
   }
 
   /** True for a judge's own account made by the demo's real sign-up (never a made-up learner). */
@@ -1923,8 +1968,7 @@ export class StudentStore {
   ): Promise<T> {
     return this.#db.transaction(async (tx) => {
       if (asOwner) await asOwner(tx);
-      await scopeToLearner(tx, this.#studentId, this.#clock());
-      await tx.execute(sql`set local role uf_app`);
+      await actAsLearner(tx, this.#studentId, this.#clock());
       if (personal && !(await this.#mayProcessIn(tx))) throw new ConsentRequiredError();
       return fn(tx);
     });
@@ -2831,12 +2875,11 @@ export class StudentStore {
 
   /**
    * Records an outline the learner confirmed section by section (hard rule 6), replacing that
-   * module's for that year. Read from an uploaded outline, the upload is deleted (D10) and its
-   * storage key returned for the caller to delete the file.
+   * module's for that year. Read from an uploaded outline, the upload is deleted (D10), its file
+   * queued for deletion (A1-88), and its storage key and queue id returned for the caller to delete
+   * the file (file-deletions.ts `deleteQueuedFile`).
    */
-  async saveModuleOutline(
-    input: ConfirmedModuleOutline,
-  ): Promise<{ readonly id: string; readonly fileKey: string | null }> {
+  async saveModuleOutline(input: ConfirmedModuleOutline): Promise<SavedModuleOutline> {
     return this.#as(
       (tx) => saveModuleOutline(this.#outline(tx), input),
       true,
@@ -3674,13 +3717,33 @@ export class StudentStore {
     return this.#as((tx) => readPlanMap(tx, id));
   }
 
-  /** A new map from a template's parts (`packages/ui` templateSeed): no words, all Planned. */
-  async createPlanMap(input: {
-    readonly templateId: string;
-    readonly linksGoal: boolean;
-    readonly parts: ReadonlyArray<PlanPartInput>;
-  }): Promise<PlanMapRecord> {
-    return this.#as((tx) => createPlanMap(this.#plan(tx), input));
+  /**
+   * A new map from a template's parts (`packages/ui` templateSeed), all Planned, with at most the
+   * learner's own name for it (RT-06: their words, so `words` is the owner's switch, D2).
+   */
+  async createPlanMap(
+    input: {
+      readonly templateId: string;
+      readonly linksGoal: boolean;
+      readonly parts: ReadonlyArray<PlanPartInput>;
+      readonly title?: string | null | undefined;
+    },
+    options: PlanWords = { words: false },
+  ): Promise<PlanMapRecord> {
+    return this.#as((tx) => createPlanMap(this.#plan(tx), input, options));
+  }
+
+  /** Where the learner put cards on the canvas (RT-08, migration 0043): numbers, never words. */
+  async savePlanLayout(
+    mapId: string,
+    places: ReadonlyArray<PlanPlaceInput>,
+  ): Promise<PlanMapRecord> {
+    return this.#as((tx) => savePlanLayout(this.#plan(tx), mapId, places));
+  }
+
+  /** "Reset layout": every card back where its template puts it. */
+  async resetPlanLayout(mapId: string): Promise<PlanMapRecord> {
+    return this.#as((tx) => resetPlanLayout(this.#plan(tx), mapId));
   }
 
   /** The title (the learner's words: `words` is the owner's switch, D2) and the goal link. */
@@ -4026,8 +4089,7 @@ export class StudentStore {
         where payload ->> 'studentId' = ${this.#studentId}
           or payload ->> 'reminderId' in (
             select id::text from reminders where student_id = ${this.#studentId}::uuid)`);
-      await scopeToLearner(tx, this.#studentId, this.#clock());
-      await tx.execute(sql`set local role uf_app`);
+      await actAsLearner(tx, this.#studentId, this.#clock());
       await this.#audit(tx, 'account.deleted');
       // Reminders, channel opt-ins, preferences, push tokens, the goal, exam choices,
       // re-checks, offers, first-week steps and registrations cascade with the student.

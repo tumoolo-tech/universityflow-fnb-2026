@@ -65,3 +65,10 @@ export {
   type SubjectId,
   subject,
 } from './subjects';
+// A1-81: the outline confirm step checks the same rule as the server (no zod, no records).
+export {
+  componentNameKey,
+  duplicateComponentNames,
+  WEIGHT_TOLERANCE,
+  weightsAddUpTo100,
+} from './weights';

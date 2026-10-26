@@ -6,7 +6,7 @@ import {
   SampleChatModel,
 } from '@universityflow/agent';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { chatModelFor } from '../lib/server/chat-model';
+import { chatModelFor, geminiRole } from '../lib/server/chat-model';
 import { type Config, ConfigError, readConfig } from '../lib/server/config';
 import { createServices } from '../lib/server/services';
 
@@ -96,6 +96,29 @@ describe('chatModelFor', () => {
   it('live, never falls back to the stand-in: no key is a configuration error', () => {
     const config = { ...readConfig({}), providers: 'live' as const };
     expect(() => pick({}, config)).toThrow(ConfigError);
+  });
+});
+
+describe('geminiRole: what the notices say about Google (AI-01)', () => {
+  // Read from the model that actually answers, so the words can't drift from chatModelFor.
+  it('is "first" whenever Gemini is asked first or alone', () => {
+    expect(geminiRole(pick({ ...GEMINI }).model)).toBe('first');
+    expect(geminiRole(pick({ ...GEMINI, UF_AI_PROVIDER: 'gemini' }).model)).toBe('first');
+    expect(geminiRole(pick({ ...ANTHROPIC, ...GEMINI, UF_AI_PROVIDER: 'gemini' }).model)).toBe(
+      'first',
+    );
+  });
+
+  it('is "fallback" when Claude is asked first and Gemini answers on an outage', () => {
+    expect(geminiRole(pick({ ...ANTHROPIC, ...GEMINI }).model)).toBe('fallback');
+  });
+
+  it('is null when Gemini can never answer: Claude alone, the stand-in, production', () => {
+    expect(geminiRole(pick(ANTHROPIC).model)).toBeNull();
+    expect(geminiRole(pick({ ...ANTHROPIC, UF_AI_PROVIDER: 'gemini' }).model)).toBeNull();
+    expect(geminiRole(pick({}).model)).toBeNull();
+    const config = { ...readConfig(ANTHROPIC), production: true, aiProvider: 'gemini' as const };
+    expect(geminiRole(pick({ ...ANTHROPIC, ...GEMINI }, config).model)).toBeNull();
   });
 });
 

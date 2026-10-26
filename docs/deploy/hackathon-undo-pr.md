@@ -31,7 +31,8 @@ logo exception in packages/catalogue.)
 >    the Firebase real sign-up for the judge demo, 18+ only, accounts deleted after 30 days"*.
 >    Real adults' data (a Firebase uid and an email, migration 0034's `demo_signups`) in the demo
 >    database, Google Firebase as a sign-in operator, notice wording without legal review, and a
->    CSP widened for Firebase on the sign-up page.
+>    CSP widened for Firebase on every page of the demo (since A5-28: a click to the sign-up
+>    page keeps the policy of the page it started on).
 > 2. **The universities' own logos** in the demo (`NEXT_PUBLIC_UF_DEMO_LOGOS=1`), setting aside
 >    option A of docs/brand/logo-permissions.md for one deployment, with a "not affiliated" line.
 >
@@ -44,6 +45,10 @@ logo exception in packages/catalogue.)
 > (docs/deploy/demo.md "The demo's extra features"): **My CV on the built-in stand-in**
 > (`UF_CV=1`, never Mmereko, D14), **plan-map words** (`UF_MINDMAP_WORDS=1`) and **Read aloud**
 > (ElevenLabs' key and voice). Their undo is E, F and G below, and console step 7.
+>
+> Added 2026-10-24 night: the live demo's chat on **Google's Gemini until 2026-11-08** (the
+> owner's decision; named on the chat and on /privacy while it is on, AI-01). Its undo is K
+> below and console step 9, due on 2026-11-08 even if judging has not ended.
 
 ## The owner's console steps (before the PR merges)
 
@@ -52,8 +57,9 @@ logo exception in packages/catalogue.)
    `NEXT_PUBLIC_FIREBASE_PROJECT_ID` and `NEXT_PUBLIC_UF_DEMO_LOGOS`. **Redeploy** (the
    `NEXT_PUBLIC_*` values are baked in at build time). Check: `/demo/sign-up` answers 404, the
    banner no longer has the "not affiliated" line, `/api/health` answers 200.
-2. **Delete the judges' accounts now**, without waiting for the 30-day sweep (it is lazy: it runs
-   only when someone starts a learner or signs in, so with nobody visiting it never runs). Either:
+2. **Delete the judges' accounts now**, without waiting for the 30-day sweep (since 2026-10-25 a
+   daily cron runs it without visits, exception M, but it deletes an account only 30 days after
+   it was made, and never the Firebase user). Either:
    - **delete the demo's database** (Supabase → the demo project → Project Settings → General →
      Delete project) if the demo is being taken down
      as well (docs/deploy/demo.md "Taking it down"); or
@@ -112,6 +118,18 @@ logo exception in packages/catalogue.)
 8. **Judges' new-learner sign-up** (`UF_DEMO_PHONE_SIGNUP`, exception H below): delete the
    variable in the demo project and redeploy; then, against the demo database only, delete the
    080 accounts as H says (or wait 24 hours for the sweep, or delete the whole database).
+9. **The chat back on Anthropic by 2026-11-08** (exception K below), whether or not judging has
+   ended by then: set a working `ANTHROPIC_API_KEY` (with a spend limit) in the demo project,
+   delete `UF_AI_PROVIDER` and `GEMINI_API_KEY`, and redeploy. Check: the line under the chat no
+   longer names Gemini, `/privacy` has no "Google (Gemini)" operator, `/api/health` 200, and
+   `pnpm demo:smoke -- --url https://universityflow.tumoolo.tech --real-ai` passes. Then
+   **delete the Gemini key** in Google AI Studio (aistudio.google.com → API keys), so the copy
+   stored as plain configuration in Vercel is worthless.
+10. **The scheduled sweep** (exception M below, added 2026-10-25): in the demo project delete
+    `CRON_SECRET`, then merge the PR that removes the `crons` entry and the route, and redeploy.
+    Check: Vercel → the demo project → Settings → Cron Jobs lists nothing; `/api/demo/sweep`
+    answers 404. Do this **last**, after steps 2, 6 and 8 have deleted the accounts by hand: until
+    then the sweep is what keeps the 24-hour and 30-day promises without visits.
 
 ## Every change to revert
 
@@ -135,7 +153,7 @@ logo exception in packages/catalogue.)
 |---|---|
 | `apps/web/lib/demo-signup.ts` | Remove `FirebaseWebConfig`, `DemoSignupSetting`, `DemoSignupConfigError`, `readDemoSignup`, `demoSignupOrNull`, `DEMO_SIGNUP_PATH`, `firebaseCspSources`, the fake token (`FAKE_ID_TOKEN_PREFIX`, `mintFakeIdToken`, `readFakeIdToken`). **Keep `readHttpsUrl` and `httpsUrlOrNull`**: the banner's "Back to UniversityFlow" (`components/demo-banner.tsx`) and the landing page (`app/page.tsx`) use them; move them to e.g. `lib/demo-links.ts` and delete the file. Keep `DEMO_SIGNUP_VARIABLES` as a refusal list (below) |
 | `apps/web/lib/csp.ts` | Remove the `firebaseAuthDomain` option and the Firebase `script`/`connect`/`frame-src` additions (lines 16, 27–30, 55, 62–74 at 092163c) |
-| `apps/web/proxy.ts` | Remove `firebaseAuthDomain(request)` and its import; every page gets the same policy |
+| `apps/web/proxy.ts` | Remove `firebaseAuthDomain()` and its import; no page gets Firebase's sources |
 | `apps/web/lib/server/config.ts` | Remove `demoSignup` from the config and `readDemoSignupSetting`. **Keep refusing** `UF_DEMO_SIGNUP` and the three `NEXT_PUBLIC_FIREBASE_*` in production and staging, and **now refuse them on a demo too** ("the hackathon sign-up has ended"), so a variable left in Vercel stops the deploy rather than being silently ignored |
 | `apps/web/app/page.tsx`, `apps/web/app/sign-in/page.tsx`, `apps/web/app/demo/page.tsx`, `apps/web/app/onboarding/page.tsx` | Drop the sign-up branches: the landing page's ways in go to `/demo`; the picker loses its sign-up line; onboarding loses the adults-only message |
 | `apps/web/lib/server/demo/core.ts` | Remove `DEMO_SIGNUPS_PER_IP_PER_HOUR`, the `sweepDemoSignups()` call and the `isDemoSignup` check in "Switch learner"/start |
@@ -171,9 +189,14 @@ still holds accounts the deploy fails loudly, which is the point.
 
 | File | Change |
 |---|---|
-| `apps/web/public/demo-logos/` (`tut.svg`, `uct.svg`, `ukzn.png`, `wits.svg`, and `uj.png`, `up.webp` added 2026-10-24) | Delete the folder |
+| `apps/web/public/demo-logos/` (`tut.svg`, `uct.svg`, `ukzn.webp` (a 96 px WebP since 2026-10-25, A4-22), `wits.svg`, and `uj.png`, `up.webp` added 2026-10-24) | Delete the folder |
 | `apps/web/lib/demo-logos.ts` | Delete |
 | `apps/web/public/demo-logos/colleges/` (31 public TVET college logos, added 2026-10-24; each file and its source in docs/deploy/demo.md) | Delete with the folder above |
+| `apps/web/public/demo-logos/funders/` (6 bursary funders' logos, added 2026-10-25; each file and its source in docs/deploy/demo.md) | Delete with the folder above |
+| `apps/web/components/bursary-list.tsx` | Remove the `demoLogos` prop, the logo chip and the `DEMO_FUNDER_LOGOS` import: no logo |
+| `packages/content/src/en/funding.ts` | Remove `demoLogosNotice` ("Funder logos are shown for this demo only. UniversityFlow is not affiliated with or endorsed by these funders."), and its line in `apps/web/components/demo-banner.tsx` |
+| `packages/catalogue/src/logo-permission.ts` (funders) | Remove `DEMO_FUNDER_LOGO_DIR`, its exception and the `funderIds` argument; in logo-permission.test.ts the two demo funder-logo tests and the `funders/sasol.webp` line of the real scan |
+| `apps/web/test/bursaries.test.tsx` | Remove the demo-logo cases (the funder logo drawn with the switch, the banner line, the folder listing) |
 | `apps/web/components/college-card.tsx` | Remove the `demoLogos` prop and the `DEMO_COLLEGE_LOGOS` import: the neutral mark only |
 | `packages/content/src/en/colleges.ts` | Remove `demoLogosNotice` ("College logos are shown for this demo only. UniversityFlow is not affiliated with or endorsed by these colleges."), and its line in `apps/web/components/demo-banner.tsx` |
 | `apps/web/components/university-mark.tsx` | Remove the demo-logo branch and its import; the grey mark (or a permitted logo) everywhere |
@@ -344,6 +367,99 @@ outlines), and migration 0040's gate.
 `en.adultConsent.version`, and `/api/demo/sample-outline` answers 403 `consent-outdated` with detail
 `module-outlines` for it while the live adult wording is older than adult-v3.
 
+### J. The demo's functions in London (`apps/web/vercel.json`, added 2026-10-25)
+
+The owner chose this on 2026-10-25 for the judging window, knowing it sets aside "Vercel `cpt1`"
+for the demo. The demo's database is on Supabase in London (`eu-west-2`); with its functions in
+Cape Town every database round trip cost about 160 ms, and a judge waited 18–40 s for a learner
+to start (PR #140 measured it and cut the trips). `apps/web/vercel.json` now says
+`"regions": ["lhr1"]`, beside the database: about 1–2 s a start. It holds made-up learners, and the
+judges' own sign-up data (exception A) was already in that London database, so no data moves.
+
+**It cannot reach real learners:** `vercel.json` is shared with production, but `readConfig`
+refuses to start in production outside `cpt1` (`REQUIRED_FUNCTION_REGION`), and
+`pnpm deploy:check production` reports that refusal while this exception stands. **Production
+cannot launch until J is undone.**
+
+**The owner's console step:** none.
+
+| File | Change |
+|---|---|
+| `apps/web/vercel.json` | `"regions": ["cpt1"]` again |
+| `apps/web/test/config.test.ts` | Drop the London branch of "pins every function to cpt1": `cpt1` only |
+| `scripts/deploy/deploy-check.mjs`, `deploy-check.test.mjs`, `load-app-config.mjs` | The `region` override may stay (harmless) or go; drop the London test |
+| `docs/deploy/demo.md` | "Hackathon exceptions" item J: ended, with the date |
+| `packages/content/src/en/home.ts` (`barHereDemo`, `barHereDemoWhere`, `freeDemo`), `apps/web/app/page.tsx` | **Review, don't revert blindly.** The demo's front door says "Real learners' information will stay in South Africa" and "This demo runs in London" instead of "Your information stays in South Africa" (added 2026-10-25, because the demo's database and functions are in London). Undoing J alone leaves it true: the database is still in London. Change it only if the demo's database moves too, or the demo goes; production never shows it |
+
+**Test to keep:** production refuses `lhr1` (config.test.ts, "refuses to start in production
+outside cpt1"). After the revert, `pnpm deploy:check production` no longer reports the region.
+
+### K. The demo's chat on Google's Gemini (`UF_AI_PROVIDER=gemini`, added 2026-10-24 night)
+
+(Listed before C so the code changes sit together.) The owner had no working Anthropic key for
+the judging and put the live demo's chat on Gemini **for 15 days, until 2026-11-08**
+(`UF_AI_PROVIDER=gemini` and `GEMINI_API_KEY` in Vercel), then back to Anthropic. This sets aside
+A10-46 (Gemini's API terms are 18+) for the demo only; production still refuses Gemini and its
+key (config.ts), and nothing below changes that. **Gemini is never presented as Anthropic**:
+while it answers, the line under the chat names it and `/privacy` lists Google as an operator and
+in "Information sent outside South Africa" (finding AI-01). **The deadline is the date, not the
+end of judging**: if judging runs past 2026-11-08, do console step 9 on the 8th anyway.
+
+**The owner's console step:** 9 above.
+
+The code needs **no revert**: the notice follows the model the services build
+(`geminiRole` in apps/web/lib/server/chat-model.ts), so once the key is gone the words go too.
+Keep `en.geminiNotice` (packages/content/src/en/gemini-notice.ts), `geminiRole` and
+apps/web/test/gemini-notice.test.tsx while Gemini remains a demo option at all; delete them only
+in the PR that removes Gemini altogether.
+
+**Check after step 9 (no new test):** apps/web/test/gemini-notice.test.tsx already proves the
+words appear only while Gemini answers; on the deployed demo, the chat line is `chat.disclaimer`
+and `/privacy` names no Gemini.
+
+### L. The judges' Android app on the demo (`EXPO_PUBLIC_UF_DEMO`, added 2026-10-25)
+
+(Listed before C so the code changes sit together.) So judges can install the app and sign up on
+the live demo, a `preview` build carries `EXPO_PUBLIC_UF_DEMO=1` and points
+`EXPO_PUBLIC_UF_API_URL` at the demo (docs/store/judges-app.md). The app then shows the demo's
+title and notice on sign-in, the 080 label and hint, the PIN the demo server returns
+(`demoPin`), and a made-up guardian's consent link.
+
+**The owner's console step:** delete `EXPO_PUBLIC_UF_DEMO` from the EAS `preview` environment and
+set `EXPO_PUBLIC_UF_API_URL` there back to a staging URL (or delete it) before any other preview
+build; expire the judges' install link on expo.dev.
+
+**Edit:** remove the `EXPO_PUBLIC_UF_DEMO` branch from the app's sign-in and onboarding screens
+and `demoPhoneSignup` from `@universityflow/content/app` (app.ts, app-en.ts), with their tests in
+apps/native/__tests__/sign-in.test.tsx and onboarding.test.tsx. The PIN step must again never show
+a PIN; the server already sends none outside the demo.
+
+### M. The demo's scheduled sweep (`CRON_SECRET`, `/api/demo/sweep`, added 2026-10-25)
+
+(Listed before C so the code changes sit together.) A11-61: the demo's words promise copies
+"deleted within 24 hours" and the judges' sign-up accounts deleted "after 30 days", but the sweep
+was lazy (it ran on visits only). The owner chose on 2026-10-25 to keep the words and build the
+scheduled sweep: a Vercel cron in `apps/web/vercel.json` (`crons`, daily at 02:00 UTC) calls
+`GET /api/demo/sweep`, a demo-only route guarded by Vercel's `CRON_SECRET`
+(docs/deploy/demo.md §7). It is an exception only in that it exists for the demo: the cron entry
+is shared with production's `vercel.json` (where the route answers 404 and `readConfig` refuses
+`CRON_SECRET`), and production's own retention job (A11-04) replaces it.
+
+**The owner's console step:** 10 above.
+
+| File | Change |
+|---|---|
+| `apps/web/vercel.json` | Remove the `crons` entry |
+| `apps/web/app/api/demo/sweep/route.ts`, `apps/web/lib/server/demo/sweep.ts` | Delete (`cronAuthorised`, `runDemoSweep`, `SweepFailedError`) |
+| `apps/web/lib/server/config.ts` | Remove `readCronSecret`, `MIN_CRON_SECRET_LENGTH` and the demo's call to it. **Keep `CRON_SECRET` in `DEMO_ONLY`** (refused in production and staging) and refuse it on a demo too ("ended"), until A11-04's job takes the name for production |
+| `packages/db/src/store.ts`, `module-outlines.ts`, `index.ts` | `queuedFileDeletionIds` / `listQueuedFileDeletions` and the `DEMO_SWEEP_BATCH` export may stay (a job runner elsewhere can use them) or go with their test in `module-outlines.test.ts` |
+| `apps/web/test/api-demo-sweep.test.ts`, `api-demo-sweep-outside.test.ts`, `demo-sweep-config.test.ts` | Delete; keep one test that a demo refuses `CRON_SECRET` and that `/api/demo/sweep` answers 404 everywhere |
+| `scripts/deploy/demo-setup.mjs`, `demo-setup.test.mjs` | Remove the `CRON_SECRET` prompt and its test |
+| `.env.example`, `docs/deploy/demo.md` | Remove the `CRON_SECRET` block, §7 and its rows (mark it ended, with the date) |
+
+**Test to add (seen to fail before the revert):** a demo refuses to start with `CRON_SECRET` set
+("ended"); `GET /api/demo/sweep` answers 404 on a demo; `vercel.json` has no `crons`.
+
 ### C. Documents
 
 | File | Change |
@@ -390,8 +506,9 @@ main-site switch tests (`NEXT_PUBLIC_UF_DEMO_URL`, `NEXT_PUBLIC_UF_MAIN_URL`), t
 
 ## Not part of this PR (separate decisions)
 
-- **Gemini** (`UF_AI_PROVIDER`, `GEMINI_API_KEY`) is not a hackathon exception: it is a demo-only
-  second model, refused in production. A10-46 (Gemini's terms are 18+) stays open for the owner and
-  legal; the demo runs on Anthropic meanwhile.
+- **Gemini as a demo option at all** (the adapter, `UF_AI_PROVIDER`, `GEMINI_API_KEY`): a
+  demo-only second model, refused in production. A10-46 (Gemini's terms are 18+) stays open for
+  the owner and legal. Its use on the live demo until 2026-11-08 is exception K above (console
+  step 9).
 - **Taking the demo down altogether** is docs/deploy/demo.md "Taking it down": delete the demo's
   Vercel project and database.

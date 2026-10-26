@@ -5,7 +5,7 @@ Team TumoOlo Tech · Tumo Mogame, Tumoolo
 
 This repository is a read-only snapshot of UniversityFlow's code, shared so the judges of the
 FNB App of the Year Hackathon 2026 can read it. The working repository is private; this snapshot is
-its `main` branch on 25 October 2026 with the deck update of pull request #139 (commit `96767bd7`), as one commit without history.
+its `main` branch on 26 October 2026 (commit `02fdfa8b`) with the final deck, as one commit without history.
 
 | | |
 |---|---|

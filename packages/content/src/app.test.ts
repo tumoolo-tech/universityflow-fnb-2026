@@ -78,6 +78,11 @@ describe('the app entry (A4-18)', () => {
     expect((app.en as Record<string, unknown>)['cv']).toBe(en.cv);
   });
 
+  it('carries the judge demo’s on-screen sign-up words, which the app shows when the demo sends them (2026-10-25)', () => {
+    expect((app.en as Record<string, unknown>)['demoPhoneSignup']).toBe(en.demoPhoneSignup);
+    expect((app as Record<string, unknown>)['demoPhoneSignup']).toBe(en.demoPhoneSignup);
+  });
+
   it('leaves out the web-only sections', () => {
     for (const key of ['agent', 'deploy', 'demo', 'demoPersonas', 'dev']) {
       expect(app.en, key).not.toHaveProperty(key);

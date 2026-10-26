@@ -120,7 +120,8 @@ describe('the primitives', () => {
     const sentence = screen.getByText('Nothing yet.');
     expect(sentence.className).toContain('text-muted');
     const card = sentence.parentElement;
-    expect(card?.className).toMatch(/rounded-lg border border-line bg-surface/);
+    // Card's fill and edge are `.uf-card`'s (RT-04, test/card-separation.test.tsx).
+    expect(card?.className).toMatch(/uf-card rounded-lg border/);
     const link = screen.getByRole('link', { name: 'Go somewhere' });
     expect(link.getAttribute('href')).toBe('/somewhere');
     expect(link.className).toContain('border-line-strong');

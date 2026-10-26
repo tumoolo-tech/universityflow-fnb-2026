@@ -4,7 +4,7 @@ import type { ExamCountdownArtifact, GoalCardArtifact } from '@universityflow/ag
 import { common, goals } from '@universityflow/content';
 import Link from 'next/link';
 import { type ReactNode, type Ref, useId } from 'react';
-import { Badge, Card, Notice, SourceLink } from '@/components/ui';
+import { Badge, Card, Notice, panelLook, SourceLink } from '@/components/ui';
 import { formatDate } from '@/lib/client/api';
 import { ProgrammeCard } from './programme-card';
 import { UniversityName } from './university-mark';
@@ -86,11 +86,11 @@ export function ExamCountdown({ artifact }: { artifact: ExamCountdownArtifact })
       ) : (
         <>
           <p className="text-muted">{t.examsLead(artifact.examYear)}</p>
-          <ol className="flex flex-col gap-2">
+          <ol className="flex flex-col gap-3">
             {artifact.papers.map((p) => (
               <li
                 key={p.id}
-                className="flex flex-col gap-1 rounded-md bg-sunk p-3"
+                className={`${panelLook} flex flex-col gap-1 p-3`}
                 data-testid={`paper-${p.id}`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">

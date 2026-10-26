@@ -1,19 +1,24 @@
+import type { PlanLayout } from '@universityflow/ui';
 import { describe, expect, it } from 'vitest';
 import {
+  type Box,
   centreOn,
   clampScale,
   clampView,
   DRAG_THRESHOLD,
   firstView,
+  firstViewOf,
   fitView,
   glide,
   homeView,
   isDrag,
   panRange,
+  READABLE,
   releaseVelocity,
   revealView,
   roadPath,
   rubber,
+  type Size,
   stairPath,
   step,
   type View,
@@ -21,6 +26,14 @@ import {
   ZOOM,
   zoomAt,
 } from '../app/(app)/goals/maps/[id]/canvas-math';
+import {
+  CARD_WIDTH,
+  cardHeight,
+  defaultLayout,
+  HUB_WIDTH,
+  hubBodyHeight,
+  hubOuter,
+} from '../app/(app)/goals/maps/[id]/map-layout';
 
 /**
  * The plan map's canvas, as plain maths (no DOM), so each rule is proven on numbers: zoom toward a
@@ -87,22 +100,122 @@ describe('fit and home', () => {
   });
 });
 
-describe('the first view', () => {
-  const big = { width: 960, height: 900 };
-  const centre = { x: 330, y: 350, width: 300, height: 200 };
+describe('the first view (the integrator, 2026-10-25/26: the map, readable, no card cut)', () => {
+  const LAYOUTS: ReadonlyArray<PlanLayout> = ['ring', 'cloud', 'stairs', 'branches', 'road'];
+  const COUNT: Record<PlanLayout, number> = { ring: 6, cloud: 6, stairs: 8, branches: 7, road: 6 };
+  const EMPTY_CARD = {
+    note: true,
+    whyNot: false,
+    differently: false,
+    target: false,
+    link: true,
+    steps: 0,
+  };
+  const FULL_HUB = { note: true, goal: true, words: 3, progress: true, actions: true };
+  /** Each template as a new map lays out: empty cards, the middle with a goal and three words. */
+  const laidOut = (layout: PlanLayout) => {
+    const body = { width: HUB_WIDTH[layout], height: hubBodyHeight(FULL_HUB) };
+    const hub = hubOuter(layout, body);
+    const card = { width: CARD_WIDTH[layout], height: cardHeight(EMPTY_CARD) };
+    const laid = defaultLayout(
+      layout,
+      hub,
+      Array.from({ length: COUNT[layout] }, () => card),
+    );
+    // The middle's words sit centred in its shape (globals.css: .uf-map-centre centres its body).
+    const words: Box = {
+      x: laid.hub.x + (laid.hub.width - body.width) / 2,
+      y: laid.hub.y + (laid.hub.height - body.height) / 2,
+      ...body,
+    };
+    return { ...laid, words };
+  };
+  /** The canvas card's window at 1280 and at 360 wide, about 600 tall (tokens.canvas.height). */
+  const WINDOWS = { 1280: { width: 960, height: 600 }, 360: { width: 312, height: 600 } } as const;
+  const shown = (v: View, b: Box, port: Size, margin = 0) => {
+    const l = v.x + b.x * v.scale;
+    const t = v.y + b.y * v.scale;
+    const r = v.x + (b.x + b.width) * v.scale;
+    const bottom = v.y + (b.y + b.height) * v.scale;
+    const inside =
+      l >= margin - 0.5 &&
+      t >= margin - 0.5 &&
+      r <= port.width - margin + 0.5 &&
+      bottom <= port.height - margin + 0.5;
+    const seen = r > 1 && l < port.width - 1 && bottom > 1 && t < port.height - 1;
+    return { inside, cut: seen && !inside };
+  };
 
-  it('on a wide card, the map fills the width from its top, so it reads from the first stop', () => {
-    const card = { width: 980, height: 610 };
-    const v = firstView(big, card, centre, 24);
-    expect(v.scale).toBeCloseTo((980 - 48) / 960, 6);
-    expect(v.y).toBe(24);
-    expect(v.x + (big.width * v.scale) / 2).toBeCloseTo(card.width / 2, 6);
-    // Never above 100%.
-    expect(firstView(big, { width: 2000, height: 900 }, centre, 24).scale).toBe(1);
+  it('shows the whole map, centred, when it fits at a readable zoom; never above 100%', () => {
+    const hub = { x: 200, y: 150, width: 200, height: 100 };
+    const small = { width: 600, height: 400 };
+    const v = firstView(small, WINDOWS[1280], hub, [], 24);
+    expect(v.scale).toBe(1);
+    expect(v.x + small.width / 2).toBeCloseTo(WINDOWS[1280].width / 2, 6);
+    expect(v.y + small.height / 2).toBeCloseTo(WINDOWS[1280].height / 2, 6);
+    // A map a little bigger than the window: the whole of it, zoomed out, still readable.
+    const big = { width: 1000, height: 620 };
+    const w = firstView(big, WINDOWS[1280], hub, [], 24);
+    expect(w.scale).toBeCloseTo(Math.min((960 - 48) / 1000, (600 - 48) / 620), 6);
+    expect(w.scale).toBeGreaterThanOrEqual(READABLE);
+    expect(shown(w, { x: 0, y: 0, ...big }, WINDOWS[1280], 24).inside).toBe(true);
   });
 
-  it('on a phone, where the whole width would be too small to read, the middle at 100%', () => {
-    expect(firstView(big, phone, centre, 24)).toEqual(homeView(centre, phone));
+  it('never goes under the readable zoom (a card’s words about 12px on screen)', () => {
+    expect(READABLE).toBeGreaterThanOrEqual(0.85);
+    expect(15 * READABLE).toBeGreaterThanOrEqual(12.5);
+  });
+
+  for (const layout of LAYOUTS) {
+    for (const width of [1280, 360] as const) {
+      const port = WINDOWS[width];
+      it(`${layout} at ${width}: readable, the middle whole, no card cut at an edge${width === 1280 ? ', cards beside it' : ''}`, () => {
+        const laid = laidOut(layout);
+        const v = firstView(laid.world, port, laid.hub, laid.cards, 24, laid.words);
+        expect(v.scale).toBeGreaterThanOrEqual(READABLE);
+        expect(v.scale).toBeLessThanOrEqual(1);
+        // The middle whole where its shape fits the window; on a phone at least all its words.
+        const hubFits = Math.min(
+          (port.width - 48) / laid.hub.width,
+          (port.height - 48) / laid.hub.height,
+        );
+        expect(shown(v, hubFits >= READABLE ? laid.hub : laid.words, port, 24 - 1e-6).inside).toBe(
+          true,
+        );
+        const states = laid.cards.map((c) => shown(v, c, port));
+        // The one exception, by geometry: on a phone the road's last milestone (its lane beside
+        // the road, under the goal) can't be wholly in or out of a 312px window with the goal's
+        // words whole and readable, so its top shows at the window's foot, a pan away.
+        const allowed = layout === 'road' && width === 360 ? 1 : 0;
+        expect(states.filter((s) => s.cut).length).toBeLessThanOrEqual(allowed);
+        if (width === 1280) expect(states.filter((s) => s.inside).length).toBeGreaterThanOrEqual(1);
+        // The same view once kept on the map (what the canvas applies).
+        expect(clampView(v, laid.world, port, 24)).toEqual(v);
+      });
+    }
+  }
+
+  it('the server’s script runs the very same rule (its source, self-contained)', () => {
+    const laid = laidOut('ring');
+    const source = firstViewOf.toString();
+    const again = new Function(`return (${source});`)() as typeof firstViewOf;
+    const args = [
+      laid.world,
+      WINDOWS[360],
+      laid.hub,
+      laid.words,
+      laid.cards,
+      24,
+      READABLE,
+    ] as const;
+    expect(again(...args)).toEqual(firstViewOf(...args));
+  });
+
+  it('with nothing to measure (no size), falls back to the middle at 100%', () => {
+    const centre = { x: 330, y: 350, width: 300, height: 200 };
+    expect(firstView({ width: 0, height: 0 }, phone, centre, [], 24)).toEqual(
+      homeView(centre, phone),
+    );
   });
 });
 

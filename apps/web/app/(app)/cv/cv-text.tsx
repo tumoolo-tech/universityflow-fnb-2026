@@ -1,5 +1,6 @@
 import { type CvInline, cvTextBlocks } from '@universityflow/ui';
 import { Fragment, type ReactNode } from 'react';
+import { panelLook } from '@/components/ui';
 
 /**
  * The CV's text in the preview as real structure (audit CV-A2, A2-47): its name, sections and
@@ -28,7 +29,7 @@ function runs(content: ReadonlyArray<CvInline>): ReactNode[] {
 
 export function CvText({ markdown }: { markdown: string | null }) {
   return (
-    <div className="flex flex-col gap-2 rounded-md bg-sunk p-4">
+    <div className={`${panelLook} flex flex-col gap-2 p-4`}>
       {cvTextBlocks(markdown).map((block, i) => {
         const key = `${block.kind}-${i}`;
         if (block.kind === 'heading') {

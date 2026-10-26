@@ -79,6 +79,8 @@ export async function loadAppConfig() {
   const cv = await import(at('apps/web/lib/server/cv-providers.ts'));
   return {
     readConfig: config.readConfig,
+    /** Where production must run: readConfig refuses any other Vercel region. */
+    REQUIRED_FUNCTION_REGION: config.REQUIRED_FUNCTION_REGION,
     ConfigError: config.ConfigError,
     /** readConfig's own default, spelled out so a check can add to it. */
     adapters: () => ({

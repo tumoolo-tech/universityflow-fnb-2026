@@ -37,6 +37,16 @@ export function resolveApiUrl(raw: string | undefined, dev: boolean): string {
   return value.replace(/\/+$/, '');
 }
 
+/**
+ * A judges' build (eas.json `judges`, pointed at the FNB hackathon demo): the sign-in screen says
+ * first that this is the demo, made-up details and a made-up 080 number only. Words only: the
+ * demo's server is what refuses a cellphone number and sends nothing (docs/deploy/demo.md §4b).
+ * Written out in full so Expo's Babel preset inlines it.
+ */
+export function isDemoBuild(): boolean {
+  return process.env.EXPO_PUBLIC_UF_DEMO === '1';
+}
+
 /** The API base URL for this build. Read lazily, so a bad value fails a request, not launch. */
 export function apiUrl(): string {
   return resolveApiUrl(process.env.EXPO_PUBLIC_UF_API_URL, __DEV__);

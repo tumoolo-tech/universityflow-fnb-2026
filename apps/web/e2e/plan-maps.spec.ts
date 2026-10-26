@@ -98,9 +98,12 @@ test('a learner starts a plan map, ticks it, moves and deletes a stop, by keyboa
   const canvas = page.getByRole('region', { name: 'Your map, on a canvas', exact: true });
   await expect(canvas).toBeVisible();
   const zoom = page.locator('.uf-canvas-zoom');
-  await expect(zoom).toContainText('100');
+  // It opens at whatever zoom reads best for the window (93% on a 360px phone), not a fixed 100%.
+  const percent = async () => Number((await zoom.innerText()).match(/\d+/)?.[0]);
+  await expect(zoom).toContainText('%');
+  const opened = await percent();
   await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
-  await expect(zoom).toContainText('125');
+  await expect.poll(percent).toBeGreaterThan(opened);
   await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
   await page.getByRole('button', { name: 'Fit to view', exact: true }).click();
   await page.getByRole('button', { name: 'Back to the middle', exact: true }).click();

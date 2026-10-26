@@ -82,6 +82,20 @@ describe('the mark calculator', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('opens a keyboard that can type “18/24” on a mark field: a phone’s decimal pad has no “/” (A7-24)', () => {
+    show();
+    for (const name of ['Test 1', 'Test 2', 'Assignment']) {
+      const field = screen.getByLabelText(c.markLabel(name));
+      expect(field.getAttribute('inputmode'), name).toBe('text');
+      // Nothing "corrects" or capitalises a score as it is typed.
+      expect(field.getAttribute('autocorrect'), name).toBe('off');
+      expect(field.getAttribute('autocapitalize'), name).toBe('off');
+      expect(field.getAttribute('spellcheck'), name).toBe('false');
+    }
+    // The target is a percentage only: the decimal pad is right for it.
+    expect(screen.getByLabelText(c.targetLabel).getAttribute('inputmode')).toBe('decimal');
+  });
+
   it('announces what changed in a polite live region', () => {
     show();
     const live = screen.getByTestId('calculator-summary');
