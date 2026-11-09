@@ -23,7 +23,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.19.2",
     "@universityflow/config": "workspace:*",
     "@vitest/coverage-v8": "^4.1.12",
     "jiti": "2.7.0",
