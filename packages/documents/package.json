@@ -20,14 +20,14 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
-    "@aws-sdk/client-s3": "3.1142.0",
-    "@aws-sdk/s3-presigned-post": "3.1142.0",
+    "@aws-sdk/client-s3": "3.1156.0",
+    "@aws-sdk/s3-presigned-post": "3.1156.0",
     "@universityflow/catalogue": "workspace:*",
     "sharp": "0.35.5",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.19.2",
     "@universityflow/config": "workspace:*",
     "@vitest/coverage-v8": "^4.1.12",
     "rimraf": "^6.1.3",

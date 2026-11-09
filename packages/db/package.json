@@ -18,7 +18,7 @@
     "review:seed": "jiti scripts/review-seed.ts"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.19.2",
     "@types/pg": "^8.23.1",
     "@universityflow/config": "workspace:*",
     "@vitest/coverage-v8": "^4.1.12",
@@ -28,7 +28,7 @@
     "vitest": "^4.1.12"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.9",
+    "@electric-sql/pglite": "^0.5.11",
     "@universityflow/catalogue": "workspace:*",
     "@universityflow/content": "workspace:*",
     "@universityflow/cv": "workspace:*",
