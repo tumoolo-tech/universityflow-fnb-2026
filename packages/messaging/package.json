@@ -23,11 +23,11 @@
     "@universityflow/jobs": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.19.2",
     "@universityflow/catalogue": "workspace:*",
     "@universityflow/config": "workspace:*",
     "@vitest/coverage-v8": "^4.1.12",
-    "rimraf": "^6.1.3",
+    "rimraf": "^6.1.4",
     "typescript": "^7.0.2",
     "vitest": "^4.1.12"
   }
